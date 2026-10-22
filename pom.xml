@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="
+         http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.lavyoung</groupId>
+    <artifactId>gateweave-parent</artifactId>
+    <version>${revision}</version>
+
+    <packaging>pom</packaging>
+
+    <name>${project.artifactId}</name>
+    <description>GateWeave extensible API gateway</description>
+    <modules>
+        <module>gateweave-contract</module>
+        <module>gateweave-plugin</module>
+        <module>gateweave-engine</module>
+        <module>gateweave-center</module>
+        <module>gateweave-spring-boot-starter</module>
+        <module>gateweave-tests</module>
+    </modules>
+
+
+    <properties>
+
+        <!-- Project version: the sole source for every module -->
+        <revision>1.0.0-SNAPSHOT</revision>
+
+        <!-- Java -->
+        <java.version>17</java.version>
+        <maven.compiler.release>17</maven.compiler.release>
+
+        <!-- Encoding -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <archunit.version>1.2.1</archunit.version>
+    </properties>
+
+
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>com.lavyoung</groupId>
+                <artifactId>gateweave-contract</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lavyoung</groupId>
+                <artifactId>gateweave-plugin</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lavyoung</groupId>
+                <artifactId>gateweave-engine</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lavyoung</groupId>
+                <artifactId>gateweave-center</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lavyoung</groupId>
+                <artifactId>gateweave-spring-boot-starter</artifactId>
+                <version>${revision}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
+    <build>
+
+        <pluginManagement>
+            <plugins>
+
+                <!-- Java Compiler -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+
+                    <configuration>
+
+                        <release>${java.version}</release>
+
+                        <parameters>true</parameters>
+
+                    </configuration>
+                </plugin>
+
+                <!-- Spring Boot -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+</project>
