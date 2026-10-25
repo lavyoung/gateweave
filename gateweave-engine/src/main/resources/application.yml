@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: gateweave-engine
+
+gateweave:
+  server:
+    host: 0.0.0.0
+    port: 7397
+    max-content-length: 1048576
+    boss-threads: 1
+    worker-threads: 4
