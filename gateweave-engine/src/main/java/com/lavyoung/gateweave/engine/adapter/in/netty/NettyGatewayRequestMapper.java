@@ -1,10 +1,5 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
-import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
-import io.netty.handler.codec.http.FullHttpRequest;
-
 import java.net.URI;
 import java.net.http.HttpHeaders;
 import java.util.List;
@@ -13,6 +8,12 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.handler.codec.http.FullHttpRequest;
+
+import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+
 /**
  * 将 Netty HTTP 请求转换为网关应用层命令。
  *
@@ -20,8 +21,7 @@ import java.util.stream.Collectors;
  * 请求头和 ByteBuf，避免网络框架类型进入应用层。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 public final class NettyGatewayRequestMapper {
     private static final String REQUEST_ID_HEADER = "X-Request-Id";
@@ -38,13 +38,8 @@ public final class NettyGatewayRequestMapper {
         Objects.requireNonNull(request, "request must not be null");
         ByteBuf content = request.content();
         byte[] body = ByteBufUtil.getBytes(content, content.readerIndex(), content.readableBytes(), true);
-        return new GatewayRequestCommand(
-                resolveRequestId(request),
-                request.method().name(),
-                URI.create(request.uri()),
-                mapHeaders(request.headers()),
-                body
-        );
+        return new GatewayRequestCommand(resolveRequestId(request), request.method().name(), URI.create(request.uri()),
+                mapHeaders(request.headers()), body);
     }
 
     /**
@@ -65,9 +60,8 @@ public final class NettyGatewayRequestMapper {
      * @return JDK 不可变请求头
      */
     private static HttpHeaders mapHeaders(io.netty.handler.codec.http.HttpHeaders nettyHeaders) {
-        Map<String, List<String>> valuesByName = nettyHeaders.names().stream()
-                .collect(Collectors.toUnmodifiableMap(name -> name,
-                        name -> List.copyOf(nettyHeaders.getAll(name))));
+        Map<String, List<String>> valuesByName = nettyHeaders.names().stream().collect(
+                Collectors.toUnmodifiableMap(name -> name, name -> List.copyOf(nettyHeaders.getAll(name))));
         return HttpHeaders.of(valuesByName, (n, v) -> true);
     }
 }

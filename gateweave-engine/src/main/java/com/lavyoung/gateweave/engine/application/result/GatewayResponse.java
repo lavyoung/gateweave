@@ -14,13 +14,9 @@ import java.util.Objects;
  * @param headers    响应头快照
  * @param body       原始响应体
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
-public record GatewayResponse(
-        int statusCode,
-        HttpHeaders headers,
-        byte[] body) {
+public record GatewayResponse(int statusCode, HttpHeaders headers, byte[] body) {
     /**
      * 校验响应属性并建立不可变快照。
      *
@@ -29,8 +25,7 @@ public record GatewayResponse(
      */
     public GatewayResponse {
         if (statusCode < 100 || statusCode > 599) {
-            throw new IllegalArgumentException(
-                    "statusCode must be between 100 and 599");
+            throw new IllegalArgumentException("statusCode must be between 100 and 599");
         }
 
         headers = Objects.requireNonNull(headers, "headers must not be null");
@@ -49,8 +44,7 @@ public record GatewayResponse(
      */
     public static GatewayResponse text(int statusCode, String content) {
         Objects.requireNonNull(content, "content must not be null");
-        var headers = HttpHeaders.of(
-                Map.of("Content-Type", List.of("text/plain; charset=UTF-8")),
+        HttpHeaders headers = HttpHeaders.of(Map.of("Content-Type", List.of("text/plain; charset=UTF-8")),
                 (name, value) -> true);
 
         return new GatewayResponse(statusCode, headers, content.getBytes(StandardCharsets.UTF_8));
@@ -63,7 +57,7 @@ public record GatewayResponse(
      */
     @Override
     public byte[] body() {
-        return Arrays.copyOf(body, body.length);
+        return Arrays.copyOf(this.body, this.body.length);
     }
 
 }

@@ -1,13 +1,13 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
+import java.util.Objects;
+import java.util.function.Supplier;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-
-import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * 为网关连接装配 HTTP 入站处理链。
@@ -19,8 +19,7 @@ import java.util.function.Supplier;
  * 从而不要求处理器必须支持跨连接共享。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 public final class GatewayChannelInitializer extends ChannelInitializer<Channel> {
 
@@ -36,13 +35,14 @@ public final class GatewayChannelInitializer extends ChannelInitializer<Channel>
      * @throws IllegalArgumentException maxContentLength 小于或等于 0 时抛出
      * @throws NullPointerException     requestHandlerFactory 为 null 时抛出
      */
-    public GatewayChannelInitializer(int maxContentLength, Supplier<? extends ChannelInboundHandler> requestHandlerFactory) {
+    public GatewayChannelInitializer(int maxContentLength,
+            Supplier<? extends ChannelInboundHandler> requestHandlerFactory) {
         if (maxContentLength <= 0) {
             throw new IllegalArgumentException("maxContentLength must be greater than zero");
         }
         this.maxContentLength = maxContentLength;
-        this.requestHandlerFactory = Objects.requireNonNull(requestHandlerFactory,
-                "requestHandlerFactory must not be null");
+        this.requestHandlerFactory =
+                Objects.requireNonNull(requestHandlerFactory, "requestHandlerFactory must not be null");
     }
 
     /**
@@ -53,11 +53,11 @@ public final class GatewayChannelInitializer extends ChannelInitializer<Channel>
      */
     @Override
     protected void initChannel(Channel channel) {
-        ChannelInboundHandler requestHandler = Objects.requireNonNull(requestHandlerFactory.get(),
+        ChannelInboundHandler requestHandler = Objects.requireNonNull(this.requestHandlerFactory.get(),
                 "requestHandlerFactory must not return null");
         channel.pipeline()
                 .addLast("httpCodec", new HttpServerCodec())
-                .addLast("httpAggregator", new HttpObjectAggregator(maxContentLength))
+                .addLast("httpAggregator", new HttpObjectAggregator(this.maxContentLength))
                 .addLast("gatewayRequestHandler", requestHandler);
     }
 }

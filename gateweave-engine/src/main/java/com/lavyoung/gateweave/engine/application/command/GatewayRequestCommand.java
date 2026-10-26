@@ -1,7 +1,7 @@
 package com.lavyoung.gateweave.engine.application.command;
 
-import java.net.http.HttpHeaders;
 import java.net.URI;
+import java.net.http.HttpHeaders;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -14,15 +14,9 @@ import java.util.Objects;
  * @param headers   HTTP 请求头快照
  * @param body      原始请求体
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
-public record GatewayRequestCommand(
-        String requestId,
-        String method,
-        URI uri,
-        HttpHeaders headers,
-        byte[] body) {
+public record GatewayRequestCommand(String requestId, String method, URI uri, HttpHeaders headers, byte[] body) {
 
     /**
      * 校验请求属性并建立不可变快照。
@@ -54,7 +48,7 @@ public record GatewayRequestCommand(
      */
     @Override
     public byte[] body() {
-        return Arrays.copyOf(body, body.length);
+        return Arrays.copyOf(this.body, this.body.length);
     }
 
 }

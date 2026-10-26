@@ -1,12 +1,12 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 
 /**
  * 管理网关 Netty 监听 Channel 的启动和关闭。
@@ -15,8 +15,7 @@ import java.util.Optional;
  * 服务器只负责绑定地址、保存监听 Channel 以及执行幂等关闭。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 public final class NettyGatewayServer implements AutoCloseable {
 
@@ -43,10 +42,10 @@ public final class NettyGatewayServer implements AutoCloseable {
      * <p>重复调用时，如果监听 Channel 仍然有效，则直接返回。</p>
      */
     public synchronized void start() {
-        if (serverChannel != null && serverChannel.isActive()) {
+        if (this.serverChannel != null && this.serverChannel.isActive()) {
             return;
         }
-        serverChannel = serverBootstrap.bind(bindAddress).syncUninterruptibly().channel();
+        this.serverChannel = this.serverBootstrap.bind(this.bindAddress).syncUninterruptibly().channel();
     }
 
     /**
@@ -55,7 +54,7 @@ public final class NettyGatewayServer implements AutoCloseable {
      * @return 服务器运行时返回 true，否则返回 false
      */
     public synchronized boolean isRunning() {
-        return serverChannel != null && serverChannel.isActive();
+        return this.serverChannel != null && this.serverChannel.isActive();
     }
 
     /**
@@ -64,7 +63,7 @@ public final class NettyGatewayServer implements AutoCloseable {
      * @return 已启动时返回实际地址，否则返回空
      */
     public synchronized Optional<SocketAddress> localAddress() {
-        return serverChannel == null ? Optional.empty() : Optional.ofNullable(serverChannel.localAddress());
+        return this.serverChannel == null ? Optional.empty() : Optional.ofNullable(this.serverChannel.localAddress());
     }
 
     /**
@@ -74,10 +73,10 @@ public final class NettyGatewayServer implements AutoCloseable {
      */
     @Override
     public synchronized void close() throws Exception {
-        if (serverChannel == null) {
+        if (this.serverChannel == null) {
             return;
         }
-        serverChannel.close().syncUninterruptibly();
-        serverChannel = null;
+        this.serverChannel.close().syncUninterruptibly();
+        this.serverChannel = null;
     }
 }

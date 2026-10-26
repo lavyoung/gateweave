@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+
+    <module name="LineLength">
+        <property name="fileExtensions" value="java"/>
+        <property name="max" value="120"/>
+    </module>
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+    <module name="NewlineAtEndOfFile"/>
+    <module name="SuppressionFilter">
+        <property name="file" value="${checkstyle.suppressions.file}"/>
+    </module>
+
+    <module name="TreeWalker">
+        <module name="AvoidStarImport"/>
+        <module name="UnusedImports"/>
+        <module name="RedundantImport"/>
+        <module name="ImportOrder">
+            <property name="groups" value="java,javax,jakarta,*,com.lavyoung.gateweave"/>
+            <property name="ordered" value="true"/>
+            <property name="separated" value="true"/>
+            <property name="option" value="bottom"/>
+            <property name="sortStaticImportsAlphabetically" value="true"/>
+        </module>
+
+        <module name="MissingOverride"/>
+        <module name="RequireThis">
+            <property name="checkMethods" value="false"/>
+            <property name="validateOnlyOverlapping" value="false"/>
+        </module>
+        <module name="OneStatementPerLine"/>
+        <module name="NeedBraces"/>
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <module name="MultipleVariableDeclarations"/>
+
+        <module name="MethodParamPad"/>
+        <module name="SingleSpaceSeparator"/>
+        <module name="ModifierOrder"/>
+        <module name="UpperEll"/>
+        <module name="ArrayTypeStyle"/>
+
+        <module name="RegexpSinglelineJava">
+            <property name="id" value="noProductionVar"/>
+            <property name="format" value="\bvar\s+[A-Za-z_$][A-Za-z0-9_$]*"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Production code must declare an explicit local variable type."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="\b(class|record)\s+[A-Za-z_$][A-Za-z0-9_$]*Test\b"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Test class names must use the Tests suffix."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="System\.(out|err)\.print"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Console output is forbidden in production and test code."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="\.printStackTrace\(\)"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Printing stack traces directly is forbidden."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="[ \t]+$"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Trailing whitespace is forbidden."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@date\s"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Use source control history instead of the @date Javadoc tag."/>
+            <property name="ignoreComments" value="false"/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="@version\s"/>
+            <property name="maximum" value="0"/>
+            <property name="message" value="Use @since for API introduction instead of @version."/>
+            <property name="ignoreComments" value="false"/>
+        </module>
+    </module>
+</module>

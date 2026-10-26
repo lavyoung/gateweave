@@ -1,9 +1,9 @@
 package com.lavyoung.gateweave.engine.application.port.in;
 
+import java.util.concurrent.CompletionStage;
+
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
 import com.lavyoung.gateweave.engine.application.result.GatewayResponse;
-
-import java.util.concurrent.CompletionStage;
 
 /**
  * 定义客户端请求进入网关数据面的用例边界。
@@ -13,8 +13,7 @@ import java.util.concurrent.CompletionStage;
  * {@link GatewayResponse}。该端口不依赖 Netty，因此可以被其他协议适配器复用。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 @FunctionalInterface
 public interface HandleGatewayRequestUseCase {

@@ -1,8 +1,7 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import com.lavyoung.gateweave.engine.adapter.in.netty.*;
-import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
-import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
+import java.net.InetSocketAddress;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -14,7 +13,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.net.InetSocketAddress;
+import com.lavyoung.gateweave.engine.adapter.in.netty.GatewayChannelInitializer;
+import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestHandler;
+import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestMapper;
+import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayResponseMapper;
+import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
 
 /**
  * 装配网关数据面的应用服务、Netty 适配器及运行时资源。
@@ -23,8 +28,7 @@ import java.net.InetSocketAddress;
  * EventLoopGroup 的创建与销毁统一交由 Spring 容器管理。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(GatewayServerProperties.class)
@@ -82,7 +86,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean(name = "gatewayWorkerGroup", destroyMethod = "shutdownGracefully")
     public EventLoopGroup gatewayWorkerGroup(GatewayServerProperties properties) {
-        var threadFactory = new DefaultThreadFactory("gateweave-netty-worker");
+        DefaultThreadFactory threadFactory = new DefaultThreadFactory("gateweave-netty-worker");
         return new NioEventLoopGroup(properties.workerThreads(), threadFactory);
     }
 
@@ -97,9 +101,8 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public GatewayChannelInitializer gatewayChannelInitializer(GatewayServerProperties properties,
-                                                               HandleGatewayRequestUseCase useCase,
-                                                               NettyGatewayRequestMapper requestMapper,
-                                                               NettyGatewayResponseMapper responseMapper) {
+            HandleGatewayRequestUseCase useCase, NettyGatewayRequestMapper requestMapper,
+            NettyGatewayResponseMapper responseMapper) {
         return new GatewayChannelInitializer(properties.maxContentLength(),
                 () -> new NettyGatewayRequestHandler(useCase, requestMapper, responseMapper));
     }
@@ -114,8 +117,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
-                                                  @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup,
-                                                  GatewayChannelInitializer initializer) {
+            @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
         return new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)

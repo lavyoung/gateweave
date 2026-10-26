@@ -1,8 +1,8 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.Objects;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 定义网关数据面 Netty 服务器的运行参数。
@@ -13,17 +13,11 @@ import java.util.Objects;
  * @param bossThreads      接收连接的 EventLoop 线程数
  * @param workerThreads    处理连接读写的 EventLoop 线程数
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 @ConfigurationProperties(prefix = "gateweave.server")
-public record GatewayServerProperties(
-        String host,
-        int port,
-        int maxContentLength,
-        int bossThreads,
-        int workerThreads
-) {
+public record GatewayServerProperties(String host, int port, int maxContentLength, int bossThreads,
+        int workerThreads) {
     /**
      * 校验服务器启动所需的全部参数。
      *

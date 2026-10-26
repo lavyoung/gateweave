@@ -1,8 +1,8 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
-import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
-import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
-import com.lavyoung.gateweave.engine.application.result.GatewayResponse;
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
+
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -14,8 +14,9 @@ import io.netty.handler.codec.http.HttpVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-import java.util.concurrent.CompletionStage;
+import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.result.GatewayResponse;
 
 /**
  * 接收完整 HTTP 请求并调用网关应用用例。
@@ -27,8 +28,7 @@ import java.util.concurrent.CompletionStage;
  * 因此请求 Mapper 必须在异步处理开始前复制所有需要的数据。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @version 1.0.0
- * @date 2026/10/25
+ * @since 1.0
  */
 public final class NettyGatewayRequestHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
@@ -66,7 +66,7 @@ public final class NettyGatewayRequestHandler extends SimpleChannelInboundHandle
 
         GatewayRequestCommand command;
         try {
-            command = requestMapper.map(request);
+            command = this.requestMapper.map(request);
         } catch (RuntimeException exception) {
             LOGGER.warn("Rejected HTTP request from {}", ctx.channel().remoteAddress(), exception);
             writeResponse(ctx, protocolVersion, false, BAD_REQUEST_RESPONSE);
@@ -74,7 +74,7 @@ public final class NettyGatewayRequestHandler extends SimpleChannelInboundHandle
         }
         CompletionStage<GatewayResponse> responseStage;
         try {
-            responseStage = Objects.requireNonNull(useCase.handle(command), "useCase must not return null");
+            responseStage = Objects.requireNonNull(this.useCase.handle(command), "useCase must not return null");
         } catch (RuntimeException exception) {
             handleApplicationFailure(ctx, protocolVersion, keepAlive, command.requestId(), exception);
             return;
@@ -85,7 +85,8 @@ public final class NettyGatewayRequestHandler extends SimpleChannelInboundHandle
                 return;
             }
             if (response == null) {
-                var missingResponseFailure = new NullPointerException("useCase response must not be null");
+                NullPointerException missingResponseFailure =
+                        new NullPointerException("useCase response must not be null");
                 handleApplicationFailure(ctx, protocolVersion, keepAlive, command.requestId(), missingResponseFailure);
                 return;
             }
@@ -119,7 +120,7 @@ public final class NettyGatewayRequestHandler extends SimpleChannelInboundHandle
      */
     private void writeResponse(ChannelHandlerContext context, HttpVersion protocolVersion, boolean keepAlive,
             GatewayResponse response) {
-        FullHttpResponse httpResponse = responseMapper.map(protocolVersion, response);
+        FullHttpResponse httpResponse = this.responseMapper.map(protocolVersion, response);
         HttpUtil.setKeepAlive(httpResponse, keepAlive);
         ChannelFuture writtenAndFlush = context.writeAndFlush(httpResponse);
         if (!keepAlive) {

@@ -47,12 +47,24 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <archunit.version>1.2.1</archunit.version>
+
+        <dubbo.version>3.2.20</dubbo.version>
+
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+
     </properties>
 
 
     <dependencyManagement>
         <dependencies>
+            <!-- 外部依赖 -->
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo</artifactId>
+                <version>${dubbo.version}</version>
+            </dependency>
 
+            <!-- 内部模块 -->
             <dependency>
                 <groupId>com.lavyoung</groupId>
                 <artifactId>gateweave-contract</artifactId>
@@ -107,6 +119,13 @@
                     <artifactId>spring-boot-maven-plugin</artifactId>
                 </plugin>
 
+                <!-- Code style -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven-checkstyle-plugin.version}</version>
+                </plugin>
+
             </plugins>
         </pluginManagement>
 
@@ -115,6 +134,32 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <configLocation>
+                        ${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml
+                    </configLocation>
+                    <suppressionsLocation>
+                        ${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle-suppressions.xml
+                    </suppressionsLocation>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <cacheFile>${project.build.directory}/checkstyle-cachefile</cacheFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>validate-code-style</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
