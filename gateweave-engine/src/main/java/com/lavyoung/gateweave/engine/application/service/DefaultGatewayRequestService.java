@@ -1,17 +1,17 @@
 package com.lavyoung.gateweave.engine.application.service;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
+
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
 import com.lavyoung.gateweave.engine.application.result.GatewayResponse;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 /**
  * 完成网关 HTTP 请求到 RPC 泛化调用的应用层编排。
