@@ -29,3 +29,9 @@ gateweave:
     application-name: gateweave-engine
     registry-address: zookeeper://192.168.3.127:2181
     discovery-mode: INTERFACE
+  http:
+    connect-timeout: 2s
+    core-threads: 2
+    maximum-threads: 8
+    queue-capacity: 256
+    keep-alive: 30s

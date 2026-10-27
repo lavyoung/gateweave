@@ -12,6 +12,7 @@ import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestSe
 import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import com.lavyoung.gateweave.plugin.invoker.http.HttpProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.DubboProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.DubboReferenceOptions;
 import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
@@ -25,9 +26,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 
 import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 装配网关数据面的应用服务、Netty 适配器及运行时资源。
@@ -40,7 +46,7 @@ import java.util.List;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(
-        {GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class})
+        {GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class, GatewayHttpProperties.class})
 public class GatewayEngineConfiguration {
 
     private static final int CONNECTION_BACKLOG = 1024;
@@ -86,6 +92,55 @@ public class GatewayEngineConfiguration {
     @Bean
     public DubboProtocolInvoker dubboProtocolInvoker(GenericReferenceRegistry referenceRegistry) {
         return new DubboProtocolInvoker(referenceRegistry);
+    }
+
+    /**
+     * 创建供 HTTP 客户端异步任务使用的有界线程池。
+     *
+     * <p>队列达到容量且线程数达到上限后直接拒绝新任务，
+     * 防止下游服务阻塞时请求任务在进程内无限堆积。</p>
+     *
+     * @param properties HTTP 客户端运行配置
+     * @return HTTP 客户端专用线程池
+     */
+    @Bean(name = "gatewayHttpExecutor", destroyMethod = "shutdown")
+    public ThreadPoolExecutor gatewayHttpExecutor(GatewayHttpProperties properties) {
+        return new ThreadPoolExecutor(properties.coreThreads(), properties.maximumThreads(),
+                properties.keepAlive().toMillis(), TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(properties.queueCapacity()),
+                new CustomizableThreadFactory("gateweave-http-"), new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    /**
+     * 创建由网关进程共享的 HTTP 客户端。
+     *
+     * <p>客户端负责连接复用。单次请求超时仍由 InvocationRequest 提供，
+     * 此处只设置建立连接的超时时间。</p>
+     *
+     * @param executor   HTTP 客户端专用线程池
+     * @param properties HTTP 客户端运行配置
+     * @return 共享 HTTP 客户端
+     */
+    @Bean
+    public HttpClient gatewayHttpClient(@Qualifier("gatewayHttpExecutor") ThreadPoolExecutor executor,
+                                        GatewayHttpProperties properties) {
+        return HttpClient.newBuilder()
+                .connectTimeout(properties.connectTimeout())
+                .executor(executor)
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
+    }
+
+    /**
+     * 创建 HTTP 协议调用插件。
+     *
+     * @param gatewayHttpClient 共享 HTTP 客户端
+     * @return HTTP 协议调用插件
+     */
+    @Bean
+    public HttpProtocolInvoker httpProtocolInvoker(HttpClient gatewayHttpClient) {
+        return new HttpProtocolInvoker(gatewayHttpClient);
     }
 
     /**
