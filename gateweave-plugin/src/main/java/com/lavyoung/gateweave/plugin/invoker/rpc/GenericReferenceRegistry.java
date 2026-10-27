@@ -139,6 +139,7 @@ public final class GenericReferenceRegistry implements AutoCloseable {
      */
     private GenericReferenceProxyFactory createProxyFactory(GenericReferenceKey key) {
         ReferenceConfig<GenericService> referenceConfig = new ReferenceConfig<>();
+        // todo 方法过时处理
         referenceConfig.setApplication(this.applicationConfig);
         referenceConfig.setRegistry(this.registryConfig);
         referenceConfig.setInterface(key.interfaceName());

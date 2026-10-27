@@ -18,7 +18,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
+import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
+import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import com.lavyoung.gateweave.plugin.invoker.rpc.DubboProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -79,6 +84,11 @@ class GatewayEngineConfigurationTests {
                 assertThat(context).hasSingleBean(GatewayRpcProperties.class);
                 assertThat(context).hasSingleBean(GatewayRouteTable.class);
                 assertThat(context).hasSingleBean(GenericReferenceRegistry.class);
+                assertThat(context).hasSingleBean(DubboProtocolInvoker.class);
+                assertThat(context).hasSingleBean(ProtocolInvocationDispatcher.class);
+                assertThat(context).hasSingleBean(GatewaySessionFactory.class);
+                assertThat(context).hasSingleBean(InvocationRequestMapper.class);
+                assertThat(context).hasSingleBean(HandleGatewayRequestUseCase.class);
                 assertThat(context).hasSingleBean(NettyGatewayServer.class);
 
                 var server = context.getBean(NettyGatewayServer.class);

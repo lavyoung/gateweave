@@ -1,7 +1,20 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import java.net.InetSocketAddress;
-
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
+import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
+import com.lavyoung.gateweave.engine.adapter.in.configuration.GatewayRouteConfigurationMapper;
+import com.lavyoung.gateweave.engine.adapter.in.netty.*;
+import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
+import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
+import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
+import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
+import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
+import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import com.lavyoung.gateweave.plugin.invoker.rpc.DubboProtocolInvoker;
+import com.lavyoung.gateweave.plugin.invoker.rpc.DubboReferenceOptions;
+import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -13,19 +26,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
-import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
-import com.lavyoung.gateweave.engine.adapter.in.configuration.GatewayRouteConfigurationMapper;
-import com.lavyoung.gateweave.engine.adapter.in.netty.GatewayChannelInitializer;
-import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestHandler;
-import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestMapper;
-import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayResponseMapper;
-import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
-import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
-import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
-import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
-import com.lavyoung.gateweave.plugin.invoker.rpc.DubboReferenceOptions;
-import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
+import java.net.InetSocketAddress;
+import java.util.List;
 
 /**
  * 装配网关数据面的应用服务、Netty 适配器及运行时资源。
@@ -55,7 +57,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean(destroyMethod = "close")
     public GenericReferenceRegistry genericReferenceRegistry(GatewayRpcProperties rpcProperties,
-            GatewayRouteProperties routeProperties) {
+                                                             GatewayRouteProperties routeProperties) {
         GenericReferenceRegistry referenceRegistry = new GenericReferenceRegistry(
                 rpcProperties.applicationName(), rpcProperties.registryAddress(), rpcProperties.discoveryMode());
         try {
@@ -76,20 +78,63 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 创建负责路由匹配和协议调用编排的网关请求用例。
+     * 创建 Dubbo 协议调用插件。
      *
-     * @param routeTable               当前生效的领域路由表
-     * @param genericReferenceRegistry Dubbo 泛化调用代理注册表
+     * @param referenceRegistry Dubbo 泛化引用注册表
+     * @return Dubbo 协议调用插件
+     */
+    @Bean
+    public DubboProtocolInvoker dubboProtocolInvoker(GenericReferenceRegistry referenceRegistry) {
+        return new DubboProtocolInvoker(referenceRegistry);
+    }
+
+    /**
+     * 创建统一协议调用分派器。
+     *
+     * @param protocolInvokers 当前已经注册的协议调用插件
+     * @return 协议调用分派器
+     * @throws NullPointerException     protocolInvokers 为 null 时抛出
+     * @throws IllegalArgumentException 没有插件或存在重复协议时抛出
+     */
+    @Bean
+    public ProtocolInvocationDispatcher protocolInvocationDispatcher(List<ProtocolInvoker> protocolInvokers) {
+        return new ProtocolInvocationDispatcher(protocolInvokers);
+    }
+
+    /**
+     * 创建根据领域路由表打开请求会话的工厂。
+     *
+     * @param routeTable 当前生效的领域路由表
+     * @return 网关会话工厂
+     */
+    @Bean
+    public GatewaySessionFactory gatewaySessionFactory(GatewayRouteTable routeTable) {
+        return new DefaultGatewaySessionFactory(routeTable);
+    }
+
+    /**
+     * 创建网关会话到协议调用请求的转换器。
+     *
+     * @return 协议调用请求转换器
+     */
+    @Bean
+    public InvocationRequestMapper invocationRequestMapper() {
+        return new InvocationRequestMapper();
+    }
+
+    /**
+     * 创建负责完整请求会话编排的网关用例。
+     *
+     * @param sessionFactory       网关会话工厂
+     * @param requestMapper        协议调用请求转换器
+     * @param invocationDispatcher 协议调用分派器
      * @return 网关请求用例
      */
     @Bean
-    public HandleGatewayRequestUseCase gatewayRequestUseCase(
-            GatewayRouteTable routeTable, GenericReferenceRegistry genericReferenceRegistry) {
-        return new DefaultGatewayRequestService(routeTable, target -> {
-            DubboReferenceOptions options = DubboReferenceOptions.from(target.attributes());
-            return genericReferenceRegistry.getGenericReference(
-                    target.service(), target.operation(), options.version());
-        });
+    public HandleGatewayRequestUseCase gatewayRequestUseCase(GatewaySessionFactory sessionFactory,
+                                                             InvocationRequestMapper requestMapper,
+                                                             ProtocolInvocationDispatcher invocationDispatcher) {
+        return new DefaultGatewayRequestService(sessionFactory, requestMapper, invocationDispatcher);
     }
 
     /**
@@ -188,7 +233,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
-            @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
+                                                  @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
         return new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)

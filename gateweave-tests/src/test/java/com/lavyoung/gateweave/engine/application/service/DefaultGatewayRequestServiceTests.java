@@ -8,18 +8,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
-import com.lavyoung.gateweave.contract.extension.IGenericReference;
+import com.lavyoung.gateweave.contract.extension.InvocationRequest;
+import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
+import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
+import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
+import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class DefaultGatewayRequestServiceTests {
 
@@ -32,48 +42,52 @@ class DefaultGatewayRequestServiceTests {
     private static final GatewayRouteTable ROUTE_TABLE = new GatewayRouteTable(List.of(ROUTE));
 
     @Test
-    void shouldInvokeGenericReferenceWhenRouteMatches() {
+    void shouldCompleteSessionMappingAndProtocolInvocationWhenRouteMatches() {
         // Given
-        var resolvedTarget = new AtomicReference<InvocationTarget>();
-        IGenericReference reference = argument -> CompletableFuture.completedFuture("hi " + argument);
-        var service = new DefaultGatewayRequestService(ROUTE_TABLE, target -> {
-            resolvedTarget.set(target);
-            return reference;
-        });
-        var command = request("GET", "/sayHi", "GateWeave");
+        ProtocolInvoker invoker = invoker();
+        when(invoker.invoke(any(InvocationRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture("hi GateWeave"));
+        DefaultGatewayRequestService service = service(invoker);
+        GatewayRequestCommand command = request("GET", "/sayHi", "GateWeave");
 
         // When
         var response = service.handle(command).toCompletableFuture().join();
 
         // Then
-        assertThat(resolvedTarget).hasValue(TARGET);
+        ArgumentCaptor<InvocationRequest> requestCaptor = ArgumentCaptor.forClass(InvocationRequest.class);
+        verify(invoker).invoke(requestCaptor.capture());
+        InvocationRequest invocationRequest = requestCaptor.getValue();
+        assertThat(invocationRequest.requestId()).isEqualTo("request-1");
+        assertThat(invocationRequest.routeId()).isEqualTo("route-say-hi");
+        assertThat(invocationRequest.service()).isEqualTo("cn.bugstack.gateway.rpc.IActivityBooth");
+        assertThat(new String(invocationRequest.payload(), StandardCharsets.UTF_8)).isEqualTo("GateWeave");
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.headers().firstValue("content-type")).contains("text/plain; charset=UTF-8");
         assertThat(new String(response.body(), StandardCharsets.UTF_8)).isEqualTo("hi GateWeave");
     }
 
     @Test
-    void shouldReturnNotFoundWithoutResolvingReferenceWhenRouteDoesNotMatch() {
+    void shouldReturnNotFoundWithoutInvokingProtocolWhenRouteDoesNotMatch() {
         // Given
-        var service = new DefaultGatewayRequestService(ROUTE_TABLE, operation -> {
-            throw new AssertionError("generic reference must not be resolved");
-        });
-        var command = request("GET", "/missing", "GateWeave");
+        ProtocolInvoker invoker = invoker();
+        DefaultGatewayRequestService service = service(invoker);
 
         // When
-        var response = service.handle(command).toCompletableFuture().join();
+        var response = service.handle(request("GET", "/missing", "GateWeave")).toCompletableFuture().join();
 
         // Then
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(new String(response.body(), StandardCharsets.UTF_8)).isEqualTo("Route Not Found");
+        verify(invoker, never()).invoke(any(InvocationRequest.class));
     }
 
     @Test
-    void shouldPropagateGenericInvocationFailure() {
+    void shouldPropagateProtocolInvocationFailure() {
         // Given
-        var failure = new IllegalStateException("RPC unavailable");
-        IGenericReference reference = argument -> CompletableFuture.failedFuture(failure);
-        var service = new DefaultGatewayRequestService(ROUTE_TABLE, operation -> reference);
+        IllegalStateException failure = new IllegalStateException("RPC unavailable");
+        ProtocolInvoker invoker = invoker();
+        when(invoker.invoke(any(InvocationRequest.class))).thenReturn(CompletableFuture.failedFuture(failure));
+        DefaultGatewayRequestService service = service(invoker);
 
         // When & Then
         assertThatThrownBy(() -> service.handle(request("GET", "/sayHi", "GateWeave"))
@@ -85,19 +99,39 @@ class DefaultGatewayRequestServiceTests {
     @Test
     void shouldRejectMissingCommandAndDependencies() {
         // Given
-        var service = new DefaultGatewayRequestService(ROUTE_TABLE, operation -> argument ->
-                CompletableFuture.completedFuture(argument));
+        ProtocolInvoker invoker = invoker();
+        GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
+        InvocationRequestMapper requestMapper = new InvocationRequestMapper();
+        ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
+        DefaultGatewayRequestService service = new DefaultGatewayRequestService(
+                sessionFactory, requestMapper, dispatcher);
 
         // When & Then
         assertThatThrownBy(() -> service.handle(null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("command must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(null, operation -> null))
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(null, requestMapper, dispatcher))
                 .isInstanceOf(NullPointerException.class)
-                .hasMessage("routeTable must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(ROUTE_TABLE, null))
+                .hasMessage("sessionFactory must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, null, dispatcher))
                 .isInstanceOf(NullPointerException.class)
-                .hasMessage("genericReferenceResolver must not be null");
+                .hasMessage("requestMapper must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, requestMapper, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("invocationDispatcher must not be null");
+    }
+
+    private static DefaultGatewayRequestService service(ProtocolInvoker invoker) {
+        GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
+        InvocationRequestMapper requestMapper = new InvocationRequestMapper();
+        ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
+        return new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher);
+    }
+
+    private static ProtocolInvoker invoker() {
+        ProtocolInvoker invoker = mock(ProtocolInvoker.class);
+        when(invoker.protocol()).thenReturn("dubbo");
+        return invoker;
     }
 
     private static GatewayRequestCommand request(String method, String uri, String body) {

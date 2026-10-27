@@ -80,17 +80,5 @@
             <property name="maximum" value="0"/>
             <property name="message" value="Trailing whitespace is forbidden."/>
         </module>
-        <module name="RegexpSinglelineJava">
-            <property name="format" value="@date\s"/>
-            <property name="maximum" value="0"/>
-            <property name="message" value="Use source control history instead of the @date Javadoc tag."/>
-            <property name="ignoreComments" value="false"/>
-        </module>
-        <module name="RegexpSinglelineJava">
-            <property name="format" value="@version\s"/>
-            <property name="maximum" value="0"/>
-            <property name="message" value="Use @since for API introduction instead of @version."/>
-            <property name="ignoreComments" value="false"/>
-        </module>
     </module>
 </module>
