@@ -10,6 +10,7 @@ import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
 import com.lavyoung.gateweave.engine.application.result.GatewayResponse;
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 
@@ -25,17 +26,17 @@ import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 public final class DefaultGatewayRequestService implements HandleGatewayRequestUseCase {
 
     private final GatewayRouteTable routeTable;
-    private final Function<String, IGenericReference> genericReferenceResolver;
+    private final Function<InvocationTarget, IGenericReference> genericReferenceResolver;
 
     /**
      * 创建网关请求应用服务。
      *
      * @param routeTable               当前生效的路由表
-     * @param genericReferenceResolver 根据 RPC 方法名称解析泛化调用代理的函数
+     * @param genericReferenceResolver 根据完整调用目标解析泛化调用代理的函数
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
     public DefaultGatewayRequestService(
-            GatewayRouteTable routeTable, Function<String, IGenericReference> genericReferenceResolver) {
+            GatewayRouteTable routeTable, Function<InvocationTarget, IGenericReference> genericReferenceResolver) {
         this.routeTable = Objects.requireNonNull(routeTable, "routeTable must not be null");
         this.genericReferenceResolver =
                 Objects.requireNonNull(genericReferenceResolver, "genericReferenceResolver must not be null");
@@ -58,7 +59,7 @@ public final class DefaultGatewayRequestService implements HandleGatewayRequestU
      * @throws NullPointerException 泛化代理或异步阶段为 null 时抛出
      */
     private CompletionStage<GatewayResponse> invoke(GatewayRequestCommand command, GatewayRoute route) {
-        IGenericReference reference = this.genericReferenceResolver.apply(route.target().operation());
+        IGenericReference reference = this.genericReferenceResolver.apply(route.target());
         Objects.requireNonNull(reference, "genericReferenceResolver must not return null");
         String argument = new String(command.body(), StandardCharsets.UTF_8);
         CompletionStage<String> resultStage = reference.$invoke(argument);

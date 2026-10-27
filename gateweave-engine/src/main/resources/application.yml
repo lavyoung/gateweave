@@ -9,3 +9,23 @@ gateweave:
     max-content-length: 1048576
     boss-threads: 1
     worker-threads: 4
+  routing:
+    routes:
+      - route-id: route-say-hi
+        path: /sayHi
+        method: GET
+        service-id: activity-service
+        target:
+          protocol: dubbo
+          service: cn.bugstack.gateway.rpc.IActivityBooth
+          operation: sayHi
+          parameter-types:
+            - java.lang.String
+          timeout: 3s
+          attributes:
+            version: 1.0.0
+        attributes: {}
+  rpc:
+    application-name: gateweave-engine
+    registry-address: zookeeper://192.168.3.127:2181
+    discovery-mode: INTERFACE
