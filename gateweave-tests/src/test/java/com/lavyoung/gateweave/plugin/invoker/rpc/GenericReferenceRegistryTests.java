@@ -1,5 +1,6 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.dubbo.common.constants.CommonConstants;
@@ -9,6 +10,7 @@ import org.apache.dubbo.rpc.service.GenericService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,7 +58,7 @@ class GenericReferenceRegistryTests {
                 // When
                 IGenericReference reference = registry.getGenericReference(
                         "cn.example.ActivityBooth", "sayHi", "1.0.0");
-                String result = reference.$invoke("gateweave").toCompletableFuture().join();
+                String result = reference.$invoke(stringArguments()).toCompletableFuture().join();
 
                 // Then
                 assertThat(result).isEqualTo("hi gateweave");
@@ -117,9 +119,9 @@ class GenericReferenceRegistryTests {
 
                 // When
                 var firstResult = registry.getGenericReference("cn.example.FirstService", "sayHi", "1.0.0")
-                        .$invoke("gateweave").toCompletableFuture().join();
+                        .$invoke(stringArguments()).toCompletableFuture().join();
                 var secondResult = registry.getGenericReference("cn.example.SecondService", "sayHi", "1.0.0")
-                        .$invoke("gateweave").toCompletableFuture().join();
+                        .$invoke(stringArguments()).toCompletableFuture().join();
 
                 // Then
                 assertThat(firstResult).isEqualTo("first");
@@ -191,5 +193,9 @@ class GenericReferenceRegistryTests {
             registry.close();
             verify(referenceCache, times(2)).destroyAll();
         }
+    }
+
+    private static GenericInvocationArguments stringArguments() {
+        return new GenericInvocationArguments(List.of("java.lang.String"), List.of("gateweave"));
     }
 }

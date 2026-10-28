@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,7 +17,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class GatewayRouteTests {
 
     private static final InvocationTarget DUBBO_TARGET = new InvocationTarget(
-            "dubbo", "cn.example.ActivityBooth", "sayHi", List.of("java.lang.String"), Duration.ofSeconds(3),
+            "dubbo", "cn.example.ActivityBooth", "sayHi",
+            List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
             Map.of("version", "1.0.0"));
 
     @Test

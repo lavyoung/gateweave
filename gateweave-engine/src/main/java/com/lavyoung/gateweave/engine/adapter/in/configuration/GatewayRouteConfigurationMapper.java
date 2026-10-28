@@ -1,11 +1,14 @@
 package com.lavyoung.gateweave.engine.adapter.in.configuration;
 
-import java.util.Objects;
-
+import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 将控制面发布的路由契约转换为数据面的领域路由。
@@ -30,12 +33,22 @@ public final class GatewayRouteConfigurationMapper {
     public GatewayRoute toDomain(RouteConfiguration configuration) {
         Objects.requireNonNull(configuration, "configuration must not be null");
         InvocationTargetConfiguration target = configuration.target();
-        InvocationTarget invocationTarget = new InvocationTarget(
-                target.protocol(), target.service(), target.operation(), target.parameterTypes(), target.timeout(),
-                target.attributes());
+        List<InvocationParameter> parameters = target.parameters().stream().map(this::toDomain).toList();
+        InvocationTarget invocationTarget = new InvocationTarget(target.protocol(), target.service(),
+                target.operation(), parameters, target.timeout(), target.attributes());
 
         return new GatewayRoute(
                 configuration.routeId(), configuration.path(), configuration.method(), configuration.serviceId(),
                 invocationTarget, configuration.attributes());
+    }
+
+    /**
+     * 将参数配置转换为数据面领域参数。
+     *
+     * @param configuration 参数配置
+     * @return 领域参数
+     */
+    private InvocationParameter toDomain(InvocationParameterConfiguration configuration) {
+        return new InvocationParameter(configuration.name(), configuration.typeName());
     }
 }

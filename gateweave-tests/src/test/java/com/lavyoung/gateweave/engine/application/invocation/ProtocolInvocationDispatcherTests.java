@@ -9,6 +9,7 @@ import java.util.concurrent.CompletionException;
 
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 
@@ -134,8 +135,10 @@ class ProtocolInvocationDispatcherTests {
     }
 
     private static InvocationRequest request(String protocol) {
+        GenericInvocationArguments arguments =
+                new GenericInvocationArguments(List.of("java.lang.String"), List.of("GateWeave"));
         return new InvocationRequest("request-1", "route-1", protocol, "demo.GreetingService", "sayHello",
-                List.of("java.lang.String"), Duration.ofSeconds(3), Map.of(), Map.of(),
+                arguments, Duration.ofSeconds(3), Map.of(), Map.of(),
                 "GateWeave".getBytes(StandardCharsets.UTF_8));
     }
 }

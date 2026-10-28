@@ -9,16 +9,20 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+import com.lavyoung.gateweave.engine.application.command.HttpParameterValues;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
+import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
@@ -35,8 +39,9 @@ class DefaultGatewayRequestServiceTests {
 
     private static final HttpHeaders EMPTY_HEADERS = HttpHeaders.of(Map.of(), (name, value) -> true);
     private static final InvocationTarget TARGET = new InvocationTarget(
-            "dubbo", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi", List.of("java.lang.String"),
-            Duration.ofSeconds(3), Map.of("version", "1.0.0"));
+            "dubbo", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi",
+            List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
+            Map.of("version", "1.0.0"));
     private static final GatewayRoute ROUTE = new GatewayRoute(
             "route-say-hi", "/sayHi", "GET", "activity-service", TARGET, Map.of());
     private static final GatewayRouteTable ROUTE_TABLE = new GatewayRouteTable(List.of(ROUTE));
@@ -48,7 +53,7 @@ class DefaultGatewayRequestServiceTests {
         when(invoker.invoke(any(InvocationRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture("hi GateWeave"));
         DefaultGatewayRequestService service = service(invoker);
-        GatewayRequestCommand command = request("GET", "/sayHi", "GateWeave");
+        GatewayRequestCommand command = request("GET", "/sayHi?name=GateWeave", "");
 
         // When
         var response = service.handle(command).toCompletableFuture().join();
@@ -60,7 +65,8 @@ class DefaultGatewayRequestServiceTests {
         assertThat(invocationRequest.requestId()).isEqualTo("request-1");
         assertThat(invocationRequest.routeId()).isEqualTo("route-say-hi");
         assertThat(invocationRequest.service()).isEqualTo("cn.bugstack.gateway.rpc.IActivityBooth");
-        assertThat(new String(invocationRequest.payload(), StandardCharsets.UTF_8)).isEqualTo("GateWeave");
+        assertThat(invocationRequest.invocationArguments().parameterTypes()).containsExactly("java.lang.String");
+        assertThat(invocationRequest.invocationArguments().arguments()).containsExactly("GateWeave");
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.headers().firstValue("content-type")).contains("text/plain; charset=UTF-8");
         assertThat(new String(response.body(), StandardCharsets.UTF_8)).isEqualTo("hi GateWeave");
@@ -90,7 +96,7 @@ class DefaultGatewayRequestServiceTests {
         DefaultGatewayRequestService service = service(invoker);
 
         // When & Then
-        assertThatThrownBy(() -> service.handle(request("GET", "/sayHi", "GateWeave"))
+        assertThatThrownBy(() -> service.handle(request("GET", "/sayHi?name=GateWeave", ""))
                 .toCompletableFuture().join())
                 .isInstanceOf(CompletionException.class)
                 .hasCause(failure);
@@ -101,7 +107,7 @@ class DefaultGatewayRequestServiceTests {
         // Given
         ProtocolInvoker invoker = invoker();
         GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
-        InvocationRequestMapper requestMapper = new InvocationRequestMapper();
+        InvocationRequestMapper requestMapper = requestMapper();
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
         DefaultGatewayRequestService service = new DefaultGatewayRequestService(
                 sessionFactory, requestMapper, dispatcher);
@@ -123,7 +129,7 @@ class DefaultGatewayRequestServiceTests {
 
     private static DefaultGatewayRequestService service(ProtocolInvoker invoker) {
         GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
-        InvocationRequestMapper requestMapper = new InvocationRequestMapper();
+        InvocationRequestMapper requestMapper = requestMapper();
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
         return new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher);
     }
@@ -135,7 +141,14 @@ class DefaultGatewayRequestServiceTests {
     }
 
     private static GatewayRequestCommand request(String method, String uri, String body) {
-        return new GatewayRequestCommand(
-                "request-1", method, URI.create(uri), EMPTY_HEADERS, body.getBytes(StandardCharsets.UTF_8));
+        URI requestUri = URI.create(uri);
+        Map<String, List<String>> queryParameters = requestUri.getQuery() == null
+                ? Map.of() : Map.of("name", List.of("GateWeave"));
+        return new GatewayRequestCommand("request-1", method, requestUri, EMPTY_HEADERS,
+                new HttpParameterValues(queryParameters), body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static InvocationRequestMapper requestMapper() {
+        return new InvocationRequestMapper(new GatewayInvocationArgumentsResolver(new ObjectMapper()));
     }
 }

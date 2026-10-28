@@ -19,6 +19,8 @@ import com.sun.net.httpserver.HttpServer;
 import io.netty.channel.EventLoopGroup;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
@@ -88,6 +90,7 @@ class GatewayHttpEndToEndTests {
 
     private static ApplicationContextRunner createContextRunner(int gatewayPort, int downstreamPort) {
         return new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withPropertyValues(
                         "gateweave.server.host=127.0.0.1",
@@ -110,7 +113,6 @@ class GatewayHttpEndToEndTests {
                         "gateweave.routing.routes[0].target.protocol=http",
                         "gateweave.routing.routes[0].target.service=http://127.0.0.1:" + downstreamPort,
                         "gateweave.routing.routes[0].target.operation=/downstream",
-                        "gateweave.routing.routes[0].target.parameter-types[0]=java.lang.String",
                         "gateweave.routing.routes[0].target.timeout=2s",
                         "gateweave.routing.routes[0].target.attributes.method=POST",
                         "gateweave.routing.routes[0].attributes.source=test");

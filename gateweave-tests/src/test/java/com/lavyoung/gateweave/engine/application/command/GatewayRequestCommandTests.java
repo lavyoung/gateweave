@@ -24,11 +24,13 @@ class GatewayRequestCommandTests {
         var sourceHeaders = new HashMap<String, List<String>>();
         sourceHeaders.put("Content-Type", contentTypes);
         var headers = HttpHeaders.of(sourceHeaders, (name, value) -> true);
+        var queryParameters = new HttpParameterValues(Map.of("id", List.of("1")));
+        var formParameters = new HttpParameterValues(Map.of("role", List.of("admin", "developer")));
         var body = "hello".getBytes(StandardCharsets.UTF_8);
 
         // When
         var command = new GatewayRequestCommand("request-1", "POST", URI.create("/queryUserInfo?id=1"), headers,
-                body);
+                queryParameters, formParameters, body);
         contentTypes.add("text/plain");
         sourceHeaders.put("X-Changed", List.of("true"));
         body[0] = 'X';
@@ -37,6 +39,8 @@ class GatewayRequestCommandTests {
         assertThat(command.headers().map()).containsExactlyEntriesOf(
                 Map.of("Content-Type", List.of("application/json")));
         assertThat(command.headers().firstValue("content-type")).contains("application/json");
+        assertThat(command.queryParameters()).isSameAs(queryParameters);
+        assertThat(command.formParameters()).isSameAs(formParameters);
         assertThat(command.body()).containsExactly("hello".getBytes(StandardCharsets.UTF_8));
         assertThatThrownBy(() -> command.headers().map().put("X-Test", List.of("value")))
                 .isInstanceOf(UnsupportedOperationException.class);
@@ -53,13 +57,14 @@ class GatewayRequestCommandTests {
 
         // Then
         assertThat(command.body()).containsExactly("hello".getBytes(StandardCharsets.UTF_8));
+        assertThat(command.formParameters().values()).isEmpty();
     }
 
     @Test
     void shouldRejectBlankRequestId() {
         // When & Then
         assertThatThrownBy(() -> new GatewayRequestCommand(" ", "GET", URI.create("/queryUserInfo"),
-                EMPTY_HEADERS, new byte[0]))
+                EMPTY_HEADERS, new HttpParameterValues(Map.of()), new byte[0]))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("requestId must not be blank");
     }
@@ -68,7 +73,7 @@ class GatewayRequestCommandTests {
     void shouldRejectBlankMethod() {
         // When & Then
         assertThatThrownBy(() -> new GatewayRequestCommand("request-1", " ", URI.create("/queryUserInfo"),
-                EMPTY_HEADERS, new byte[0]))
+                EMPTY_HEADERS, new HttpParameterValues(Map.of()), new byte[0]))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("method must not be blank");
     }
@@ -77,13 +82,31 @@ class GatewayRequestCommandTests {
     void shouldExplainMissingHeaders() {
         // When & Then
         assertThatThrownBy(() -> new GatewayRequestCommand("request-1", "GET", URI.create("/queryUserInfo"), null,
-                new byte[0]))
+                new HttpParameterValues(Map.of()), new byte[0]))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("headers must not be null");
     }
 
+    @Test
+    void shouldExplainMissingQueryParameters() {
+        // When & Then
+        assertThatThrownBy(() -> new GatewayRequestCommand("request-1", "GET", URI.create("/queryUserInfo"),
+                EMPTY_HEADERS, null, new byte[0]))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("queryParameters must not be null");
+    }
+
+    @Test
+    void shouldExplainMissingFormParameters() {
+        // When & Then
+        assertThatThrownBy(() -> new GatewayRequestCommand("request-1", "POST", URI.create("/queryUserInfo"),
+                EMPTY_HEADERS, new HttpParameterValues(Map.of()), null, new byte[0]))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("formParameters must not be null");
+    }
+
     private static GatewayRequestCommand validCommand() {
         return new GatewayRequestCommand("request-1", "POST", URI.create("/queryUserInfo"), EMPTY_HEADERS,
-                "hello".getBytes(StandardCharsets.UTF_8));
+                new HttpParameterValues(Map.of()), "hello".getBytes(StandardCharsets.UTF_8));
     }
 }

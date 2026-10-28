@@ -1,11 +1,13 @@
 package com.lavyoung.gateweave.engine.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.adapter.in.configuration.GatewayRouteConfigurationMapper;
 import com.lavyoung.gateweave.engine.adapter.in.netty.*;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
+import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
 import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
@@ -45,8 +47,8 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(
-        {GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class, GatewayHttpProperties.class})
+@EnableConfigurationProperties({GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class,
+        GatewayHttpProperties.class})
 public class GatewayEngineConfiguration {
 
     private static final int CONNECTION_BACKLOG = 1024;
@@ -168,13 +170,25 @@ public class GatewayEngineConfiguration {
     }
 
     /**
+     * 创建 HTTP 请求参数到泛化调用参数的解析器。
+     *
+     * @param objectMapper Spring Boot 统一配置的 JSON 解析器
+     * @return 调用参数解析器
+     */
+    @Bean
+    public GatewayInvocationArgumentsResolver gatewayInvocationArgumentsResolver(ObjectMapper objectMapper) {
+        return new GatewayInvocationArgumentsResolver(objectMapper);
+    }
+
+    /**
      * 创建网关会话到协议调用请求的转换器。
      *
+     * @param argumentsResolver 调用参数解析器
      * @return 协议调用请求转换器
      */
     @Bean
-    public InvocationRequestMapper invocationRequestMapper() {
-        return new InvocationRequestMapper();
+    public InvocationRequestMapper invocationRequestMapper(GatewayInvocationArgumentsResolver argumentsResolver) {
+        return new InvocationRequestMapper(argumentsResolver);
     }
 
     /**
@@ -288,7 +302,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
-                                                  @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
+            @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
         return new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)

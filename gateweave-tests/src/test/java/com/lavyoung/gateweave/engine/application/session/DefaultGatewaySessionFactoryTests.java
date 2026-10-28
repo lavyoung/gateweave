@@ -9,6 +9,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+import com.lavyoung.gateweave.engine.application.command.HttpParameterValues;
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
@@ -77,11 +79,13 @@ class DefaultGatewaySessionFactoryTests {
     }
 
     private static GatewayRequestCommand command(String method, String uri) {
-        return new GatewayRequestCommand("request-1", method, URI.create(uri), EMPTY_HEADERS, new byte[0]);
+        return new GatewayRequestCommand("request-1", method, URI.create(uri), EMPTY_HEADERS,
+                new HttpParameterValues(Map.of()), new byte[0]);
     }
 
     private static InvocationTarget target() {
         return new InvocationTarget("dubbo", "cn.example.GreetingService", "sayHi",
-                List.of("java.lang.String"), Duration.ofSeconds(3), Map.of("version", "1.0.0"));
+                List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
+                Map.of("version", "1.0.0"));
     }
 }

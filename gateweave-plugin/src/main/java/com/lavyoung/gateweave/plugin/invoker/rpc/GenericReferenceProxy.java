@@ -1,14 +1,13 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
+import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import org.apache.dubbo.rpc.service.GenericService;
 
-import com.lavyoung.gateweave.contract.extension.IGenericReference;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 将统一泛化调用接口转换为 Dubbo GenericService 调用。
@@ -48,9 +47,13 @@ public final class GenericReferenceProxy implements InvocationHandler {
             throw new UnsupportedOperationException("unsupported proxy method: %s".formatted(method.getName()));
         }
         Objects.requireNonNull(args, "args must not be null");
-        String[] parameterTypes = Arrays.stream(method.getParameterTypes()).map(Class::getName).toArray(String[]::new);
+        if (args.length != 1 || !(args[0] instanceof GenericInvocationArguments invocationArguments)) {
+            throw new IllegalArgumentException("generic reference requires one GenericInvocationArguments");
+        }
+        String[] parameterTypes = invocationArguments.parameterTypes().toArray(String[]::new);
+        Object[] arguments = invocationArguments.arguments().toArray();
         CompletableFuture<Object> resultFuture =
-                this.genericService.$invokeAsync(this.methodName, parameterTypes, args);
+                this.genericService.$invokeAsync(this.methodName, parameterTypes, arguments);
         return resultFuture.thenApply(result -> {
             if (!(result instanceof String response)) {
                 throw new IllegalStateException("generic invocation result must be a String");

@@ -15,16 +15,20 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.EventLoopGroup;
 import org.apache.dubbo.config.ReferenceConfigBase;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.service.GenericService;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
+import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
@@ -87,7 +91,7 @@ class GatewayEngineConfigurationTests {
         var genericService = mock(GenericService.class);
         when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
         when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
-                aryEq(new Object[]{""})))
+                aryEq(new Object[]{"gateweave"})))
                 .thenReturn(CompletableFuture.completedFuture("hi gateweave"));
 
         var serverReference = new AtomicReference<NettyGatewayServer>();
@@ -95,6 +99,7 @@ class GatewayEngineConfigurationTests {
         var workerGroupReference = new AtomicReference<EventLoopGroup>();
         var httpExecutorReference = new AtomicReference<ThreadPoolExecutor>();
         var contextRunner = new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withPropertyValues(
                         "gateweave.server.host=127.0.0.1",
@@ -117,7 +122,8 @@ class GatewayEngineConfigurationTests {
                         "gateweave.routing.routes[0].target.protocol=dubbo",
                         "gateweave.routing.routes[0].target.service=cn.example.ActivityBooth",
                         "gateweave.routing.routes[0].target.operation=sayHi",
-                        "gateweave.routing.routes[0].target.parameter-types[0]=java.lang.String",
+                        "gateweave.routing.routes[0].target.parameters[0].name=name",
+                        "gateweave.routing.routes[0].target.parameters[0].type-name=java.lang.String",
                         "gateweave.routing.routes[0].target.timeout=3s",
                         "gateweave.routing.routes[0].target.attributes.version=1.0.0",
                         "gateweave.routing.routes[0].attributes.source=test");
@@ -139,6 +145,8 @@ class GatewayEngineConfigurationTests {
                 assertThat(context.getBeansOfType(ProtocolInvoker.class)).hasSize(2);
                 assertThat(context).hasSingleBean(ProtocolInvocationDispatcher.class);
                 assertThat(context).hasSingleBean(GatewaySessionFactory.class);
+                assertThat(context).hasSingleBean(ObjectMapper.class);
+                assertThat(context).hasSingleBean(GatewayInvocationArgumentsResolver.class);
                 assertThat(context).hasSingleBean(InvocationRequestMapper.class);
                 assertThat(context).hasSingleBean(HandleGatewayRequestUseCase.class);
                 assertThat(context).hasSingleBean(NettyGatewayServer.class);
@@ -166,7 +174,8 @@ class GatewayEngineConfigurationTests {
                 assertThat(gatewayHttpClient.followRedirects()).isEqualTo(HttpClient.Redirect.NEVER);
                 assertThat(gatewayHttpClient.version()).isEqualTo(HttpClient.Version.HTTP_1_1);
 
-                var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/sayHi"))
+                var request = HttpRequest.newBuilder(
+                                URI.create("http://127.0.0.1:" + port + "/sayHi?name=gateweave"))
                         .GET()
                         .build();
                 var response = HttpClient.newHttpClient().send(request,

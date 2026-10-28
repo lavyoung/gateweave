@@ -6,16 +6,19 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 class GatewayRouteConfigurationMapperTests {
 
     private static final InvocationTargetConfiguration TARGET_CONFIGURATION = new InvocationTargetConfiguration(
-            "DUBBO", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi", List.of("java.lang.String"),
+            "DUBBO", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi",
+            List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
             Duration.ofSeconds(3), Map.of("version", "1.0.0"));
 
     private final GatewayRouteConfigurationMapper mapper = new GatewayRouteConfigurationMapper();
@@ -39,7 +42,8 @@ class GatewayRouteConfigurationMapperTests {
         assertThat(route.target().protocol()).isEqualTo("dubbo");
         assertThat(route.target().service()).isEqualTo("cn.bugstack.gateway.rpc.IActivityBooth");
         assertThat(route.target().operation()).isEqualTo("sayHi");
-        assertThat(route.target().parameterTypes()).containsExactly("java.lang.String");
+        assertThat(route.target().parameters()).extracting("name", "typeName")
+                .containsExactly(tuple("name", "java.lang.String"));
         assertThat(route.target().timeout()).isEqualTo(Duration.ofSeconds(3));
         assertThat(route.target().attributes()).containsExactlyEntriesOf(Map.of("version", "1.0.0"));
     }

@@ -13,7 +13,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RouteConfigurationTests {
 
     private static final InvocationTargetConfiguration DUBBO_TARGET = new InvocationTargetConfiguration(
-            "dubbo", "cn.example.ActivityBooth", "sayHi", List.of("java.lang.String"), Duration.ofSeconds(3),
+            "dubbo", "cn.example.ActivityBooth", "sayHi",
+            List.of(new InvocationParameterConfiguration("name", "java.lang.String")), Duration.ofSeconds(3),
             Map.of("version", "1.0.0"));
 
     @Test

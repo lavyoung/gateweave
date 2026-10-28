@@ -19,8 +19,9 @@ gateweave:
           protocol: dubbo
           service: cn.bugstack.gateway.rpc.IActivityBooth
           operation: sayHi
-          parameter-types:
-            - java.lang.String
+          parameters:
+            - name: name
+              type-name: java.lang.String
           timeout: 3s
           attributes:
             version: 1.0.0

@@ -1,12 +1,15 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
 import java.lang.reflect.Proxy;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import org.apache.dubbo.rpc.service.GenericService;
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,18 +26,21 @@ class GenericReferenceProxyTests {
     void shouldConvertGenericReferenceInvocationToDubboInvocation() {
         // Given
         var genericService = mock(GenericService.class);
-        when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
-                aryEq(new Object[]{"gateweave"})))
+        var argument = Map.of("name", "gateweave");
+        var invocationArguments = new GenericInvocationArguments(
+                List.of("com.example.GreetingRequest"), List.of(argument));
+        when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"com.example.GreetingRequest"}),
+                aryEq(new Object[]{argument})))
                 .thenReturn(CompletableFuture.completedFuture("hi gateweave"));
         var reference = createReference(genericService, "sayHi");
 
         // When
-        String result = reference.$invoke("gateweave").toCompletableFuture().join();
+        String result = reference.$invoke(invocationArguments).toCompletableFuture().join();
 
         // Then
         assertThat(result).isEqualTo("hi gateweave");
-        verify(genericService).$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
-                aryEq(new Object[]{"gateweave"}));
+        verify(genericService).$invokeAsync(eq("sayHi"), aryEq(new String[]{"com.example.GreetingRequest"}),
+                aryEq(new Object[]{argument}));
     }
 
     @Test
@@ -64,7 +70,7 @@ class GenericReferenceProxyTests {
         var reference = createReference(genericService, "sayHi");
 
         // When & Then
-        assertThatThrownBy(() -> reference.$invoke("gateweave").toCompletableFuture().join())
+        assertThatThrownBy(() -> reference.$invoke(stringArguments()).toCompletableFuture().join())
                 .isInstanceOf(CompletionException.class)
                 .hasCauseInstanceOf(IllegalStateException.class)
                 .hasRootCauseMessage("generic invocation result must be a String");
@@ -81,7 +87,7 @@ class GenericReferenceProxyTests {
         var reference = createReference(genericService, "sayHi");
 
         // When & Then
-        assertThatThrownBy(() -> reference.$invoke("gateweave").toCompletableFuture().join())
+        assertThatThrownBy(() -> reference.$invoke(stringArguments()).toCompletableFuture().join())
                 .isInstanceOf(CompletionException.class)
                 .hasCause(failure);
     }
@@ -90,5 +96,9 @@ class GenericReferenceProxyTests {
         var invocationHandler = new GenericReferenceProxy(genericService, methodName);
         return (IGenericReference) Proxy.newProxyInstance(IGenericReference.class.getClassLoader(),
                 new Class<?>[]{IGenericReference.class}, invocationHandler);
+    }
+
+    private static GenericInvocationArguments stringArguments() {
+        return new GenericInvocationArguments(List.of("java.lang.String"), List.of("gateweave"));
     }
 }

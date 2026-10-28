@@ -15,17 +15,22 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
+import com.lavyoung.gateweave.contract.extension.InvocationRequest;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class HttpProtocolInvokerTests {
+
+    private static final GenericInvocationArguments EMPTY_ARGUMENTS =
+            new GenericInvocationArguments(List.of(), List.of());
 
     private final AtomicReference<String> receivedMethod = new AtomicReference<>();
     private final AtomicReference<String> receivedBody = new AtomicReference<>();
@@ -61,7 +66,7 @@ class HttpProtocolInvokerTests {
         // Given
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
         InvocationRequest request = new InvocationRequest(
-                "request-1", "route-http", "http", baseUrl(), "/echo", List.of(), Duration.ofSeconds(2),
+                "request-1", "route-http", "http", baseUrl(), "/echo", EMPTY_ARGUMENTS, Duration.ofSeconds(2),
                 Map.of("X-Trace-Id", "trace-1", "Host", "forged-host", "Connection", "close"),
                 Map.of("method", "post"), "GateWeave".getBytes(StandardCharsets.UTF_8));
 
@@ -82,7 +87,7 @@ class HttpProtocolInvokerTests {
         // Given
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
         InvocationRequest request = new InvocationRequest(
-                "request-2", "route-http", "http", baseUrl(), "/echo", List.of(), Duration.ofSeconds(2),
+                "request-2", "route-http", "http", baseUrl(), "/echo", EMPTY_ARGUMENTS, Duration.ofSeconds(2),
                 Map.of(), Map.of("method", "get"), new byte[0]);
 
         // When
@@ -101,7 +106,7 @@ class HttpProtocolInvokerTests {
         this.server.createContext("/slow", exchange -> handleDelayedResponse(exchange, releaseResponse));
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
         InvocationRequest request = new InvocationRequest(
-                "request-3", "route-http", "http", baseUrl(), "/slow", List.of(), Duration.ofMillis(200),
+                "request-3", "route-http", "http", baseUrl(), "/slow", EMPTY_ARGUMENTS, Duration.ofMillis(200),
                 Map.of(), Map.of("method", "get"), new byte[0]);
 
         // When & Then
