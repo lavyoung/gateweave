@@ -11,11 +11,19 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Date;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import io.jsonwebtoken.Jwts;
 import io.netty.channel.EventLoopGroup;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.junit.jupiter.api.Test;
@@ -31,6 +39,12 @@ import static org.mockito.Mockito.mockStatic;
 
 class GatewayHttpEndToEndTests {
 
+    private static final String JWT_ISSUER = "gateweave-issuer";
+    private static final String JWT_AUDIENCE = "gateweave-engine";
+    private static final byte[] JWT_KEY_BYTES =
+            "01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8);
+    private static final String JWT_KEY_BASE64 = Base64.getEncoder().encodeToString(JWT_KEY_BYTES);
+
     @Test
     void shouldProxyRequestFromNettyGatewayToHttpService() throws Exception {
         // Given
@@ -38,14 +52,16 @@ class GatewayHttpEndToEndTests {
         AtomicReference<String> downstreamMethod = new AtomicReference<>();
         AtomicReference<String> downstreamBody = new AtomicReference<>();
         AtomicReference<String> downstreamTraceId = new AtomicReference<>();
-        HttpServer downstreamServer = createDownstreamServer(downstreamMethod, downstreamBody, downstreamTraceId);
+        AtomicInteger downstreamInvocations = new AtomicInteger();
+        HttpServer downstreamServer = createDownstreamServer(
+                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
         AtomicReference<NettyGatewayServer> gatewayServerReference = new AtomicReference<>();
         AtomicReference<EventLoopGroup> bossGroupReference = new AtomicReference<>();
         AtomicReference<EventLoopGroup> workerGroupReference = new AtomicReference<>();
         AtomicReference<ThreadPoolExecutor> httpExecutorReference = new AtomicReference<>();
-        ApplicationContextRunner contextRunner = createContextRunner(gatewayPort, downstreamPort);
+        ApplicationContextRunner contextRunner = createContextRunner(gatewayPort, downstreamPort, "ANONYMOUS");
 
         // When & Then
         downstreamServer.start();
@@ -72,6 +88,7 @@ class GatewayHttpEndToEndTests {
                 assertThat(downstreamMethod.get()).isEqualTo("POST");
                 assertThat(downstreamBody.get()).isEqualTo("GateWeave");
                 assertThat(downstreamTraceId.get()).isEqualTo("trace-http-1");
+                assertThat(downstreamInvocations.get()).isEqualTo(1);
             });
         } finally {
             downstreamServer.stop(0);
@@ -88,10 +105,60 @@ class GatewayHttpEndToEndTests {
         assertThat(httpExecutorReference.get().isShutdown()).isTrue();
     }
 
-    private static ApplicationContextRunner createContextRunner(int gatewayPort, int downstreamPort) {
+    @Test
+    void shouldRejectMissingJwtAndProxyRequestWithValidJwt() throws Exception {
+        // Given
+        int gatewayPort = findAvailablePort();
+        AtomicReference<String> downstreamMethod = new AtomicReference<>();
+        AtomicReference<String> downstreamBody = new AtomicReference<>();
+        AtomicReference<String> downstreamTraceId = new AtomicReference<>();
+        AtomicInteger downstreamInvocations = new AtomicInteger();
+        HttpServer downstreamServer = createDownstreamServer(
+                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        int downstreamPort = downstreamServer.getAddress().getPort();
+        SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
+        ApplicationContextRunner contextRunner = createContextRunner(gatewayPort, downstreamPort, "REQUIRED");
+
+        // When & Then
+        downstreamServer.start();
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            contextRunner.run(context -> {
+                assertThat(context).hasNotFailed();
+
+                HttpRequest missingTokenRequest = HttpRequest.newBuilder(
+                                URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
+                        .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8))
+                        .build();
+                HttpResponse<String> unauthorizedResponse = HttpClient.newHttpClient().send(
+                        missingTokenRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+                assertThat(unauthorizedResponse.statusCode()).isEqualTo(401);
+                assertThat(unauthorizedResponse.headers().firstValue("WWW-Authenticate")).contains("Bearer");
+                assertThat(downstreamInvocations.get()).isZero();
+
+                HttpRequest authenticatedRequest = HttpRequest.newBuilder(
+                                URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
+                        .header("Authorization", "Bearer " + createJwt())
+                        .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8))
+                        .build();
+                HttpResponse<String> authenticatedResponse = HttpClient.newHttpClient().send(
+                        authenticatedRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+                assertThat(authenticatedResponse.statusCode()).isEqualTo(200);
+                assertThat(authenticatedResponse.body()).isEqualTo("downstream:GateWeave");
+                assertThat(downstreamInvocations.get()).isEqualTo(1);
+            });
+        } finally {
+            downstreamServer.stop(0);
+        }
+    }
+
+    private static ApplicationContextRunner createContextRunner(
+            int gatewayPort, int downstreamPort, String authenticationMode) {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
-                .withUserConfiguration(GatewayEngineConfiguration.class)
+                .withUserConfiguration(GatewayEngineConfiguration.class, GatewaySecurityConfiguration.class)
                 .withPropertyValues(
                         "gateweave.server.host=127.0.0.1",
                         "gateweave.server.port=" + gatewayPort,
@@ -110,24 +177,32 @@ class GatewayHttpEndToEndTests {
                         "gateweave.routing.routes[0].path=/proxy/http",
                         "gateweave.routing.routes[0].method=POST",
                         "gateweave.routing.routes[0].service-id=local-http-service",
-                        "gateweave.routing.routes[0].authentication-mode=ANONYMOUS",
+                        "gateweave.routing.routes[0].authentication-mode=" + authenticationMode,
                         "gateweave.routing.routes[0].target.protocol=http",
                         "gateweave.routing.routes[0].target.service=http://127.0.0.1:" + downstreamPort,
                         "gateweave.routing.routes[0].target.operation=/downstream",
                         "gateweave.routing.routes[0].target.timeout=2s",
                         "gateweave.routing.routes[0].target.attributes.method=POST",
-                        "gateweave.routing.routes[0].attributes.source=test");
+                        "gateweave.routing.routes[0].attributes.source=test",
+                        "gateweave.security.jwt.issuer=" + JWT_ISSUER,
+                        "gateweave.security.jwt.audience=" + JWT_AUDIENCE,
+                        "gateweave.security.jwt.verification-key-base64=" + JWT_KEY_BASE64,
+                        "gateweave.security.jwt.clock-skew=0s",
+                        "gateweave.security.jwt.maximum-token-length=4096");
     }
 
     private static HttpServer createDownstreamServer(AtomicReference<String> method, AtomicReference<String> body,
-            AtomicReference<String> traceId) throws IOException {
+            AtomicReference<String> traceId, AtomicInteger invocations) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/downstream", exchange -> handleDownstreamRequest(exchange, method, body, traceId));
+        server.createContext(
+                "/downstream", exchange -> handleDownstreamRequest(exchange, method, body, traceId, invocations));
         return server;
     }
 
     private static void handleDownstreamRequest(HttpExchange exchange, AtomicReference<String> method,
-            AtomicReference<String> body, AtomicReference<String> traceId) throws IOException {
+            AtomicReference<String> body, AtomicReference<String> traceId, AtomicInteger invocations)
+            throws IOException {
+        invocations.incrementAndGet();
         method.set(exchange.getRequestMethod());
         traceId.set(exchange.getRequestHeaders().getFirst("X-Trace-Id"));
         try (InputStream inputStream = exchange.getRequestBody()) {
@@ -138,6 +213,19 @@ class GatewayHttpEndToEndTests {
         try (OutputStream outputStream = exchange.getResponseBody()) {
             outputStream.write(response);
         }
+    }
+
+    private static String createJwt() {
+        SecretKey key = new SecretKeySpec(JWT_KEY_BYTES, "HmacSHA256");
+        return Jwts.builder()
+                .issuer(JWT_ISSUER)
+                .audience()
+                .add(JWT_AUDIENCE)
+                .and()
+                .subject("user-10001")
+                .expiration(Date.from(Instant.now().plusSeconds(300)))
+                .signWith(key, Jwts.SIG.HS256)
+                .compact();
     }
 
     private static int findAvailablePort() throws IOException {

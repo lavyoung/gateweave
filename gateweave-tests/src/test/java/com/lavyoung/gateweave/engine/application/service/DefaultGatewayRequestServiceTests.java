@@ -20,7 +20,9 @@ import com.lavyoung.gateweave.engine.application.command.HttpParameterValues;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
+import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
 import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
+import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
@@ -34,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DefaultGatewayRequestServiceTests {
@@ -90,6 +93,28 @@ class DefaultGatewayRequestServiceTests {
     }
 
     @Test
+    void shouldReturnUnauthorizedWithoutMappingOrInvokingProtocolWhenAuthenticationFails() {
+        // Given
+        GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
+        GatewaySessionAuthenticationService authenticationService = mock(GatewaySessionAuthenticationService.class);
+        InvocationRequestMapper requestMapper = mock(InvocationRequestMapper.class);
+        ProtocolInvocationDispatcher dispatcher = mock(ProtocolInvocationDispatcher.class);
+        DefaultGatewayRequestService service = new DefaultGatewayRequestService(
+                sessionFactory, requestMapper, dispatcher, authenticationService);
+        when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(false);
+
+        // When
+        var response = service.handle(request("GET", "/sayHi?name=GateWeave", "")).toCompletableFuture().join();
+
+        // Then
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(response.headers().firstValue("WWW-Authenticate")).contains("Bearer");
+        assertThat(response.body()).isEmpty();
+        verify(authenticationService).authenticate(any(GatewaySession.class));
+        verifyNoInteractions(requestMapper, dispatcher);
+    }
+
+    @Test
     void shouldPropagateProtocolInvocationFailure() {
         // Given
         IllegalStateException failure = new IllegalStateException("RPC unavailable");
@@ -111,29 +136,38 @@ class DefaultGatewayRequestServiceTests {
         GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
         InvocationRequestMapper requestMapper = requestMapper();
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
+        GatewaySessionAuthenticationService authenticationService = mock(GatewaySessionAuthenticationService.class);
         DefaultGatewayRequestService service = new DefaultGatewayRequestService(
-                sessionFactory, requestMapper, dispatcher);
+                sessionFactory, requestMapper, dispatcher, authenticationService);
 
         // When & Then
         assertThatThrownBy(() -> service.handle(null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("command must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(null, requestMapper, dispatcher))
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(
+                null, requestMapper, dispatcher, authenticationService))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("sessionFactory must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, null, dispatcher))
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(
+                sessionFactory, null, dispatcher, authenticationService))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("requestMapper must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, requestMapper, null))
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(
+                sessionFactory, requestMapper, null, authenticationService))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("invocationDispatcher must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("authenticationService must not be null");
     }
 
     private static DefaultGatewayRequestService service(ProtocolInvoker invoker) {
         GatewaySessionFactory sessionFactory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
         InvocationRequestMapper requestMapper = requestMapper();
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
-        return new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher);
+        GatewaySessionAuthenticationService authenticationService = mock(GatewaySessionAuthenticationService.class);
+        when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(true);
+        return new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher, authenticationService);
     }
 
     private static ProtocolInvoker invoker() {

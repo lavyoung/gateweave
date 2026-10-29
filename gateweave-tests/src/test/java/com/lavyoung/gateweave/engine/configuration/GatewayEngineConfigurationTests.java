@@ -31,6 +31,8 @@ import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDi
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
+import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 import com.lavyoung.gateweave.plugin.invoker.http.HttpProtocolInvoker;
@@ -98,9 +100,12 @@ class GatewayEngineConfigurationTests {
         var bossGroupReference = new AtomicReference<EventLoopGroup>();
         var workerGroupReference = new AtomicReference<EventLoopGroup>();
         var httpExecutorReference = new AtomicReference<ThreadPoolExecutor>();
+        var authenticationService = mock(GatewaySessionAuthenticationService.class);
+        when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(true);
         var contextRunner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
+                .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
                 .withPropertyValues(
                         "gateweave.server.host=127.0.0.1",
                         "gateweave.server.port=" + port,
@@ -185,6 +190,7 @@ class GatewayEngineConfigurationTests {
                 assertThat(response.statusCode()).isEqualTo(200);
                 assertThat(response.body()).isEqualTo("hi gateweave");
                 assertThat(response.headers().firstValue("content-type")).contains("text/plain; charset=UTF-8");
+                verify(authenticationService).authenticate(any(GatewaySession.class));
             });
         }
 

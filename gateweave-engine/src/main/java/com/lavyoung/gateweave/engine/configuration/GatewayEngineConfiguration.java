@@ -10,6 +10,7 @@ import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDi
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
 import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
 import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
@@ -194,16 +195,18 @@ public class GatewayEngineConfiguration {
     /**
      * 创建负责完整请求会话编排的网关用例。
      *
-     * @param sessionFactory       网关会话工厂
-     * @param requestMapper        协议调用请求转换器
-     * @param invocationDispatcher 协议调用分派器
+     * @param sessionFactory        网关会话工厂
+     * @param authenticationService 会话鉴权应用服务
+     * @param requestMapper         协议调用请求转换器
+     * @param invocationDispatcher  协议调用分派器
      * @return 网关请求用例
      */
     @Bean
     public HandleGatewayRequestUseCase gatewayRequestUseCase(GatewaySessionFactory sessionFactory,
+                                                             GatewaySessionAuthenticationService authenticationService,
                                                              InvocationRequestMapper requestMapper,
                                                              ProtocolInvocationDispatcher invocationDispatcher) {
-        return new DefaultGatewayRequestService(sessionFactory, requestMapper, invocationDispatcher);
+        return new DefaultGatewayRequestService(sessionFactory, requestMapper, invocationDispatcher, authenticationService);
     }
 
     /**
@@ -302,7 +305,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
-            @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
+                                                  @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer) {
         return new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
