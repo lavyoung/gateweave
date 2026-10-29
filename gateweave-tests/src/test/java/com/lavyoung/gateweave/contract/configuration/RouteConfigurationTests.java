@@ -20,11 +20,12 @@ class RouteConfigurationTests {
     @Test
     void shouldCreateRouteWithImmutableAttributes() {
         // Given
-        var sourceAttributes = new HashMap<>(Map.of("authentication", "required"));
+        var sourceAttributes = new HashMap<>(Map.of("filter", "logging"));
 
         // When
         var route = new RouteConfiguration(
-                "route-say-hi", "/sayHi", "GET", "activity-service", DUBBO_TARGET, sourceAttributes);
+                "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
+                DUBBO_TARGET, sourceAttributes);
         sourceAttributes.put("rate-limit", "changed");
 
         // Then
@@ -32,42 +33,64 @@ class RouteConfigurationTests {
         assertThat(route.path()).isEqualTo("/sayHi");
         assertThat(route.method()).isEqualTo("GET");
         assertThat(route.serviceId()).isEqualTo("activity-service");
+        assertThat(route.authenticationMode()).isEqualTo(RouteAuthenticationMode.REQUIRED);
         assertThat(route.target()).isSameAs(DUBBO_TARGET);
-        assertThat(route.attributes()).containsExactlyEntriesOf(Map.of("authentication", "required"));
+        assertThat(route.attributes()).containsExactlyEntriesOf(Map.of("filter", "logging"));
         assertThatThrownBy(() -> route.attributes().put("rate-limit", "10"))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void shouldSupportAnonymousRoute() {
+        // When
+        var route = new RouteConfiguration(
+                "route-public", "/public", "GET", "public-service", RouteAuthenticationMode.ANONYMOUS,
+                DUBBO_TARGET, Map.of());
+
+        // Then
+        assertThat(route.authenticationMode()).isEqualTo(RouteAuthenticationMode.ANONYMOUS);
     }
 
     @Test
     void shouldRejectBlankRouteProperties() {
         // When & Then
         assertThatThrownBy(() -> new RouteConfiguration(
-                " ", "/sayHi", "GET", "activity-service", DUBBO_TARGET, Map.of()))
+                " ", "/sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
+                DUBBO_TARGET, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("routeId must not be blank");
         assertThatThrownBy(() -> new RouteConfiguration(
-                "route-say-hi", " ", "GET", "activity-service", DUBBO_TARGET, Map.of()))
+                "route-say-hi", " ", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
+                DUBBO_TARGET, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("path must not be blank");
         assertThatThrownBy(() -> new RouteConfiguration(
-                "route-say-hi", "/sayHi", " ", "activity-service", DUBBO_TARGET, Map.of()))
+                "route-say-hi", "/sayHi", " ", "activity-service", RouteAuthenticationMode.REQUIRED,
+                DUBBO_TARGET, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("method must not be blank");
         assertThatThrownBy(() -> new RouteConfiguration(
-                "route-say-hi", "/sayHi", "GET", " ", DUBBO_TARGET, Map.of()))
+                "route-say-hi", "/sayHi", "GET", " ", RouteAuthenticationMode.REQUIRED,
+                DUBBO_TARGET, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("serviceId must not be blank");
     }
 
     @Test
-    void shouldRejectMissingTargetAndAttributes() {
+    void shouldRejectMissingAuthenticationModeTargetAndAttributes() {
         // When & Then
         assertThatThrownBy(() -> new RouteConfiguration(
-                "route-say-hi", "/sayHi", "GET", "activity-service", null, Map.of()))
+                "route-say-hi", "/sayHi", "GET", "activity-service", null, DUBBO_TARGET, Map.of()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("authenticationMode must not be null");
+        assertThatThrownBy(() -> new RouteConfiguration(
+                "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
+                null, Map.of()))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("target must not be null");
         assertThatThrownBy(() -> new RouteConfiguration(
-                "route-say-hi", "/sayHi", "GET", "activity-service", DUBBO_TARGET, null))
+                "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
+                DUBBO_TARGET, null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("attributes must not be null");
     }

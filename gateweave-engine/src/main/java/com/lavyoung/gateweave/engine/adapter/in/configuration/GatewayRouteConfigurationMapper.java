@@ -2,10 +2,12 @@ package com.lavyoung.gateweave.engine.adapter.in.configuration;
 
 import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
+import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import java.util.List;
 import java.util.Objects;
@@ -17,9 +19,9 @@ import java.util.Objects;
  * 避免领域层直接依赖控制面的配置表达。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @since 1.0
+ * @version 1.0.0
+ * @date 2026/10/29
  */
-
 public final class GatewayRouteConfigurationMapper {
 
     /**
@@ -39,11 +41,24 @@ public final class GatewayRouteConfigurationMapper {
 
         return new GatewayRoute(
                 configuration.routeId(), configuration.path(), configuration.method(), configuration.serviceId(),
-                invocationTarget, configuration.attributes());
+                toDomain(configuration.authenticationMode()), invocationTarget, configuration.attributes());
     }
 
     /**
-     * 将参数配置转换为数据面领域参数。
+     * 将跨进程认证模式转换为数据面领域策略。
+     *
+     * @param mode 控制面发布的认证模式
+     * @return 数据面领域认证策略
+     */
+    private RouteAuthenticationPolicy toDomain(RouteAuthenticationMode mode) {
+        return switch (mode) {
+            case ANONYMOUS -> RouteAuthenticationPolicy.ANONYMOUS;
+            case REQUIRED -> RouteAuthenticationPolicy.REQUIRED;
+        };
+    }
+
+    /**
+     * 将参数配置转换为领域参数。
      *
      * @param configuration 参数配置
      * @return 领域参数

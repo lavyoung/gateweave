@@ -15,6 +15,7 @@ gateweave:
         path: /sayHi
         method: GET
         service-id: activity-service
+        authentication-mode: ANONYMOUS
         target:
           protocol: dubbo
           service: cn.bugstack.gateway.rpc.IActivityBooth
@@ -36,3 +37,10 @@ gateweave:
     maximum-threads: 8
     queue-capacity: 256
     keep-alive: 30s
+  security:
+    jwt:
+      issuer: ${GATEWEAVE_JWT_ISSUER:gateweave-issuer}
+      audience: ${GATEWEAVE_JWT_AUDIENCE:gateweave-engine}
+      verification-key-base64: ${GATEWEAVE_JWT_VERIFICATION_KEY_BASE64}
+      clock-skew: 30s
+      maximum-token-length: 4096

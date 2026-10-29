@@ -115,6 +115,7 @@ class GatewayRouteTableTests {
     }
 
     private static GatewayRoute route(String routeId, String path, String method) {
-        return new GatewayRoute(routeId, path, method, "activity-service", DUBBO_TARGET, Map.of());
+        return new GatewayRoute(routeId, path, method, "activity-service", RouteAuthenticationPolicy.ANONYMOUS,
+                DUBBO_TARGET, Map.of());
     }
 }

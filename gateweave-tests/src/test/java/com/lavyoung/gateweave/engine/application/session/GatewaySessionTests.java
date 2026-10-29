@@ -13,6 +13,7 @@ import com.lavyoung.gateweave.engine.application.command.HttpParameterValues;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
+import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,7 +57,8 @@ class GatewaySessionTests {
     }
 
     private static GatewayRoute route() {
-        return new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service", target(), Map.of());
+        return new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service",
+                RouteAuthenticationPolicy.ANONYMOUS, target(), Map.of());
     }
 
     private static InvocationTarget target() {

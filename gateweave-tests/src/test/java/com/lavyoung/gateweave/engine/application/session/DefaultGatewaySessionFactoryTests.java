@@ -14,6 +14,7 @@ import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -22,7 +23,8 @@ class DefaultGatewaySessionFactoryTests {
 
     private static final HttpHeaders EMPTY_HEADERS = HttpHeaders.of(Map.of(), (name, value) -> true);
     private static final GatewayRoute ROUTE = new GatewayRoute(
-            "route-say-hi", "/sayHi", "POST", "greeting-service", target(), Map.of());
+            "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
+            target(), Map.of());
     private static final GatewayRouteTable ROUTE_TABLE = new GatewayRouteTable(List.of(ROUTE));
 
     @Test

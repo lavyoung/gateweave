@@ -6,17 +6,19 @@ import java.util.Objects;
 /**
  * 描述控制面发布给网关数据面的路由配置。
  *
- * @param routeId    稳定的路由标识
- * @param path       对外暴露的 HTTP 请求路径
- * @param method     对外接受的 HTTP 方法
- * @param serviceId  控制面中的稳定服务标识
- * @param target     路由命中后的协议调用目标
- * @param attributes 路由扩展属性，例如过滤器和策略配置
+ * @param routeId           稳定的路由标识
+ * @param path              对外暴露的 HTTP 请求路径
+ * @param method            对外接受的 HTTP 方法
+ * @param serviceId         控制面中的稳定服务标识
+ * @param authenticationMode 路由身份认证模式
+ * @param target            路由命中后的协议调用目标
+ * @param attributes        路由扩展属性，例如过滤器和策略配置
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @since 1.0
  */
 public record RouteConfiguration(String routeId, String path, String method, String serviceId,
-        InvocationTargetConfiguration target, Map<String, String> attributes) {
+                                 RouteAuthenticationMode authenticationMode, InvocationTargetConfiguration target,
+                                 Map<String, String> attributes) {
 
     /**
      * 校验路由属性并建立不可变快照。
@@ -29,6 +31,7 @@ public record RouteConfiguration(String routeId, String path, String method, Str
         Objects.requireNonNull(path, "path must not be null");
         Objects.requireNonNull(method, "method must not be null");
         Objects.requireNonNull(serviceId, "serviceId must not be null");
+        Objects.requireNonNull(authenticationMode, "authenticationMode must not be null");
         Objects.requireNonNull(target, "target must not be null");
         Objects.requireNonNull(attributes, "attributes must not be null");
 

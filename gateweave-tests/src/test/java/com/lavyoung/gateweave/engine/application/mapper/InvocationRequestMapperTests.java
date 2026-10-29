@@ -16,6 +16,7 @@ import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
+import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,7 +37,8 @@ class InvocationRequestMapperTests {
                 List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
                 Map.of("version", "1.0.0"));
         var route = new GatewayRoute(
-                "route-say-hi", "/sayHi", "POST", "greeting-service", target, Map.of("priority", "10"));
+                "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
+                target, Map.of("priority", "10"));
         var session = new GatewaySession(command, route);
         var mapper = mapper();
 
@@ -85,7 +87,8 @@ class InvocationRequestMapperTests {
                 body);
         var target = new InvocationTarget("dubbo", "cn.example.GreetingService", "sayHi",
                 List.of(new InvocationParameter("name", String.class.getName())), Duration.ofSeconds(3), Map.of());
-        var route = new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service", target, Map.of());
+        var route = new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service",
+                RouteAuthenticationPolicy.ANONYMOUS, target, Map.of());
         var mapper = mapper();
 
         // When
@@ -120,7 +123,8 @@ class InvocationRequestMapperTests {
                 List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
                 Map.of("version", "1.0.0"));
         var route = new GatewayRoute(
-                "route-say-hi", "/sayHi", "POST", "greeting-service", target, Map.of("priority", "10"));
+                "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
+                target, Map.of("priority", "10"));
         return new GatewaySession(command, route);
     }
 

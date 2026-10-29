@@ -1,11 +1,11 @@
 package com.lavyoung.gateweave.engine.domain.route;
 
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
+
 import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 
 /**
  * 描述数据面中可参与请求匹配的网关路由。
@@ -13,17 +13,20 @@ import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
  * <p>当前阶段使用 HTTP 方法和精确路径共同匹配，查询参数不参与匹配。
  * 后续可在领域层扩展路径变量、通配符和路由优先级。</p>
  *
- * @param routeId    稳定的路由标识
- * @param path       精确匹配的 HTTP 路径
- * @param method     规范化后的 HTTP 方法
- * @param serviceId  控制面中的稳定服务标识
- * @param target     路由命中后的领域调用目标
- * @param attributes 路由策略扩展属性
+ * @param routeId              稳定的路由标识
+ * @param path                 精确匹配的 HTTP 路径
+ * @param method               规范化后的 HTTP 方法
+ * @param serviceId            控制面中的稳定服务标识
+ * @param authenticationPolicy 路由身份认证策略
+ * @param target               路由命中后的领域调用目标
+ * @param attributes           路由策略扩展属性
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
- * @since 1.0
+ * @version 1.0.0
+ * @date 2026/10/29
  */
-public record GatewayRoute(String routeId, String path, String method, String serviceId, InvocationTarget target,
-        Map<String, String> attributes) {
+public record GatewayRoute(String routeId, String path, String method, String serviceId,
+                           RouteAuthenticationPolicy authenticationPolicy, InvocationTarget target,
+                           Map<String, String> attributes) {
     /**
      * 校验路由不变量、规范化 HTTP 方法并建立不可变快照。
      *
@@ -35,6 +38,7 @@ public record GatewayRoute(String routeId, String path, String method, String se
         Objects.requireNonNull(path, "path must not be null");
         Objects.requireNonNull(method, "method must not be null");
         Objects.requireNonNull(serviceId, "serviceId must not be null");
+        Objects.requireNonNull(authenticationPolicy, "authenticationPolicy must not be null");
         Objects.requireNonNull(target, "target must not be null");
         Objects.requireNonNull(attributes, "attributes must not be null");
 

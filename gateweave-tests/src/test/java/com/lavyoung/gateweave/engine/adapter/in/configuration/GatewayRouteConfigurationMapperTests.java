@@ -8,7 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
+import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,8 +29,8 @@ class GatewayRouteConfigurationMapperTests {
     void shouldConvertRouteConfigurationToDomainRoute() {
         // Given
         var configuration = new RouteConfiguration(
-                "route-say-hi", "/sayHi", "get", "activity-service", TARGET_CONFIGURATION,
-                Map.of("filter", "logging"));
+                "route-say-hi", "/sayHi", "get", "activity-service", RouteAuthenticationMode.REQUIRED,
+                TARGET_CONFIGURATION, Map.of("filter", "logging"));
 
         // When
         var route = this.mapper.toDomain(configuration);
@@ -38,6 +40,7 @@ class GatewayRouteConfigurationMapperTests {
         assertThat(route.path()).isEqualTo("/sayHi");
         assertThat(route.method()).isEqualTo("GET");
         assertThat(route.serviceId()).isEqualTo("activity-service");
+        assertThat(route.authenticationPolicy()).isEqualTo(RouteAuthenticationPolicy.REQUIRED);
         assertThat(route.attributes()).containsExactlyEntriesOf(Map.of("filter", "logging"));
         assertThat(route.target().protocol()).isEqualTo("dubbo");
         assertThat(route.target().service()).isEqualTo("cn.bugstack.gateway.rpc.IActivityBooth");
@@ -46,6 +49,20 @@ class GatewayRouteConfigurationMapperTests {
                 .containsExactly(tuple("name", "java.lang.String"));
         assertThat(route.target().timeout()).isEqualTo(Duration.ofSeconds(3));
         assertThat(route.target().attributes()).containsExactlyEntriesOf(Map.of("version", "1.0.0"));
+    }
+
+    @Test
+    void shouldConvertAnonymousAuthenticationMode() {
+        // Given
+        var configuration = new RouteConfiguration(
+                "route-public", "/public", "GET", "public-service", RouteAuthenticationMode.ANONYMOUS,
+                TARGET_CONFIGURATION, Map.of());
+
+        // When
+        var route = this.mapper.toDomain(configuration);
+
+        // Then
+        assertThat(route.authenticationPolicy()).isEqualTo(RouteAuthenticationPolicy.ANONYMOUS);
     }
 
     @Test
@@ -60,7 +77,8 @@ class GatewayRouteConfigurationMapperTests {
     void shouldPropagateDomainValidationFailure() {
         // Given
         var configuration = new RouteConfiguration(
-                "route-say-hi", "sayHi", "GET", "activity-service", TARGET_CONFIGURATION, Map.of());
+                "route-say-hi", "sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
+                TARGET_CONFIGURATION, Map.of());
 
         // When & Then
         assertThatThrownBy(() -> this.mapper.toDomain(configuration))

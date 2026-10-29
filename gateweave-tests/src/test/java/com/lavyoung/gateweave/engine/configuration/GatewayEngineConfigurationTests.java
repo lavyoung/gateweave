@@ -119,6 +119,7 @@ class GatewayEngineConfigurationTests {
                         "gateweave.routing.routes[0].path=/sayHi",
                         "gateweave.routing.routes[0].method=GET",
                         "gateweave.routing.routes[0].service-id=activity-service",
+                        "gateweave.routing.routes[0].authentication-mode=ANONYMOUS",
                         "gateweave.routing.routes[0].target.protocol=dubbo",
                         "gateweave.routing.routes[0].target.service=cn.example.ActivityBooth",
                         "gateweave.routing.routes[0].target.operation=sayHi",

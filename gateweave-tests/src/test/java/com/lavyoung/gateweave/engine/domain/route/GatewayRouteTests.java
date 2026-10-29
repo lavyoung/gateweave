@@ -47,14 +47,15 @@ class GatewayRouteTests {
     @Test
     void shouldCreateImmutableRouteAttributes() {
         // Given
-        var sourceAttributes = new HashMap<>(Map.of("authentication", "required"));
+        var sourceAttributes = new HashMap<>(Map.of("filter", "logging"));
 
         // When
         var route = validRoute("GET", sourceAttributes);
         sourceAttributes.put("rate-limit", "changed");
 
         // Then
-        assertThat(route.attributes()).containsExactlyEntriesOf(Map.of("authentication", "required"));
+        assertThat(route.authenticationPolicy()).isEqualTo(RouteAuthenticationPolicy.ANONYMOUS);
+        assertThat(route.attributes()).containsExactlyEntriesOf(Map.of("filter", "logging"));
         assertThatThrownBy(() -> route.attributes().put("rate-limit", "10"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
@@ -66,9 +67,14 @@ class GatewayRouteTests {
 
         // When & Then
         assertThatThrownBy(() -> new GatewayRoute(
-                "route-say-hi", "sayHi", "GET", "activity-service", DUBBO_TARGET, Map.of()))
+                "route-say-hi", "sayHi", "GET", "activity-service", RouteAuthenticationPolicy.ANONYMOUS,
+                DUBBO_TARGET, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("path must start with '/'");
+        assertThatThrownBy(() -> new GatewayRoute(
+                "route-say-hi", "/sayHi", "GET", "activity-service", null, DUBBO_TARGET, Map.of()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("authenticationPolicy must not be null");
         assertThatThrownBy(() -> route.matches(null, URI.create("/sayHi")))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("requestMethod must not be null");
@@ -78,6 +84,7 @@ class GatewayRouteTests {
     }
 
     private static GatewayRoute validRoute(String method, Map<String, String> attributes) {
-        return new GatewayRoute("route-say-hi", "/sayHi", method, "activity-service", DUBBO_TARGET, attributes);
+        return new GatewayRoute("route-say-hi", "/sayHi", method, "activity-service",
+                RouteAuthenticationPolicy.ANONYMOUS, DUBBO_TARGET, attributes);
     }
 }

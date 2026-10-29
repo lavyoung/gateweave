@@ -26,6 +26,7 @@ import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,7 +44,8 @@ class DefaultGatewayRequestServiceTests {
             List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
             Map.of("version", "1.0.0"));
     private static final GatewayRoute ROUTE = new GatewayRoute(
-            "route-say-hi", "/sayHi", "GET", "activity-service", TARGET, Map.of());
+            "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationPolicy.ANONYMOUS,
+            TARGET, Map.of());
     private static final GatewayRouteTable ROUTE_TABLE = new GatewayRouteTable(List.of(ROUTE));
 
     @Test

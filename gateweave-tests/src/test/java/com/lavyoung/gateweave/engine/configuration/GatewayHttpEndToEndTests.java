@@ -110,6 +110,7 @@ class GatewayHttpEndToEndTests {
                         "gateweave.routing.routes[0].path=/proxy/http",
                         "gateweave.routing.routes[0].method=POST",
                         "gateweave.routing.routes[0].service-id=local-http-service",
+                        "gateweave.routing.routes[0].authentication-mode=ANONYMOUS",
                         "gateweave.routing.routes[0].target.protocol=http",
                         "gateweave.routing.routes[0].target.service=http://127.0.0.1:" + downstreamPort,
                         "gateweave.routing.routes[0].target.operation=/downstream",
