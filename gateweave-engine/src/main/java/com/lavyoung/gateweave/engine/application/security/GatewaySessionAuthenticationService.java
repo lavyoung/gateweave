@@ -1,10 +1,10 @@
 package com.lavyoung.gateweave.engine.application.security;
 
+import java.util.Objects;
+
 import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
 import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
-
-import java.util.Objects;
 
 /**
  * 根据路由策略认证一次网关请求会话。

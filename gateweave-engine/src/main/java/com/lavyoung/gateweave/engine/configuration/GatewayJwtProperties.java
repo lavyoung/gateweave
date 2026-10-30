@@ -1,9 +1,9 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.time.Duration;
 import java.util.Objects;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 描述网关验证 JWT 所需的安全配置。

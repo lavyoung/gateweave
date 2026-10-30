@@ -1,9 +1,9 @@
 package com.lavyoung.gateweave.center.route.application.query;
 
-import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
-
 import java.util.List;
 import java.util.Objects;
+
+import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
 
 /**
  * 保存一次路由分页查询的应用层结果。

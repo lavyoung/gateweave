@@ -1,15 +1,21 @@
 package com.lavyoung.gateweave.engine.application.mapper;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
-import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
-import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
-import java.io.IOException;
-import java.util.*;
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
+import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 
 /**
  * 将已经解析的 HTTP 请求参数绑定为协议无关的泛化调用参数。

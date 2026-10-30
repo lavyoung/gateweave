@@ -1,19 +1,29 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
-import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
-import com.lavyoung.gateweave.engine.application.command.HttpParameterValues;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpHeaders;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.multipart.Attribute;
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
 import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpHeaders;
-import java.util.*;
-import java.util.stream.Collectors;
+import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
+import com.lavyoung.gateweave.engine.application.command.HttpParameterValues;
 
 /**
  * 将 Netty HTTP 请求转换为网关应用层命令。

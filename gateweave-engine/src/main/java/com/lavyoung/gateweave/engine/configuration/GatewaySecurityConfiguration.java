@@ -1,5 +1,12 @@
 package com.lavyoung.gateweave.engine.configuration;
 
+import java.util.Base64;
+
+import org.apache.shiro.mgt.DefaultSecurityManager;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
 import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
 import com.lavyoung.gateweave.engine.application.security.BearerTokenResolver;
 import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
@@ -8,12 +15,6 @@ import com.lavyoung.gateweave.plugin.security.jwt.JwtVerificationPolicy;
 import com.lavyoung.gateweave.plugin.security.shiro.GatewayAuthenticationRealm;
 import com.lavyoung.gateweave.plugin.security.shiro.ShiroGatewayAuthenticator;
 import com.lavyoung.gateweave.plugin.security.shiro.StatelessShiroSecurityManagerFactory;
-import org.apache.shiro.mgt.DefaultSecurityManager;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.util.Base64;
 
 /**
  * 装配网关数据面的 JWT 与 Shiro 无状态认证组件。

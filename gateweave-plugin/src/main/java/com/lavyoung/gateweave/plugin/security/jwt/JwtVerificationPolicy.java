@@ -1,10 +1,11 @@
 package com.lavyoung.gateweave.plugin.security.jwt;
 
-import io.jsonwebtoken.security.Keys;
-
-import javax.crypto.SecretKey;
 import java.time.Duration;
 import java.util.Objects;
+
+import javax.crypto.SecretKey;
+
+import io.jsonwebtoken.security.Keys;
 
 /**
  * 描述网关验证 HS256 JWT 时使用的安全策略。

@@ -1,13 +1,14 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
-import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
-import com.lavyoung.gateweave.contract.extension.IGenericReference;
-import org.apache.dubbo.rpc.service.GenericService;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+
+import org.apache.dubbo.rpc.service.GenericService;
+
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
+import com.lavyoung.gateweave.contract.extension.IGenericReference;
 
 /**
  * 将统一泛化调用接口转换为 Dubbo GenericService 调用。

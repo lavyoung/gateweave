@@ -1,5 +1,8 @@
 package com.lavyoung.gateweave.engine.adapter.in.configuration;
 
+import java.util.List;
+import java.util.Objects;
+
 import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
@@ -8,9 +11,6 @@ import com.lavyoung.gateweave.engine.domain.invocation.InvocationParameter;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * 将控制面发布的路由契约转换为数据面的领域路由。

@@ -1,12 +1,12 @@
 package com.lavyoung.gateweave.plugin.security.shiro;
 
+import java.util.Objects;
+
 import org.apache.shiro.mgt.DefaultSecurityManager;
 import org.apache.shiro.mgt.DefaultSessionStorageEvaluator;
 import org.apache.shiro.mgt.DefaultSubjectDAO;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.session.mgt.DefaultSessionManager;
-
-import java.util.Objects;
 
 /**
  * 负责创建适用于网关请求的无状态 Shiro SecurityManager。

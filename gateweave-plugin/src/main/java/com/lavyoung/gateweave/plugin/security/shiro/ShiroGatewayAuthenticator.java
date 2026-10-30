@@ -1,14 +1,16 @@
 package com.lavyoung.gateweave.plugin.security.shiro;
 
-import com.lavyoung.gateweave.contract.extension.security.AuthenticatedPrincipal;
-import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
+import java.util.Objects;
+import java.util.Optional;
+
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.BearerToken;
 import org.apache.shiro.mgt.SecurityManager;
 import org.apache.shiro.subject.Subject;
 
-import java.util.Objects;
-import java.util.Optional;
+import com.lavyoung.gateweave.contract.extension.security.AuthenticatedPrincipal;
+import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
+
 
 /**
  * 使用 Shiro 完成网关请求的无状态身份认证。

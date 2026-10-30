@@ -1,12 +1,19 @@
 package com.lavyoung.gateweave.plugin.security.shiro;
 
-import com.lavyoung.gateweave.contract.extension.security.AuthenticatedPrincipal;
-import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
-import org.apache.shiro.authc.*;
+import java.util.Objects;
+
+import org.apache.shiro.authc.AuthenticationException;
+import org.apache.shiro.authc.AuthenticationInfo;
+import org.apache.shiro.authc.AuthenticationToken;
+import org.apache.shiro.authc.BearerToken;
+import org.apache.shiro.authc.IncorrectCredentialsException;
+import org.apache.shiro.authc.SimpleAuthenticationInfo;
 import org.apache.shiro.authc.credential.AllowAllCredentialsMatcher;
 import org.apache.shiro.realm.AuthenticatingRealm;
 
-import java.util.Objects;
+import com.lavyoung.gateweave.contract.extension.security.AuthenticatedPrincipal;
+import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
+
 
 /**
  * 将 Shiro Bearer Token 适配到网关认证契约。

@@ -1,6 +1,10 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
-import com.lavyoung.gateweave.contract.extension.IGenericReference;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.dubbo.common.config.ReferenceCache;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ReferenceConfig;
@@ -9,10 +13,7 @@ import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.model.ScopeModel;
 import org.apache.dubbo.rpc.service.GenericService;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.lavyoung.gateweave.contract.extension.IGenericReference;
 
 import static org.apache.dubbo.registry.Constants.MIGRATION_STEP_KEY;
 

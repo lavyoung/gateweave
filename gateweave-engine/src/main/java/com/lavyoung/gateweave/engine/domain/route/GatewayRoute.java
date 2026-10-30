@@ -1,11 +1,11 @@
 package com.lavyoung.gateweave.engine.domain.route;
 
-import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
-
 import java.net.URI;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
+import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 
 /**
  * 描述数据面中可参与请求匹配的网关路由。

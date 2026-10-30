@@ -1,11 +1,11 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
+
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
-
-import java.util.Objects;
-import java.util.concurrent.CompletionStage;
 
 /**
  * 使用 Dubbo 泛化引用执行统一调用请求。

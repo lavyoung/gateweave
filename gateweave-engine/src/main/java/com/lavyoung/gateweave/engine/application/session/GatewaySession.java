@@ -1,9 +1,9 @@
 package com.lavyoung.gateweave.engine.application.session;
 
+import java.util.Objects;
+
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
-
-import java.util.Objects;
 
 /**
  * 表示一次网关请求已经完成路由匹配后的会话快照。

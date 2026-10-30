@@ -1,15 +1,15 @@
 package com.lavyoung.gateweave.engine.application.mapper;
 
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
 import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.domain.invocation.InvocationTarget;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
-
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * 将已经完成路由匹配的网关会话转换为协议调用契约。

@@ -1,5 +1,12 @@
 package com.lavyoung.gateweave.engine.application.service;
 
+import java.net.http.HttpHeaders;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.engine.application.command.GatewayRequestCommand;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
@@ -9,13 +16,6 @@ import com.lavyoung.gateweave.engine.application.result.GatewayResponse;
 import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
 import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
-
-import java.net.http.HttpHeaders;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 
 /**
@@ -46,12 +46,16 @@ public final class DefaultGatewayRequestService implements HandleGatewayRequestU
      * @param authenticationService 会话鉴权应用服务
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public DefaultGatewayRequestService(GatewaySessionFactory sessionFactory, InvocationRequestMapper requestMapper,
-                                        ProtocolInvocationDispatcher invocationDispatcher, GatewaySessionAuthenticationService authenticationService) {
+    public DefaultGatewayRequestService(
+            GatewaySessionFactory sessionFactory, InvocationRequestMapper requestMapper,
+            ProtocolInvocationDispatcher invocationDispatcher,
+            GatewaySessionAuthenticationService authenticationService) {
         this.sessionFactory = Objects.requireNonNull(sessionFactory, "sessionFactory must not be null");
         this.requestMapper = Objects.requireNonNull(requestMapper, "requestMapper must not be null");
-        this.invocationDispatcher = Objects.requireNonNull(invocationDispatcher, "invocationDispatcher must not be null");
-        this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService must not be null");
+        this.invocationDispatcher = Objects.requireNonNull(
+                invocationDispatcher, "invocationDispatcher must not be null");
+        this.authenticationService = Objects.requireNonNull(
+                authenticationService, "authenticationService must not be null");
     }
 
     @Override

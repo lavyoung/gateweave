@@ -1,9 +1,9 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.time.Duration;
 import java.util.Objects;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * 描述网关访问下游 HTTP 服务所需的运行参数。

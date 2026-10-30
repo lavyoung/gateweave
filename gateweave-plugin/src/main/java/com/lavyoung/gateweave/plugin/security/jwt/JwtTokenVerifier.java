@@ -1,11 +1,16 @@
 package com.lavyoung.gateweave.plugin.security.jwt;
 
-import com.lavyoung.gateweave.contract.extension.security.AuthenticatedPrincipal;
-import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
-import io.jsonwebtoken.*;
-
 import java.util.Objects;
 import java.util.Optional;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+
+import com.lavyoung.gateweave.contract.extension.security.AuthenticatedPrincipal;
+import com.lavyoung.gateweave.contract.extension.security.GatewayAuthenticator;
 
 /**
  * 使用 JJWT 验证 HS256 Token 并恢复可信调用主体。

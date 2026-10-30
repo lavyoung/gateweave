@@ -8,6 +8,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.web.servlet.DispatcherServlet;
 
+import com.lavyoung.gateweave.center.route.adapter.out.persistence.JdbcRouteDefinitionRepository;
+import com.lavyoung.gateweave.center.route.application.port.in.QueryRoutePageUseCase;
+import com.lavyoung.gateweave.center.route.application.service.DefaultRouteQueryService;
+import com.lavyoung.gateweave.center.route.domain.repository.RouteDefinitionRepository;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GateWeaveCenterApplicationTests {
@@ -29,6 +34,10 @@ class GateWeaveCenterApplicationTests {
             assertThat(context).hasSingleBean(DispatcherServlet.class);
             assertThat(context).hasSingleBean(DataSource.class);
             assertThat(context).hasSingleBean(Flyway.class);
+            assertThat(context).hasSingleBean(RouteDefinitionRepository.class);
+            assertThat(context).hasSingleBean(JdbcRouteDefinitionRepository.class);
+            assertThat(context).hasSingleBean(QueryRoutePageUseCase.class);
+            assertThat(context).hasSingleBean(DefaultRouteQueryService.class);
         });
     }
 

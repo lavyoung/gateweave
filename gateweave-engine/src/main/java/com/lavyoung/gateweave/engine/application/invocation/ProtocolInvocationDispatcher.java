@@ -1,12 +1,15 @@
 package com.lavyoung.gateweave.engine.application.invocation;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
-
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
 /**
  * 根据调用请求中的协议标识选择对应的协议调用器。
@@ -62,7 +65,7 @@ public final class ProtocolInvocationDispatcher {
      */
     public CompletionStage<String> invoke(InvocationRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        ProtocolInvoker invoker = invokers.get(request.protocol());
+        ProtocolInvoker invoker = this.invokers.get(request.protocol());
         if (invoker == null) {
             IllegalStateException failure = new IllegalStateException("No protocol invoker registered for: "
                     + request.protocol());
