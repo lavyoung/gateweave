@@ -7,5 +7,11 @@ GateWeave separates request execution from gateway management:
 - Integration contracts are versioned independently of both domain models.
 - The Spring Boot starter is optional; standard protocols remain the primary integration path.
 
-Each bounded context uses domain, application, adapter and bootstrap packages. Maven
-modules define deployment and publication boundaries, while packages define DDD layers.
+The data plane uses layer-first packages around one request-execution pipeline. The
+control plane uses capability-first packages such as `catalog` and `route`, with
+`adapter -> application -> domain` layering inside each capability. Maven modules define
+deployment and publication boundaries, while packages define DDD boundaries.
+
+Each executable module keeps its Spring Boot application class in the module root package.
+Module-local tests stay in that module; `gateweave-tests` is reserved for cross-module
+architecture, integration and end-to-end verification.

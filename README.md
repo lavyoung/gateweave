@@ -12,7 +12,7 @@ the data plane (`gateweave-engine`) and the control plane (`gateweave-center`).
 | `gateweave-engine` | Netty-based data-plane runtime |
 | `gateweave-center` | Registration, configuration, releases and management API |
 | `gateweave-spring-boot-starter` | Optional service metadata and registration integration |
-| `gateweave-tests` | Architecture, integration and end-to-end tests |
+| `gateweave-tests` | Cross-module architecture, integration and end-to-end tests |
 
 The engine and center never depend on each other's implementation. They exchange
 versioned records from `gateweave-contract` through explicit adapters.
@@ -21,11 +21,15 @@ versioned records from `gateweave-contract` through explicit adapters.
 
 ```text
 adapter -> application -> domain
-bootstrap -> application + adapters
+configuration -> application + adapters
 ```
 
 Domain packages are framework independent. Cross-process records and plugin SPI
 belong to `gateweave-contract`; vendor SDK types remain inside adapters or plugins.
+
+`gateweave-engine` uses layer-first packages around the request pipeline.
+`gateweave-center` uses capability-first packages such as `catalog` and `route`, with
+the same dependency direction enforced inside each capability.
 
 ## Build
 
@@ -39,7 +43,7 @@ Run the control plane:
 mvn -pl gateweave-center spring-boot:run
 ```
 
-Run the data-plane bootstrap:
+Run the data plane:
 
 ```shell
 mvn -pl gateweave-engine spring-boot:run

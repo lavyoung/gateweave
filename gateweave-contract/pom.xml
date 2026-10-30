@@ -12,4 +12,12 @@
     <artifactId>gateweave-contract</artifactId>
     <name>${project.artifactId}</name>
     <description>Stable integration contracts and extension SPI</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>

@@ -13,9 +13,9 @@
 - `gateweave-center`：网关控制面限界上下文。负责节点、服务、接口、路由、策略和配置发布的注册、查询、订阅与持久化；管理 API 是其入站适配器。
 - `gateweave-plugin`：内置协议调用、过滤器和编解码实现。只依赖 `gateweave-contract`，厂商 SDK 类型不得越过插件边界。
 - `gateweave-spring-boot-starter`：可选服务接入组件。负责元数据采集、注册、注销和心跳，不承载网关调用逻辑。
-- `gateweave-tests`：架构、集成及端到端测试，不得被生产模块依赖。
+- `gateweave-tests`：仅承载跨模块架构、集成及端到端测试，不得被生产模块依赖；单模块领域、应用、适配器和启动测试必须放回所属模块的 `src/test/java`。
 - 依赖保持单向：`plugin -> contract`、`engine -> contract + plugin`、`center -> contract`、`starter -> contract`。`engine` 与 `center` 禁止直接形成 Maven 依赖，只能通过契约和进程通信协作。
-- 模块内依赖保持 `adapter -> application -> domain`；`bootstrap` 负责最终装配。领域层禁止依赖 Spring、Netty、MyBatis、HTTP DTO 或其他限界上下文的领域模型。
+- 模块内依赖保持 `adapter -> application -> domain`；模块根包启动类负责进程入口，`configuration` 负责最终装配。领域层禁止依赖 Spring、Netty、MyBatis、HTTP DTO 或其他限界上下文的领域模型。
 
 ## 3. P0 绝对红线
 
