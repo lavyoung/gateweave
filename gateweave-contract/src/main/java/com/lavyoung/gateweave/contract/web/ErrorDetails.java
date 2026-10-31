@@ -21,15 +21,13 @@ public record ErrorDetails(String path, String requestId) {
      * @throws IllegalArgumentException path 或 requestId 为空白时抛出
      */
     public ErrorDetails {
-        path = requireText(path, "path");
-        requestId = requireText(requestId, "requestId");
-    }
-
-    private static String requireText(String value, String name) {
-        String checkedValue = Objects.requireNonNull(value, name + " must not be null");
-        if (checkedValue.isBlank()) {
-            throw new IllegalArgumentException(name + " must not be blank");
+        path = Objects.requireNonNull(path, "path must not be null");
+        requestId = Objects.requireNonNull(requestId, "requestId must not be null");
+        if (path.isBlank()) {
+            throw new IllegalArgumentException("path must not be blank");
         }
-        return checkedValue;
+        if (requestId.isBlank()) {
+            throw new IllegalArgumentException("requestId must not be blank");
+        }
     }
 }

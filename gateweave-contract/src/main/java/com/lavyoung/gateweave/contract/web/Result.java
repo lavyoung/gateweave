@@ -33,9 +33,15 @@ public record Result<T>(boolean success, String code, String message, T data) {
      * @throws IllegalArgumentException code 或 message 为空白，或者成功状态与响应码不一致时抛出
      */
     public Result {
-        code = requireText(code, "code");
-        message = requireText(message, "message");
-        data = Objects.requireNonNull(data, "data must not be null");
+        code = Objects.requireNonNull(code, "code must not be null");
+        message = Objects.requireNonNull(message, "message must not be null");
+        Objects.requireNonNull(data, "data must not be null");
+        if (code.isBlank()) {
+            throw new IllegalArgumentException("code must not be blank");
+        }
+        if (message.isBlank()) {
+            throw new IllegalArgumentException("message must not be blank");
+        }
         boolean successCode = CommonResponseCode.SUCCESS.code().equals(code);
         if (success != successCode) {
             throw new IllegalArgumentException("success status and code must be consistent");
@@ -99,11 +105,4 @@ public record Result<T>(boolean success, String code, String message, T data) {
         return new Result<>(false, checkedResponseCode.code(), message, data);
     }
 
-    private static String requireText(String value, String name) {
-        String checkedValue = Objects.requireNonNull(value, name + " must not be null");
-        if (checkedValue.isBlank()) {
-            throw new IllegalArgumentException(name + " must not be blank");
-        }
-        return checkedValue;
-    }
 }

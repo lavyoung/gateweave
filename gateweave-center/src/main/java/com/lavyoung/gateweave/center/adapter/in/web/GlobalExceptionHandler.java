@@ -113,7 +113,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<Result<ErrorDetails>> failure(HttpStatus status, ResponseCode responseCode,
-                                                         HttpServletRequest request, String requestId, Object... arguments) {
+            HttpServletRequest request, String requestId, Object... arguments) {
         ErrorDetails details = new ErrorDetails(request.getRequestURI(), requestId);
         Result<ErrorDetails> result = this.resultFactory.failure(responseCode, details, arguments);
         return ResponseEntity.status(status).body(result);

@@ -75,11 +75,25 @@ class ResponseContractTests {
     }
 
     @Test
+    void shouldRejectBlankResultCodeAndMessage() {
+        // When & Then
+        assertThatThrownBy(() -> new Result<>(false, " ", "failure", "details"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("code must not be blank");
+        assertThatThrownBy(() -> new Result<>(false, "COMMON-0001", " ", "details"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("message must not be blank");
+    }
+
+    @Test
     void shouldRejectBlankErrorDetails() {
         // When & Then
         assertThatThrownBy(() -> new ErrorDetails(" ", "request-1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("path must not be blank");
+        assertThatThrownBy(() -> new ErrorDetails("/gateways", " "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("requestId must not be blank");
     }
 
     private static List<ResponseCode> responseCodes() {
