@@ -10,8 +10,13 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.lavyoung.gateweave.center.adapter.in.web.GlobalExceptionHandler;
+import com.lavyoung.gateweave.center.adapter.in.web.LocalizedResultFactory;
+import com.lavyoung.gateweave.center.adapter.in.web.RequestIdFilter;
 import com.lavyoung.gateweave.center.route.application.port.in.QueryRoutePageUseCase;
 import com.lavyoung.gateweave.center.route.application.query.RoutePage;
 import com.lavyoung.gateweave.center.route.application.query.RoutePageQuery;
@@ -29,20 +34,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(RouteQueryController.class)
 @MockBean(QueryRoutePageUseCase.class)
+@Import({GlobalExceptionHandler.class, LocalizedResultFactory.class, RequestIdFilter.class})
 class RouteQueryControllerTests {
 
     private final MockMvc mockMvc;
     private final QueryRoutePageUseCase queryRoutePageUseCase;
+    private final LocalizedResultFactory resultFactory;
 
     @Autowired
-    RouteQueryControllerTests(MockMvc mockMvc, QueryRoutePageUseCase queryRoutePageUseCase) {
+    RouteQueryControllerTests(
+            MockMvc mockMvc, QueryRoutePageUseCase queryRoutePageUseCase, LocalizedResultFactory resultFactory) {
         this.mockMvc = mockMvc;
         this.queryRoutePageUseCase = queryRoutePageUseCase;
+        this.resultFactory = resultFactory;
     }
 
     @AfterEach
@@ -61,13 +71,15 @@ class RouteQueryControllerTests {
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.pageNumber").value(1))
-                .andExpect(jsonPath("$.pageSize").value(20))
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.routes[0].routeId").value("route-query"))
-                .andExpect(jsonPath("$.routes[0].invocationTimeoutMillis").value(2500))
-                .andExpect(jsonPath("$.routes[0].parameterMappings[0].requestName").value("name"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.pageNumber").value(1))
+                .andExpect(jsonPath("$.data.pageSize").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.routes[0].routeId").value("route-query"))
+                .andExpect(jsonPath("$.data.routes[0].invocationTimeoutMillis").value(2500))
+                .andExpect(jsonPath("$.data.routes[0].parameterMappings[0].requestName").value("name"));
 
         ArgumentCaptor<RoutePageQuery> queryCaptor = ArgumentCaptor.forClass(RoutePageQuery.class);
         verify(this.queryRoutePageUseCase).query(queryCaptor.capture());
@@ -85,11 +97,11 @@ class RouteQueryControllerTests {
                         .param("pageNumber", "2")
                         .param("pageSize", "5"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.routes").isEmpty())
-                .andExpect(jsonPath("$.pageNumber").value(2))
-                .andExpect(jsonPath("$.pageSize").value(5))
-                .andExpect(jsonPath("$.totalElements").value(6))
-                .andExpect(jsonPath("$.totalPages").value(2));
+                .andExpect(jsonPath("$.data.routes").isEmpty())
+                .andExpect(jsonPath("$.data.pageNumber").value(2))
+                .andExpect(jsonPath("$.data.pageSize").value(5))
+                .andExpect(jsonPath("$.data.totalElements").value(6))
+                .andExpect(jsonPath("$.data.totalPages").value(2));
 
         verify(this.queryRoutePageUseCase).query(new RoutePageQuery("test", 2, 5));
     }
@@ -97,8 +109,17 @@ class RouteQueryControllerTests {
     @Test
     void shouldRejectInvalidPaginationBeforeCallingUseCase() throws Exception {
         // When & Then
-        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes").param("pageNumber", "0"))
-                .andExpect(status().isBadRequest());
+        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes")
+                        .param("pageNumber", "0")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                        .header(RequestIdFilter.REQUEST_ID_HEADER, "request-validation"))
+                .andExpect(status().isBadRequest())
+                .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-validation"))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON-0001"))
+                .andExpect(jsonPath("$.message").value("Request parameters are invalid"))
+                .andExpect(jsonPath("$.data.path").value("/api/v1/gateway-groups/default/routes"))
+                .andExpect(jsonPath("$.data.requestId").value("request-validation"));
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes").param("pageSize", "101"))
                 .andExpect(status().isBadRequest());
 
@@ -108,9 +129,12 @@ class RouteQueryControllerTests {
     @Test
     void shouldRejectMissingUseCase() {
         // When & Then
-        assertThatThrownBy(() -> new RouteQueryController(null))
+        assertThatThrownBy(() -> new RouteQueryController(null, this.resultFactory))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("queryRoutePageUseCase must not be null");
+        assertThatThrownBy(() -> new RouteQueryController(this.queryRoutePageUseCase, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("resultFactory must not be null");
     }
 
     private static RouteDefinition route() {

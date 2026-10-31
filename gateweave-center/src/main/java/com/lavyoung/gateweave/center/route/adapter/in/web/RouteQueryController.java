@@ -12,9 +12,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.lavyoung.gateweave.center.adapter.in.web.LocalizedResultFactory;
 import com.lavyoung.gateweave.center.route.application.port.in.QueryRoutePageUseCase;
 import com.lavyoung.gateweave.center.route.application.query.RoutePage;
 import com.lavyoung.gateweave.center.route.application.query.RoutePageQuery;
+import com.lavyoung.gateweave.contract.web.Result;
 
 /**
  * 提供控制面路由分页查询管理 API。
@@ -31,16 +33,19 @@ import com.lavyoung.gateweave.center.route.application.query.RoutePageQuery;
 public class RouteQueryController {
 
     private final QueryRoutePageUseCase queryRoutePageUseCase;
+    private final LocalizedResultFactory resultFactory;
 
     /**
      * 创建路由查询 Controller。
      *
      * @param queryRoutePageUseCase 路由分页查询用例
-     * @throws NullPointerException queryRoutePageUseCase 为 null 时抛出
+     * @param resultFactory         本地化结果工厂
+     * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public RouteQueryController(QueryRoutePageUseCase queryRoutePageUseCase) {
-        this.queryRoutePageUseCase = Objects.requireNonNull(
-                queryRoutePageUseCase, "queryRoutePageUseCase must not be null");
+    public RouteQueryController(QueryRoutePageUseCase queryRoutePageUseCase, LocalizedResultFactory resultFactory) {
+        this.queryRoutePageUseCase = Objects.requireNonNull(queryRoutePageUseCase,
+                "queryRoutePageUseCase must not be null");
+        this.resultFactory = Objects.requireNonNull(resultFactory, "resultFactory must not be null");
     }
 
     /**
@@ -52,12 +57,12 @@ public class RouteQueryController {
      * @return 路由分页响应
      */
     @GetMapping
-    public RoutePageResponse query(
+    public Result<RoutePageResponse> query(
             @PathVariable("gatewayGroupId") @NotBlank String gatewayGroupId,
             @RequestParam(name = "pageNumber", defaultValue = "1") @Min(1) int pageNumber,
             @RequestParam(name = "pageSize", defaultValue = "20") @Min(1) @Max(100) int pageSize) {
         RoutePageQuery query = new RoutePageQuery(gatewayGroupId, pageNumber, pageSize);
         RoutePage page = this.queryRoutePageUseCase.query(query);
-        return RoutePageResponse.from(page);
+        return this.resultFactory.success(RoutePageResponse.from(page));
     }
 }

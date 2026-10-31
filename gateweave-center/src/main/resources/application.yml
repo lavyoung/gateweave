@@ -1,0 +1,3 @@
+spring:
+  messages:
+    fallback-to-system-locale: false
