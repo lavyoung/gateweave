@@ -177,7 +177,10 @@ Center 采用“业务域优先、域内分层”的组织方式。每个业务�
 
 表名统一使用 `gw_` 前缀。后续能力通过新增独立表扩展，已经发布的核心标识和关联关系不得随章节变化。
 
-### 6.1 第九章建立的基础表
+### 6.1 当前控制面基线表
+
+当前尚未对外发布数据库版本，服务目录、路由目录和网关集群表统一收敛在
+`V1__create_control_plane_schema.sql` 中。后续数据库结构发生真实演进时，从 V2 开始追加迁移，禁止改写已经发布的基线。
 
 #### `gw_service`
 
@@ -195,6 +198,13 @@ Center 采用“业务域优先、域内分层”的组织方式。每个业务�
 
 保存服务操作的原始参数元数据。使用 `(operation_id, parameter_index)` 保证参数顺序唯一。
 
+#### `gw_gateway_group`
+
+保存网关分组及其运行环境。核心字段包括分组标识、名称、环境、状态、修订号和时间戳。
+
+`gateway_group_id` 是路由和节点共同引用的稳定标识；`(environment, status)` 索引支撑按环境筛选可用分组。
+当前基线初始化 `default` 分组，保证单分组阶段也遵守完整的外键关系。
+
 #### `gw_route`
 
 保存可编辑路由。核心字段包括路由标识、网关分组、路径、HTTP 方法、目标操作、认证模式、调用超时、属性、状态、
@@ -207,7 +217,8 @@ Center 采用“业务域优先、域内分层”的组织方式。每个业务�
 - `service_operation_id` 普通索引。
 - 分页查询使用稳定的 `(id, route_id)` 排序。
 
-第九章只有一个默认分组时仍保存 `gateway_group_id`，避免后续引入网关分组时修改路由身份和唯一索引。
+`gateway_group_id` 外键关联 `gw_gateway_group`。原课程中的 `gateway_distribution` 表用于表达应用应该进入哪个网关，
+当前模型由 `gw_route` 直接表达“网关分组 + HTTP 入口 + 服务操作”的可执行映射，粒度更精确，因此不再创建语义重复的分配表。
 
 #### `gw_route_parameter`
 
@@ -215,17 +226,28 @@ Center 采用“业务域优先、域内分层”的组织方式。每个业务�
 
 路由参数与服务操作参数分表：前者表达网关输入映射，后者表达服务自身元数据，两者不能混为一个字段。
 
+#### `gw_gateway_node`
+
+保存实际运行的 Engine 节点。核心字段包括节点标识、所属分组、对外地址、状态、最后心跳时间、当前配置版本和
+最后成功刷新时间。
+
+节点通过 `gateway_group_id` 外键归属分组，并使用以下约束支撑节点发现和探活：
+
+- `node_id` 唯一索引。
+- `(gateway_group_id, advertised_address)` 唯一索引。
+- `(gateway_group_id, status)` 索引用于查询分组内可用节点。
+- `(status, last_heartbeat_at)` 索引用于扫描失联节点。
+- `current_config_version >= 0` 检查约束防止非法配置版本。
+
 ### 6.2 后续迭代新增的独立表
 
 - `gw_service_instance`：服务实例、地址、状态和心跳。
 - `gw_route_policy`：路由过滤器或策略的类型、顺序和配置。
-- `gw_gateway_group`：网关分组和环境配置。
-- `gw_gateway_node`：Engine 节点、心跳和当前配置版本。
 - `gw_config_release`：不可变发布快照、版本、摘要和状态。
 - `gw_event_outbox`：与发布事务一致提交的待发送事件。
 - `gw_operation_audit`：关键管理操作和发布审计。
 
-这些表的增加不要求拆分 Maven 模块，也不改变第九章基础表的职责。
+这些表的增加不要求拆分 Maven 模块，也不改变当前基线表的职责。
 
 ## 7. 发布与订阅原则
 

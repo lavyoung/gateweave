@@ -44,7 +44,7 @@ class RouteCatalogMigrationTests {
             """;
 
     @Test
-    void shouldCreateRouteCatalogTablesAtVersionTwo() {
+    void shouldCreateRouteCatalogTablesAtVersionOne() {
         // Given
         WebApplicationContextRunner contextRunner = contextRunner();
 
@@ -62,7 +62,7 @@ class RouteCatalogMigrationTests {
                     .map(String::toLowerCase)
                     .toList();
 
-            assertThat(flyway.info().current().getVersion().toString()).isEqualTo("2");
+            assertThat(flyway.info().current().getVersion().toString()).isEqualTo("1");
             assertThat(tableNames).contains("gw_route", "gw_route_parameter");
         });
     }
@@ -103,6 +103,10 @@ class RouteCatalogMigrationTests {
             assertThatThrownBy(() -> jdbcTemplate.update(
                     INSERT_ROUTE, "route-invalid-timeout", "default", "/invalid", "GET", "activity-say-hi",
                     "ANONYMOUS", 0L, "{}", "{}", "ENABLED"))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update(
+                    INSERT_ROUTE, "route-missing-group", "missing-group", "/missing-group", "GET", "activity-say-hi",
+                    "ANONYMOUS", 3000L, "{}", "{}", "ENABLED"))
                     .isInstanceOf(DataIntegrityViolationException.class);
             assertThatThrownBy(() -> jdbcTemplate.update(
                     INSERT_ROUTE_PARAMETER, "route-say-hi", "activity-create", 0, "request"))
