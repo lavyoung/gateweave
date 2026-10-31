@@ -1,10 +1,14 @@
 package com.lavyoung.gateweave.center.adapter.in.web;
 
-import java.util.Objects;
-
+import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
+import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
+import com.lavyoung.gateweave.contract.error.CommonResponseCode;
+import com.lavyoung.gateweave.contract.error.GatewayResponseCode;
+import com.lavyoung.gateweave.contract.error.ResponseCode;
+import com.lavyoung.gateweave.contract.web.ErrorDetails;
+import com.lavyoung.gateweave.contract.web.Result;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -16,10 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.lavyoung.gateweave.contract.error.CommonResponseCode;
-import com.lavyoung.gateweave.contract.error.ResponseCode;
-import com.lavyoung.gateweave.contract.web.ErrorDetails;
-import com.lavyoung.gateweave.contract.web.Result;
+import java.util.Objects;
 
 /**
  * 将控制面 Web 异常统一转换为稳定且可国际化的 HTTP 响应。
@@ -46,6 +47,40 @@ public class GlobalExceptionHandler {
      */
     public GlobalExceptionHandler(LocalizedResultFactory resultFactory) {
         this.resultFactory = Objects.requireNonNull(resultFactory, "resultFactory must not be null");
+    }
+
+    /**
+     * 处理网关节点注册时指定的分组不存在。
+     *
+     * @param exception 网关分组不存在异常
+     * @param request   当前 HTTP 请求
+     * @return HTTP 404 网关分组不存在响应
+     */
+    @ExceptionHandler(GatewayGroupNotFoundException.class)
+    public ResponseEntity<Result<ErrorDetails>> handleGatewayGroupNotFound(
+            GatewayGroupNotFoundException exception, HttpServletRequest request) {
+        return this.failure(
+                HttpStatus.NOT_FOUND,
+                GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND,
+                request,
+                exception.gatewayGroupId());
+    }
+
+    /**
+     * 处理网关节点公布地址已被占用。
+     *
+     * @param exception 节点地址冲突异常
+     * @param request   当前 HTTP 请求
+     * @return HTTP 409 节点地址冲突响应
+     */
+    @ExceptionHandler(GatewayNodeAddressConflictException.class)
+    public ResponseEntity<Result<ErrorDetails>> handleGatewayNodeAddressConflict(
+            GatewayNodeAddressConflictException exception, HttpServletRequest request) {
+        return this.failure(
+                HttpStatus.CONFLICT,
+                GatewayResponseCode.GATEWAY_NODE_ADDRESS_CONFLICT,
+                request,
+                exception.advertisedAddress().toASCIIString());
     }
 
     /**
@@ -92,6 +127,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理通过基础校验但违反领域约束的请求参数。
+     *
+     * @param exception 非法领域参数异常
+     * @param request   当前 HTTP 请求
+     * @return HTTP 400 参数错误响应
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Result<ErrorDetails>> handleInvalidArgument(
+            IllegalArgumentException exception, HttpServletRequest request) {
+        return this.failure(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
+    }
+
+    /**
      * 处理未被其他处理器识别的系统异常。
      *
      * @param exception 未知系统异常
@@ -104,16 +152,22 @@ public class GlobalExceptionHandler {
         String requestId = RequestIdFilter.requestId(request);
         LOGGER.error("Unhandled request exception requestId={} method={} path={}",
                 requestId, request.getMethod(), request.getRequestURI(), exception);
-        return this.failure(HttpStatus.INTERNAL_SERVER_ERROR, CommonResponseCode.SYSTEM_ERROR, request, requestId);
+        return this.failureWithRequestId(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                CommonResponseCode.SYSTEM_ERROR,
+                request,
+                requestId);
     }
 
     private ResponseEntity<Result<ErrorDetails>> failure(
             HttpStatus status, ResponseCode responseCode, HttpServletRequest request, Object... arguments) {
-        return this.failure(status, responseCode, request, RequestIdFilter.requestId(request), arguments);
+        return this.failureWithRequestId(
+                status, responseCode, request, RequestIdFilter.requestId(request), arguments);
     }
 
-    private ResponseEntity<Result<ErrorDetails>> failure(HttpStatus status, ResponseCode responseCode,
-            HttpServletRequest request, String requestId, Object... arguments) {
+    private ResponseEntity<Result<ErrorDetails>> failureWithRequestId(
+            HttpStatus status, ResponseCode responseCode, HttpServletRequest request,
+            String requestId, Object... arguments) {
         ErrorDetails details = new ErrorDetails(request.getRequestURI(), requestId);
         Result<ErrorDetails> result = this.resultFactory.failure(responseCode, details, arguments);
         return ResponseEntity.status(status).body(result);
