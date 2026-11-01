@@ -1,5 +1,8 @@
 package com.lavyoung.gateweave.center.gateway.domain.exception;
 
+import com.lavyoung.gateweave.center.shared.exception.BusinessException;
+import com.lavyoung.gateweave.contract.error.GatewayResponseCode;
+
 import java.io.Serial;
 import java.net.URI;
 import java.util.Objects;
@@ -7,13 +10,13 @@ import java.util.Objects;
 /**
  * 表示相同网关分组中的节点公布地址已被其他节点占用。
  *
- * <p>该异常只表达领域冲突，不暴露唯一索引名称、SQL 或 Spring DAO 异常。</p>
+ * <p>异常通过稳定响应码表达领域冲突，不暴露唯一索引名称、SQL 或 Spring DAO 异常。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @version 1.0.0
- * @date 2026/10/31
+ * @date 2026/11/01
  */
-public class GatewayNodeAddressConflictException extends RuntimeException {
+public class GatewayNodeAddressConflictException extends BusinessException {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -27,8 +30,8 @@ public class GatewayNodeAddressConflictException extends RuntimeException {
      * @throws NullPointerException advertisedAddress 为 null 时抛出
      */
     public GatewayNodeAddressConflictException(URI advertisedAddress) {
-        super("Gateway node address is already in use: "
-                + Objects.requireNonNull(advertisedAddress, "advertisedAddress must not be null"));
+        super(GatewayResponseCode.GATEWAY_NODE_ADDRESS_CONFLICT,
+                Objects.requireNonNull(advertisedAddress, "advertisedAddress must not be null").toASCIIString());
         this.advertisedAddress = advertisedAddress;
     }
 

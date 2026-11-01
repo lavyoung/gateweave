@@ -22,13 +22,6 @@
         <module name="AvoidStarImport"/>
         <module name="UnusedImports"/>
         <module name="RedundantImport"/>
-        <module name="ImportOrder">
-            <property name="groups" value="java,javax,jakarta,*,com.lavyoung.gateweave"/>
-            <property name="ordered" value="true"/>
-            <property name="separated" value="true"/>
-            <property name="option" value="bottom"/>
-            <property name="sortStaticImportsAlphabetically" value="true"/>
-        </module>
 
         <module name="MissingOverride"/>
         <module name="RequireThis">

@@ -171,7 +171,7 @@ class GatewayNodeRegistrationControllerTests {
     }
 
     @Test
-    void shouldReturnLocalizedNotFoundWhenGatewayGroupDoesNotExist() throws Exception {
+    void shouldReturnLocalizedBusinessFailureWhenGatewayGroupDoesNotExist() throws Exception {
         // Given
         when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class)))
                 .thenThrow(new GatewayGroupNotFoundException("missing-group"));
@@ -182,7 +182,7 @@ class GatewayNodeRegistrationControllerTests {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                         .header(RequestIdFilter.REQUEST_ID_HEADER, "request-group-missing")
                         .content(requestBody("missing-group", "http://127.0.0.1:8080")))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-group-missing"))
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("GATEWAY-0001"))
@@ -192,7 +192,7 @@ class GatewayNodeRegistrationControllerTests {
     }
 
     @Test
-    void shouldReturnLocalizedConflictWhenAdvertisedAddressIsOccupied() throws Exception {
+    void shouldReturnLocalizedBusinessFailureWhenAdvertisedAddressIsOccupied() throws Exception {
         // Given
         URI address = URI.create("http://127.0.0.1:8080");
         when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class)))
@@ -204,7 +204,7 @@ class GatewayNodeRegistrationControllerTests {
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN")
                         .header(RequestIdFilter.REQUEST_ID_HEADER, "request-address-conflict")
                         .content(requestBody("default", address.toASCIIString())))
-                .andExpect(status().isConflict())
+                .andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-address-conflict"))
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("GATEWAY-0002"))

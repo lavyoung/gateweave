@@ -1,5 +1,8 @@
 package com.lavyoung.gateweave.center.gateway.domain.exception;
 
+import com.lavyoung.gateweave.center.shared.exception.BusinessException;
+import com.lavyoung.gateweave.contract.error.GatewayResponseCode;
+
 import java.net.URI;
 
 import org.junit.jupiter.api.Test;
@@ -15,8 +18,11 @@ class GatewayNodeRegistrationExceptionTests {
         GatewayGroupNotFoundException exception = new GatewayGroupNotFoundException("missing-group");
 
         // Then
+        assertThat(exception).isInstanceOf(BusinessException.class);
+        assertThat(exception.responseCode()).isSameAs(GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND);
+        assertThat(exception.arguments()).containsExactly("missing-group");
         assertThat(exception.gatewayGroupId()).isEqualTo("missing-group");
-        assertThat(exception).hasMessage("Gateway group does not exist: missing-group");
+        assertThat(exception).hasMessage("网关分组 missing-group 不存在");
     }
 
     @Test
@@ -28,8 +34,11 @@ class GatewayNodeRegistrationExceptionTests {
         GatewayNodeAddressConflictException exception = new GatewayNodeAddressConflictException(address);
 
         // Then
+        assertThat(exception).isInstanceOf(BusinessException.class);
+        assertThat(exception.responseCode()).isSameAs(GatewayResponseCode.GATEWAY_NODE_ADDRESS_CONFLICT);
+        assertThat(exception.arguments()).containsExactly("http://127.0.0.1:8080");
         assertThat(exception.advertisedAddress()).isEqualTo(address);
-        assertThat(exception).hasMessage("Gateway node address is already in use: http://127.0.0.1:8080");
+        assertThat(exception).hasMessage("网关节点地址 http://127.0.0.1:8080 已被占用");
     }
 
     @Test

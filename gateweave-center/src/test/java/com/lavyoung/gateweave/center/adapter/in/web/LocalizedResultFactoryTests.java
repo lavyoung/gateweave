@@ -10,6 +10,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 
 import com.lavyoung.gateweave.contract.error.CommonResponseCode;
 import com.lavyoung.gateweave.contract.error.GatewayResponseCode;
@@ -18,6 +21,7 @@ import com.lavyoung.gateweave.contract.web.ErrorDetails;
 import com.lavyoung.gateweave.contract.web.Result;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LocalizedResultFactoryTests {
 
@@ -55,6 +59,43 @@ class LocalizedResultFactoryTests {
 
         // Then
         assertThat(result.message()).isEqualTo("成功");
+    }
+
+    @Test
+    void shouldCreateLocalizedFailureResponseFromRequestContext() {
+        // Given
+        LocaleContextHolder.setLocale(Locale.ENGLISH);
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/gateway-nodes");
+        request.setAttribute(RequestIdFilter.REQUEST_ID_ATTRIBUTE, "request-group-missing");
+
+        // When
+        ResponseEntity<Result<ErrorDetails>> response = this.resultFactory.failureResponse(
+                HttpStatus.NOT_FOUND, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, request, "missing-group");
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull().satisfies(result -> {
+            assertThat(result.code()).isEqualTo("GATEWAY-0001");
+            assertThat(result.message()).isEqualTo("Gateway group missing-group does not exist");
+            assertThat(result.data()).isEqualTo(
+                    new ErrorDetails("/api/v1/gateway-nodes", "request-group-missing"));
+        });
+    }
+
+    @Test
+    void shouldRejectMissingFailureResponseArguments() {
+        // Given
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/gateway-nodes");
+
+        // When & Then
+        assertThatThrownBy(() -> this.resultFactory.failureResponse(
+                null, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, request))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("status must not be null");
+        assertThatThrownBy(() -> this.resultFactory.failureResponse(
+                HttpStatus.NOT_FOUND, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("request must not be null");
     }
 
     @Test

@@ -1,10 +1,7 @@
 package com.lavyoung.gateweave.center.adapter.in.web;
 
-import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
-import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
+import com.lavyoung.gateweave.center.shared.exception.BusinessException;
 import com.lavyoung.gateweave.contract.error.CommonResponseCode;
-import com.lavyoung.gateweave.contract.error.GatewayResponseCode;
-import com.lavyoung.gateweave.contract.error.ResponseCode;
 import com.lavyoung.gateweave.contract.web.ErrorDetails;
 import com.lavyoung.gateweave.contract.web.Result;
 import jakarta.servlet.http.HttpServletRequest;
@@ -50,37 +47,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理网关节点注册时指定的分组不存在。
+     * 将可预期的业务异常转换为统一失败响应。
      *
-     * @param exception 网关分组不存在异常
-     * @param request   当前 HTTP 请求
-     * @return HTTP 404 网关分组不存在响应
-     */
-    @ExceptionHandler(GatewayGroupNotFoundException.class)
-    public ResponseEntity<Result<ErrorDetails>> handleGatewayGroupNotFound(
-            GatewayGroupNotFoundException exception, HttpServletRequest request) {
-        return this.failure(
-                HttpStatus.NOT_FOUND,
-                GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND,
-                request,
-                exception.gatewayGroupId());
-    }
-
-    /**
-     * 处理网关节点公布地址已被占用。
+     * <p>业务异常不携带 HTTP 协议状态。控制面 Web 入口统一将其转换为 HTTP 422，
+     * 并使用异常中的稳定响应码和文案参数生成国际化响应。</p>
      *
-     * @param exception 节点地址冲突异常
+     * @param exception 可预期业务异常
      * @param request   当前 HTTP 请求
-     * @return HTTP 409 节点地址冲突响应
+     * @return HTTP 422 业务失败响应
      */
-    @ExceptionHandler(GatewayNodeAddressConflictException.class)
-    public ResponseEntity<Result<ErrorDetails>> handleGatewayNodeAddressConflict(
-            GatewayNodeAddressConflictException exception, HttpServletRequest request) {
-        return this.failure(
-                HttpStatus.CONFLICT,
-                GatewayResponseCode.GATEWAY_NODE_ADDRESS_CONFLICT,
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Result<ErrorDetails>> handleBusinessException(
+            BusinessException exception, HttpServletRequest request) {
+        return this.resultFactory.failureResponse(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                exception.responseCode(),
                 request,
-                exception.advertisedAddress().toASCIIString());
+                exception.arguments());
     }
 
     /**
@@ -97,7 +80,7 @@ public class GlobalExceptionHandler {
     })
     public ResponseEntity<Result<ErrorDetails>> handleInvalidParameter(
             Exception exception, HttpServletRequest request) {
-        return this.failure(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
+        return this.resultFactory.failureResponse(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
     }
 
     /**
@@ -110,7 +93,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Result<ErrorDetails>> handleUnreadableBody(
             HttpMessageNotReadableException exception, HttpServletRequest request) {
-        return this.failure(HttpStatus.BAD_REQUEST, CommonResponseCode.REQUEST_BODY_INVALID, request);
+        return this.resultFactory.failureResponse(
+                HttpStatus.BAD_REQUEST, CommonResponseCode.REQUEST_BODY_INVALID, request);
     }
 
     /**
@@ -123,7 +107,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Result<ErrorDetails>> handleResourceNotFound(
             NoResourceFoundException exception, HttpServletRequest request) {
-        return this.failure(HttpStatus.NOT_FOUND, CommonResponseCode.RESOURCE_NOT_FOUND, request);
+        return this.resultFactory.failureResponse(
+                HttpStatus.NOT_FOUND, CommonResponseCode.RESOURCE_NOT_FOUND, request);
     }
 
     /**
@@ -136,7 +121,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Result<ErrorDetails>> handleInvalidArgument(
             IllegalArgumentException exception, HttpServletRequest request) {
-        return this.failure(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
+        return this.resultFactory.failureResponse(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
     }
 
     /**
@@ -152,24 +137,7 @@ public class GlobalExceptionHandler {
         String requestId = RequestIdFilter.requestId(request);
         LOGGER.error("Unhandled request exception requestId={} method={} path={}",
                 requestId, request.getMethod(), request.getRequestURI(), exception);
-        return this.failureWithRequestId(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                CommonResponseCode.SYSTEM_ERROR,
-                request,
-                requestId);
-    }
-
-    private ResponseEntity<Result<ErrorDetails>> failure(
-            HttpStatus status, ResponseCode responseCode, HttpServletRequest request, Object... arguments) {
-        return this.failureWithRequestId(
-                status, responseCode, request, RequestIdFilter.requestId(request), arguments);
-    }
-
-    private ResponseEntity<Result<ErrorDetails>> failureWithRequestId(
-            HttpStatus status, ResponseCode responseCode, HttpServletRequest request,
-            String requestId, Object... arguments) {
-        ErrorDetails details = new ErrorDetails(request.getRequestURI(), requestId);
-        Result<ErrorDetails> result = this.resultFactory.failure(responseCode, details, arguments);
-        return ResponseEntity.status(status).body(result);
+        return this.resultFactory.failureResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR, CommonResponseCode.SYSTEM_ERROR, request);
     }
 }

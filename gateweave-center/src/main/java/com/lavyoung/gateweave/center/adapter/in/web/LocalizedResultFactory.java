@@ -1,15 +1,18 @@
 package com.lavyoung.gateweave.center.adapter.in.web;
 
-import java.util.Locale;
-import java.util.Objects;
-
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.stereotype.Component;
-
 import com.lavyoung.gateweave.contract.error.CommonResponseCode;
 import com.lavyoung.gateweave.contract.error.ResponseCode;
+import com.lavyoung.gateweave.contract.web.ErrorDetails;
 import com.lavyoung.gateweave.contract.web.Result;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * 根据当前请求语言环境创建统一 HTTP 响应。
@@ -46,6 +49,26 @@ public class LocalizedResultFactory {
      */
     public <T> Result<T> success(T data) {
         return Result.success(this.resolve(CommonResponseCode.SUCCESS), data);
+    }
+
+    /**
+     * 根据当前请求上下文创建本地化 HTTP 失败响应。
+     *
+     * @param status       HTTP 状态
+     * @param responseCode 稳定失败响应码
+     * @param request      当前 HTTP 请求
+     * @param arguments    国际化文案参数
+     * @return 包含请求追踪信息的失败响应
+     * @throws NullPointerException status、responseCode 或 request 为 null 时抛出
+     */
+    public ResponseEntity<Result<ErrorDetails>> failureResponse(
+            HttpStatus status, ResponseCode responseCode, HttpServletRequest request, Object... arguments) {
+        HttpStatus checkedStatus = Objects.requireNonNull(status, "status must not be null");
+        HttpServletRequest checkedRequest = Objects.requireNonNull(request, "request must not be null");
+        String requestId = RequestIdFilter.requestId(checkedRequest);
+        ErrorDetails details = new ErrorDetails(checkedRequest.getRequestURI(), requestId);
+        Result<ErrorDetails> result = this.failure(responseCode, details, arguments);
+        return ResponseEntity.status(checkedStatus).body(result);
     }
 
     /**
