@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import com.lavyoung.gateweave.contract.error.CatalogResponseCode;
 import com.lavyoung.gateweave.contract.error.CommonResponseCode;
 import com.lavyoung.gateweave.contract.error.GatewayResponseCode;
 import com.lavyoung.gateweave.contract.error.ResponseCode;
@@ -124,8 +125,10 @@ class LocalizedResultFactoryTests {
 
     private static List<ResponseCode> responseCodes() {
         return Stream.concat(
-                        Arrays.stream(CommonResponseCode.values()), Arrays.stream(GatewayResponseCode.values()))
-                .map(ResponseCode.class::cast)
+                        Stream.concat(
+                                Arrays.stream(CommonResponseCode.values()).map(ResponseCode.class::cast),
+                                Arrays.stream(GatewayResponseCode.values()).map(ResponseCode.class::cast)),
+                        Arrays.stream(CatalogResponseCode.values()).map(ResponseCode.class::cast))
                 .toList();
     }
 }
