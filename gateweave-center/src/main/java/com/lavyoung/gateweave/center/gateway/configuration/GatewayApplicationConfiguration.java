@@ -5,9 +5,9 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.lavyoung.gateweave.center.gateway.application.port.in.RegisterGatewayNodeUseCase;
-import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
-import com.lavyoung.gateweave.center.gateway.domain.repository.GatewayNodeRepository;
+import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
+import com.lavyoung.gateweave.center.gateway.application.DefaultGatewayNodeRegistrationService;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
 
 /**
  * 装配网关集群限界上下文的应用服务。

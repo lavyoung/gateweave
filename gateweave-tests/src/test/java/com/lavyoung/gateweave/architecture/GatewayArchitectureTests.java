@@ -24,7 +24,8 @@ class GatewayArchitectureTests {
     @ArchTest
     static final ArchRule APPLICATION_MUST_NOT_DEPEND_ON_ADAPTERS = noClasses()
             .that().resideInAnyPackage("..engine.application..", "..center..application..")
-            .should().dependOnClassesThat().resideInAnyPackage("..adapter..", "..configuration..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "..adapter..", "..web..", "..persistence..", "..configuration..")
             .because("application use cases must remain independent of inbound, outbound and assembly details");
 
     @ArchTest
@@ -63,7 +64,8 @@ class GatewayArchitectureTests {
     @ArchTest
     static final ArchRule DOMAIN_MUST_NOT_DEPEND_ON_OUTER_LAYERS = noClasses()
             .that().resideInAnyPackage("..engine.domain..", "..center..domain..")
-            .should().dependOnClassesThat().resideInAnyPackage("..application..", "..adapter..", "..configuration..")
+            .should().dependOnClassesThat().resideInAnyPackage(
+                    "..application..", "..adapter..", "..web..", "..persistence..", "..configuration..")
             .because("dependencies must point from adapters and application services toward the domain");
 
     @ArchTest

@@ -8,14 +8,14 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import com.lavyoung.gateweave.center.gateway.application.port.in.RegisterGatewayNodeUseCase;
-import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
+import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
+import com.lavyoung.gateweave.center.gateway.application.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeStatus;
-import com.lavyoung.gateweave.center.gateway.domain.repository.GatewayNodeRepository;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;

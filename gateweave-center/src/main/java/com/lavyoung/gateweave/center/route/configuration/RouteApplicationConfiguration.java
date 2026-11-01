@@ -3,9 +3,9 @@ package com.lavyoung.gateweave.center.route.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.lavyoung.gateweave.center.route.application.port.in.QueryRoutePageUseCase;
-import com.lavyoung.gateweave.center.route.application.service.DefaultRouteQueryService;
-import com.lavyoung.gateweave.center.route.domain.repository.RouteDefinitionRepository;
+import com.lavyoung.gateweave.center.route.application.QueryRoutePageUseCase;
+import com.lavyoung.gateweave.center.route.application.DefaultRouteQueryService;
+import com.lavyoung.gateweave.center.route.domain.RouteDefinitionRepository;
 
 /**
  * 装配路由业务能力的应用服务和出站端口。

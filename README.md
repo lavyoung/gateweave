@@ -20,16 +20,20 @@ versioned records from `gateweave-contract` through explicit adapters.
 ## Package Direction
 
 ```text
-adapter -> application -> domain
-configuration -> application + adapters
+engine: adapter -> application -> domain
+center: web -> application -> domain
+        persistence ---------> domain
+        configuration -> application + persistence
 ```
 
 Domain packages are framework independent. Cross-process records and plugin SPI
 belong to `gateweave-contract`; vendor SDK types remain inside adapters or plugins.
 
 `gateweave-engine` uses layer-first packages around the request pipeline.
-`gateweave-center` uses capability-first packages such as `catalog` and `route`, with
-the same dependency direction enforced inside each capability.
+`gateweave-center` uses capability-first packages such as `catalog`, `gateway` and `route`.
+Each capability keeps controllers in `web`, request and response records in `web.request`
+and `web.response`, use cases in `application`, ports and models in `domain`, and database
+implementations in `persistence`.
 
 ## Build
 

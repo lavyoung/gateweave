@@ -8,10 +8,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.web.servlet.DispatcherServlet;
 
-import com.lavyoung.gateweave.center.route.adapter.out.persistence.JdbcRouteDefinitionRepository;
-import com.lavyoung.gateweave.center.route.application.port.in.QueryRoutePageUseCase;
-import com.lavyoung.gateweave.center.route.application.service.DefaultRouteQueryService;
-import com.lavyoung.gateweave.center.route.domain.repository.RouteDefinitionRepository;
+import com.lavyoung.gateweave.center.route.persistence.JdbcRouteDefinitionRepository;
+import com.lavyoung.gateweave.center.route.application.QueryRoutePageUseCase;
+import com.lavyoung.gateweave.center.route.application.DefaultRouteQueryService;
+import com.lavyoung.gateweave.center.route.domain.RouteDefinitionRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

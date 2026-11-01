@@ -3,9 +3,9 @@ package com.lavyoung.gateweave.center.catalog.configuration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import com.lavyoung.gateweave.center.catalog.application.port.in.RegisterServiceDefinitionUseCase;
-import com.lavyoung.gateweave.center.catalog.application.service.DefaultServiceDefinitionRegistrationService;
-import com.lavyoung.gateweave.center.catalog.domain.repository.ServiceCatalogRepository;
+import com.lavyoung.gateweave.center.catalog.application.RegisterServiceDefinitionUseCase;
+import com.lavyoung.gateweave.center.catalog.application.DefaultServiceDefinitionRegistrationService;
+import com.lavyoung.gateweave.center.catalog.domain.ServiceCatalogRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
