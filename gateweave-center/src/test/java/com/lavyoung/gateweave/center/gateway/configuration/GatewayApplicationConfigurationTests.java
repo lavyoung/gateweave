@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import com.lavyoung.gateweave.center.configuration.ControlPlaneClockConfiguration;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
 import com.lavyoung.gateweave.center.gateway.application.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
@@ -33,7 +34,8 @@ class GatewayApplicationConfigurationTests {
             return new GatewayNodeRegistrationResult(node, GatewayNodeRegistrationOutcome.REGISTERED);
         });
         ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-                .withUserConfiguration(GatewayApplicationConfiguration.class)
+                .withUserConfiguration(
+                        ControlPlaneClockConfiguration.class, GatewayApplicationConfiguration.class)
                 .withBean(GatewayNodeRepository.class, () -> repository);
 
         // When & Then

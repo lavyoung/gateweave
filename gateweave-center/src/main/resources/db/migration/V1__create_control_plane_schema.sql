@@ -170,3 +170,24 @@ CREATE INDEX idx_gw_gateway_node_group_status
 
 CREATE INDEX idx_gw_gateway_node_status_heartbeat
     ON gw_gateway_node (status, last_heartbeat_at);
+
+CREATE TABLE gw_config_release
+(
+    id                 BIGINT       NOT NULL AUTO_INCREMENT,
+    gateway_group_id   VARCHAR(64)  NOT NULL,
+    config_version     BIGINT       NOT NULL,
+    checksum           VARCHAR(128) NOT NULL,
+    snapshot_content   TEXT         NOT NULL,
+    release_status     VARCHAR(32)  NOT NULL,
+    published_at       TIMESTAMP(6) NOT NULL,
+    created_at         TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_gw_config_release_group_version
+        UNIQUE (gateway_group_id, config_version),
+    CONSTRAINT fk_gw_config_release_gateway_group
+        FOREIGN KEY (gateway_group_id) REFERENCES gw_gateway_group (gateway_group_id),
+    CONSTRAINT ck_gw_config_release_version CHECK (config_version > 0)
+);
+
+CREATE INDEX idx_gw_config_release_group_status_version
+    ON gw_config_release (gateway_group_id, release_status, config_version);

@@ -28,7 +28,9 @@ import io.netty.channel.EventLoopGroup;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
@@ -169,7 +171,8 @@ class GatewayHttpEndToEndTests {
     private static ApplicationContextRunner createContextRunner(
             int gatewayPort, int downstreamPort, int controlPlanePort, String authenticationMode) {
         return new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
+                        HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class, GatewaySecurityConfiguration.class)
                 .withPropertyValues(
                         "gateweave.server.host=127.0.0.1",
@@ -223,6 +226,7 @@ class GatewayHttpEndToEndTests {
             byte[] response = """
                     {"success":true,"code":"SUCCESS","message":"Success","data":{}}
                     """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(201, response.length);
             try (OutputStream outputStream = exchange.getResponseBody()) {
                 outputStream.write(response);

@@ -26,16 +26,21 @@ import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.service.GenericService;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.ControlPlaneHttpApi;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlaneProperties;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
 import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
@@ -110,7 +115,8 @@ class GatewayEngineConfigurationTests {
         var authenticationService = mock(GatewaySessionAuthenticationService.class);
         when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(true);
         var contextRunner = new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
+                        HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
                 .withPropertyValues(
@@ -158,6 +164,9 @@ class GatewayEngineConfigurationTests {
                 assertThat(context).hasSingleBean(GatewayRpcProperties.class);
                 assertThat(context).hasSingleBean(GatewayHttpProperties.class);
                 assertThat(context).hasSingleBean(GatewayControlPlaneProperties.class);
+                assertThat(context).hasSingleBean(ControlPlaneHttpApi.class);
+                assertThat(context).hasSingleBean(GatewayControlPlaneClient.class);
+                assertThat(context).hasSingleBean(GatewayNodeLifecycle.class);
                 assertThat(context).hasSingleBean(GatewayRouteTable.class);
                 assertThat(context).hasSingleBean(GenericReferenceRegistry.class);
                 assertThat(context).hasSingleBean(DubboProtocolInvoker.class);
@@ -244,6 +253,7 @@ class GatewayEngineConfigurationTests {
             byte[] response = """
                     {"success":true,"code":"SUCCESS","message":"Success","data":{}}
                     """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(201, response.length);
             try (OutputStream outputStream = exchange.getResponseBody()) {
                 outputStream.write(response);

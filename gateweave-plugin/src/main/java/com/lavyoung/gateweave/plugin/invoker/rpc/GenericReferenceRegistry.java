@@ -3,6 +3,7 @@ package com.lavyoung.gateweave.plugin.invoker.rpc;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.dubbo.common.config.ReferenceCache;
@@ -13,6 +14,7 @@ import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.model.ScopeModel;
 import org.apache.dubbo.rpc.service.GenericService;
 
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 
 import static org.apache.dubbo.registry.Constants.MIGRATION_STEP_KEY;
@@ -20,7 +22,7 @@ import static org.apache.dubbo.registry.Constants.MIGRATION_STEP_KEY;
 /**
  * 注册并管理网关当前可调用的 Dubbo 泛化服务。
  *
- * <p>注册阶段根据接口名称创建 Dubbo GenericService，并为 RPC 方法建立代理工厂。
+ * <p>注册阶段通过 Dubbo ReferenceCache 取得 GenericService，并为 RPC 方法建立统一调用函数。
  * 请求处理阶段可以根据方法名称取得统一的泛化调用接口。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
@@ -34,7 +36,7 @@ public final class GenericReferenceRegistry implements AutoCloseable {
     private final ApplicationConfig applicationConfig;
     private final RegistryConfig registryConfig;
     private final ReferenceCache referenceCache = SimpleReferenceCache.newCache();
-    private final ConcurrentHashMap<GenericReferenceKey, GenericReferenceProxyFactory> knownGenericReferences =
+    private final ConcurrentHashMap<GenericReferenceKey, IGenericReference> knownGenericReferences =
             new ConcurrentHashMap<>();
 
     /**
@@ -68,7 +70,7 @@ public final class GenericReferenceRegistry implements AutoCloseable {
     /**
      * 注册一个 Dubbo 接口方法的泛化调用代理。
      *
-     * <p>同一方法重复注册时复用首次创建的代理工厂。</p>
+     * <p>同一方法重复注册时复用首次创建的统一调用函数。</p>
      *
      * @param interfaceName Dubbo 服务接口全限定名
      * @param methodName    RPC 方法名称
@@ -79,7 +81,7 @@ public final class GenericReferenceRegistry implements AutoCloseable {
      */
     public void addGenericReference(String interfaceName, String methodName, String version) {
         GenericReferenceKey key = new GenericReferenceKey(interfaceName, methodName, version);
-        this.knownGenericReferences.computeIfAbsent(key, this::createProxyFactory);
+        this.knownGenericReferences.computeIfAbsent(key, this::createGenericReference);
     }
 
     /**
@@ -95,12 +97,12 @@ public final class GenericReferenceRegistry implements AutoCloseable {
      */
     public IGenericReference getGenericReference(String interfaceName, String methodName, String version) {
         GenericReferenceKey key = new GenericReferenceKey(interfaceName, methodName, version);
-        GenericReferenceProxyFactory proxyFactory = this.knownGenericReferences.get(key);
-        if (proxyFactory == null) {
+        IGenericReference genericReference = this.knownGenericReferences.get(key);
+        if (genericReference == null) {
             throw new IllegalStateException(
                     "generic reference is not registered: %s#%s:%s".formatted(interfaceName, methodName, version));
         }
-        return proxyFactory.newInstance(methodName);
+        return genericReference;
     }
 
     /**
@@ -132,13 +134,13 @@ public final class GenericReferenceRegistry implements AutoCloseable {
     }
 
     /**
-     * 创建目标 Dubbo 服务引用及其代理工厂。
+     * 创建目标 Dubbo 服务引用及统一调用函数。
      *
      * @param key Dubbo 服务引用唯一键
-     * @return 泛化调用代理工厂
+     * @return 绑定到指定 Dubbo 方法的统一调用函数
      * @throws RuntimeException Dubbo 服务引用创建失败时抛出
      */
-    private GenericReferenceProxyFactory createProxyFactory(GenericReferenceKey key) {
+    private IGenericReference createGenericReference(GenericReferenceKey key) {
         ReferenceConfig<GenericService> referenceConfig = new ReferenceConfig<>();
         // todo 方法过时处理
         referenceConfig.setApplication(this.applicationConfig);
@@ -151,7 +153,29 @@ public final class GenericReferenceRegistry implements AutoCloseable {
 
         GenericService genericService = this.referenceCache.get(referenceConfig);
         Objects.requireNonNull(genericService, "Dubbo GenericService must not be null");
-        return new GenericReferenceProxyFactory(genericService);
+        return invocationArguments -> invoke(genericService, key.methodName(), invocationArguments);
+    }
+
+    /**
+     * 将项目统一调用参数转换为 Dubbo 泛化调用参数并校验返回类型。
+     *
+     * @param genericService     Dubbo 官方泛化服务
+     * @param methodName        目标方法名称
+     * @param invocationArguments 项目统一调用参数
+     * @return 异步字符串调用结果
+     * @throws NullPointerException invocationArguments 为 null 时抛出
+     */
+    private CompletionStage<String> invoke(GenericService genericService, String methodName,
+            GenericInvocationArguments invocationArguments) {
+        Objects.requireNonNull(invocationArguments, "invocationArguments must not be null");
+        String[] parameterTypes = invocationArguments.parameterTypes().toArray(String[]::new);
+        Object[] arguments = invocationArguments.arguments().toArray();
+        return genericService.$invokeAsync(methodName, parameterTypes, arguments).thenApply(result -> {
+            if (!(result instanceof String response)) {
+                throw new IllegalStateException("generic invocation result must be a String");
+            }
+            return response;
+        });
     }
 
     /**

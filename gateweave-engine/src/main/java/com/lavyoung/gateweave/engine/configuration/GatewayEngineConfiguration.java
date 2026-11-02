@@ -10,12 +10,15 @@ import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestHandler
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestMapper;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayResponseMapper;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.ControlPlaneHttpApi;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlaneProperties;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.HttpGatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
+import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
 import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
 import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
@@ -35,7 +38,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.net.InetSocketAddress;
 import java.net.http.HttpClient;
@@ -337,17 +344,53 @@ public class GatewayEngineConfiguration {
     }
 
     /**
+     * 创建由 Spring HTTP Interface 实现的控制面 HTTP 代理。
+     *
+     * <p>复用 Boot 管理的 RestClient Builder，从而复用统一 ObjectMapper 和消息转换器；
+     * 底层连接继续由网关共享的 JDK HttpClient 管理。</p>
+     *
+     * @param restClientBuilder      Boot 管理的 RestClient Builder
+     * @param gatewayHttpClient      共享 JDK HTTP 客户端
+     * @param controlPlaneProperties 控制面连接和超时配置
+     * @return 控制面 HTTP 代理
+     */
+    @Bean
+    public ControlPlaneHttpApi controlPlaneHttpApi(RestClient.Builder restClientBuilder,
+            HttpClient gatewayHttpClient, GatewayControlPlaneProperties controlPlaneProperties) {
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(gatewayHttpClient);
+        requestFactory.setReadTimeout(controlPlaneProperties.requestTimeout());
+        RestClient restClient = restClientBuilder.baseUrl(controlPlaneProperties.baseUri().toString())
+                .requestFactory(requestFactory)
+                .defaultStatusHandler(status -> status.isError(), (request, response) -> {
+                    // 由控制面适配器同时判断 HTTP 状态和统一响应码。
+                })
+                .build();
+        HttpServiceProxyFactory proxyFactory =
+                HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build();
+        return proxyFactory.createClient(ControlPlaneHttpApi.class);
+    }
+
+    /**
+     * 创建控制面应用端口的 HTTP 实现。
+     *
+     * @param controlPlaneHttpApi Spring 生成的控制面 HTTP 代理
+     * @return 控制面应用端口
+     */
+    @Bean
+    public GatewayControlPlaneClient gatewayControlPlaneClient(ControlPlaneHttpApi controlPlaneHttpApi) {
+        return new HttpGatewayControlPlaneClient(controlPlaneHttpApi);
+    }
+
+    /**
      * 创建随 Spring 容器启动和停止的网关节点生命周期组件。
      *
-     * @param gatewayHttpClient      共享 HTTP 客户端
-     * @param objectMapper           共享 JSON 映射器
-     * @param controlPlaneProperties 控制面连接配置
+     * @param controlPlaneClient     控制面应用端口
+     * @param controlPlaneProperties 控制面节点身份配置
      * @return 网关节点生命周期组件
      */
     @Bean
-    public GatewayNodeLifecycle gatewayNodeLifecycle(
-            HttpClient gatewayHttpClient, ObjectMapper objectMapper,
+    public GatewayNodeLifecycle gatewayNodeLifecycle(GatewayControlPlaneClient controlPlaneClient,
             GatewayControlPlaneProperties controlPlaneProperties) {
-        return new GatewayNodeLifecycle(gatewayHttpClient, objectMapper, controlPlaneProperties);
+        return new GatewayNodeLifecycle(controlPlaneClient, controlPlaneProperties);
     }
 }

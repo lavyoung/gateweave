@@ -2,6 +2,10 @@ package com.lavyoung.gateweave.plugin.invoker.rpc;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.config.ReferenceConfigBase;
@@ -98,6 +102,33 @@ class GenericReferenceRegistryTests {
     }
 
     @Test
+    void shouldReuseSingleRegistrationDuringConcurrentAccess() throws InterruptedException {
+        // Given
+        var referenceCache = mock(SimpleReferenceCache.class);
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(mock(GenericService.class));
+        var executor = Executors.newFixedThreadPool(8);
+
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            try (var registry = new GenericReferenceRegistry(
+                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+                // When
+                var registrations = IntStream.range(0, 32)
+                        .mapToObj(index -> CompletableFuture.runAsync(() -> registry.addGenericReference(
+                                "cn.example.ActivityBooth", "sayHi", "1.0.0"), executor))
+                        .toList();
+                CompletableFuture.allOf(registrations.toArray(CompletableFuture[]::new)).join();
+
+                // Then
+                verify(referenceCache, times(1)).get(any(ReferenceConfigBase.class));
+            }
+        } finally {
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
     void shouldIsolateSameMethodNameAcrossInterfaces() {
         // Given
         var referenceCache = mock(SimpleReferenceCache.class);
@@ -145,6 +176,58 @@ class GenericReferenceRegistryTests {
                         "cn.example.ActivityBooth", "unknown", "1.0.0"))
                         .isInstanceOf(IllegalStateException.class)
                         .hasMessage("generic reference is not registered: cn.example.ActivityBooth#unknown:1.0.0");
+            }
+        }
+    }
+
+    @Test
+    void shouldRejectNonStringInvocationResult() {
+        // Given
+        var referenceCache = mock(SimpleReferenceCache.class);
+        var genericService = mock(GenericService.class);
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
+        when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
+                aryEq(new Object[]{"gateweave"}))).thenReturn(CompletableFuture.completedFuture(1));
+
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            try (var registry = new GenericReferenceRegistry(
+                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+                registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
+                var reference = registry.getGenericReference(
+                        "cn.example.ActivityBooth", "sayHi", "1.0.0");
+
+                // When & Then
+                assertThatThrownBy(() -> reference.$invoke(stringArguments()).toCompletableFuture().join())
+                        .isInstanceOf(CompletionException.class)
+                        .hasCauseInstanceOf(IllegalStateException.class)
+                        .hasRootCauseMessage("generic invocation result must be a String");
+            }
+        }
+    }
+
+    @Test
+    void shouldPropagateAsynchronousInvocationFailure() {
+        // Given
+        var referenceCache = mock(SimpleReferenceCache.class);
+        var genericService = mock(GenericService.class);
+        var failure = new IllegalStateException("rpc unavailable");
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
+        when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
+                aryEq(new Object[]{"gateweave"}))).thenReturn(CompletableFuture.failedFuture(failure));
+
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            try (var registry = new GenericReferenceRegistry(
+                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+                registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
+                var reference = registry.getGenericReference(
+                        "cn.example.ActivityBooth", "sayHi", "1.0.0");
+
+                // When & Then
+                assertThatThrownBy(() -> reference.$invoke(stringArguments()).toCompletableFuture().join())
+                        .isInstanceOf(CompletionException.class)
+                        .hasCause(failure);
             }
         }
     }
