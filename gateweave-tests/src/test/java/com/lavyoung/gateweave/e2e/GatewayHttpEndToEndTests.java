@@ -58,15 +58,19 @@ class GatewayHttpEndToEndTests {
         HttpServer downstreamServer = createDownstreamServer(
                 downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
+        HttpServer controlPlaneServer = createControlPlaneServer();
+        int controlPlanePort = controlPlaneServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
         AtomicReference<NettyGatewayServer> gatewayServerReference = new AtomicReference<>();
         AtomicReference<EventLoopGroup> bossGroupReference = new AtomicReference<>();
         AtomicReference<EventLoopGroup> workerGroupReference = new AtomicReference<>();
         AtomicReference<ThreadPoolExecutor> httpExecutorReference = new AtomicReference<>();
-        ApplicationContextRunner contextRunner = createContextRunner(gatewayPort, downstreamPort, "ANONYMOUS");
+        ApplicationContextRunner contextRunner = createContextRunner(
+                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
 
         // When & Then
         downstreamServer.start();
+        controlPlaneServer.start();
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
             contextRunner.run(context -> {
@@ -94,6 +98,7 @@ class GatewayHttpEndToEndTests {
             });
         } finally {
             downstreamServer.stop(0);
+            controlPlaneServer.stop(0);
         }
 
         EventLoopGroup bossGroup = bossGroupReference.get();
@@ -118,11 +123,15 @@ class GatewayHttpEndToEndTests {
         HttpServer downstreamServer = createDownstreamServer(
                 downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
+        HttpServer controlPlaneServer = createControlPlaneServer();
+        int controlPlanePort = controlPlaneServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
-        ApplicationContextRunner contextRunner = createContextRunner(gatewayPort, downstreamPort, "REQUIRED");
+        ApplicationContextRunner contextRunner = createContextRunner(
+                gatewayPort, downstreamPort, controlPlanePort, "REQUIRED");
 
         // When & Then
         downstreamServer.start();
+        controlPlaneServer.start();
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
             contextRunner.run(context -> {
@@ -153,11 +162,12 @@ class GatewayHttpEndToEndTests {
             });
         } finally {
             downstreamServer.stop(0);
+            controlPlaneServer.stop(0);
         }
     }
 
     private static ApplicationContextRunner createContextRunner(
-            int gatewayPort, int downstreamPort, String authenticationMode) {
+            int gatewayPort, int downstreamPort, int controlPlanePort, String authenticationMode) {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class, GatewaySecurityConfiguration.class)
@@ -167,6 +177,12 @@ class GatewayHttpEndToEndTests {
                         "gateweave.server.max-content-length=1048576",
                         "gateweave.server.boss-threads=1",
                         "gateweave.server.worker-threads=1",
+                        "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
+                        "gateweave.control-plane.node-id=e2e-node",
+                        "gateweave.control-plane.gateway-group-id=default",
+                        "gateweave.control-plane.node-name=E2E Gateway Node",
+                        "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
+                        "gateweave.control-plane.request-timeout=2s",
                         "gateweave.rpc.application-name=gateweave-http-test",
                         "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
                         "gateweave.rpc.discovery-mode=INTERFACE",
@@ -198,6 +214,20 @@ class GatewayHttpEndToEndTests {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext(
                 "/downstream", exchange -> handleDownstreamRequest(exchange, method, body, traceId, invocations));
+        return server;
+    }
+
+    private static HttpServer createControlPlaneServer() throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes", exchange -> {
+            byte[] response = """
+                    {"success":true,"code":"SUCCESS","message":"Success","data":{}}
+                    """.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(201, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            }
+        });
         return server;
     }
 

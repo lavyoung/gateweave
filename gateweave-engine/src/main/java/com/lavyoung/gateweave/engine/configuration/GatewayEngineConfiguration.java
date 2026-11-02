@@ -1,25 +1,6 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import java.net.InetSocketAddress;
-import java.net.http.HttpClient;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.util.concurrent.DefaultThreadFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
-
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
@@ -29,6 +10,8 @@ import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestHandler
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestMapper;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayResponseMapper;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlaneProperties;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
@@ -42,6 +25,24 @@ import com.lavyoung.gateweave.plugin.invoker.http.HttpProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.DubboProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.DubboReferenceOptions;
 import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+
+import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 装配网关数据面的应用服务、Netty 适配器及运行时资源。
@@ -54,7 +55,7 @@ import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class,
-        GatewayHttpProperties.class})
+        GatewayHttpProperties.class, GatewayControlPlaneProperties.class})
 public class GatewayEngineConfiguration {
 
     private static final int CONNECTION_BACKLOG = 1024;
@@ -311,8 +312,8 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
-            @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup,
-            GatewayChannelInitializer initializer) {
+                                                  @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup,
+                                                  GatewayChannelInitializer initializer) {
         return new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
@@ -333,5 +334,20 @@ public class GatewayEngineConfiguration {
     public NettyGatewayServer nettyGatewayServer(ServerBootstrap bootstrap, GatewayServerProperties properties) {
         InetSocketAddress address = new InetSocketAddress(properties.host(), properties.port());
         return new NettyGatewayServer(bootstrap, address);
+    }
+
+    /**
+     * 创建随 Spring 容器启动和停止的网关节点生命周期组件。
+     *
+     * @param gatewayHttpClient      共享 HTTP 客户端
+     * @param objectMapper           共享 JSON 映射器
+     * @param controlPlaneProperties 控制面连接配置
+     * @return 网关节点生命周期组件
+     */
+    @Bean
+    public GatewayNodeLifecycle gatewayNodeLifecycle(
+            HttpClient gatewayHttpClient, ObjectMapper objectMapper,
+            GatewayControlPlaneProperties controlPlaneProperties) {
+        return new GatewayNodeLifecycle(gatewayHttpClient, objectMapper, controlPlaneProperties);
     }
 }

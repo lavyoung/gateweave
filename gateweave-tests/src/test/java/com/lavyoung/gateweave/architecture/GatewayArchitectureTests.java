@@ -25,7 +25,8 @@ class GatewayArchitectureTests {
     static final ArchRule APPLICATION_MUST_NOT_DEPEND_ON_ADAPTERS = noClasses()
             .that().resideInAnyPackage("..engine.application..", "..center..application..")
             .should().dependOnClassesThat().resideInAnyPackage(
-                    "..adapter..", "..web..", "..persistence..", "..configuration..")
+                    "..adapter..", "..web..", "..persistence..",
+                    "..engine.configuration..", "..center..configuration..")
             .because("application use cases must remain independent of inbound, outbound and assembly details");
 
     @ArchTest

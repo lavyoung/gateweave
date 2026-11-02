@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.lavyoung.gateweave.center.web.GlobalExceptionHandler;
 import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
 import com.lavyoung.gateweave.center.web.RequestIdFilter;
+import com.lavyoung.gateweave.center.route.application.GatewayRouteConfigurationQuery;
 import com.lavyoung.gateweave.center.route.application.QueryRoutePageUseCase;
 import com.lavyoung.gateweave.center.route.application.RoutePage;
 import com.lavyoung.gateweave.center.route.application.RoutePageQuery;
@@ -24,6 +25,10 @@ import com.lavyoung.gateweave.center.route.domain.RouteAuthenticationRequirement
 import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
 import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
 import com.lavyoung.gateweave.center.route.domain.RouteStatus;
+import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
+import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,24 +45,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(RouteQueryController.class)
 @MockBean(QueryRoutePageUseCase.class)
+@MockBean(GatewayRouteConfigurationQuery.class)
 @Import({GlobalExceptionHandler.class, LocalizedResultFactory.class, RequestIdFilter.class})
 class RouteQueryControllerTests {
 
     private final MockMvc mockMvc;
     private final QueryRoutePageUseCase queryRoutePageUseCase;
+    private final GatewayRouteConfigurationQuery gatewayRouteConfigurationQuery;
     private final LocalizedResultFactory resultFactory;
 
     @Autowired
-    RouteQueryControllerTests(
-            MockMvc mockMvc, QueryRoutePageUseCase queryRoutePageUseCase, LocalizedResultFactory resultFactory) {
+    RouteQueryControllerTests(MockMvc mockMvc, QueryRoutePageUseCase queryRoutePageUseCase,
+            GatewayRouteConfigurationQuery gatewayRouteConfigurationQuery, LocalizedResultFactory resultFactory) {
         this.mockMvc = mockMvc;
         this.queryRoutePageUseCase = queryRoutePageUseCase;
+        this.gatewayRouteConfigurationQuery = gatewayRouteConfigurationQuery;
         this.resultFactory = resultFactory;
     }
 
     @AfterEach
     void resetUseCase() {
-        reset(this.queryRoutePageUseCase);
+        reset(this.queryRoutePageUseCase, this.gatewayRouteConfigurationQuery);
     }
 
     @Test
@@ -127,12 +135,39 @@ class RouteQueryControllerTests {
     }
 
     @Test
+    void shouldPreviewConfigurationCandidates() throws Exception {
+        // Given
+        when(this.gatewayRouteConfigurationQuery.findCandidates("default"))
+                .thenReturn(List.of(routeConfiguration()));
+
+        // When & Then
+        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes/configuration-candidates"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].routeId").value("route-query"))
+                .andExpect(jsonPath("$.data[0].serviceId").value("activity-service"))
+                .andExpect(jsonPath("$.data[0].target.protocol").value("dubbo"))
+                .andExpect(jsonPath("$.data[0].target.service").value("cn.example.ActivityService"))
+                .andExpect(jsonPath("$.data[0].target.parameters[0].name").value("name"));
+
+        verify(this.gatewayRouteConfigurationQuery).findCandidates("default");
+        verify(this.queryRoutePageUseCase, never()).query(any(RoutePageQuery.class));
+    }
+
+    @Test
     void shouldRejectMissingUseCase() {
         // When & Then
-        assertThatThrownBy(() -> new RouteQueryController(null, this.resultFactory))
+        assertThatThrownBy(() -> new RouteQueryController(
+                null, this.gatewayRouteConfigurationQuery, this.resultFactory))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("queryRoutePageUseCase must not be null");
-        assertThatThrownBy(() -> new RouteQueryController(this.queryRoutePageUseCase, null))
+        assertThatThrownBy(() -> new RouteQueryController(this.queryRoutePageUseCase, null, this.resultFactory))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("gatewayRouteConfigurationQuery must not be null");
+        assertThatThrownBy(() -> new RouteQueryController(
+                this.queryRoutePageUseCase, this.gatewayRouteConfigurationQuery, null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("resultFactory must not be null");
     }
@@ -143,5 +178,15 @@ class RouteQueryControllerTests {
                 RouteAuthenticationRequirement.REQUIRED, Duration.ofMillis(2500),
                 Map.of("version", "1.0.0"), Map.of("source", "center"), RouteStatus.ENABLED, 3L,
                 List.of(new RouteParameterMapping(0, "name")));
+    }
+
+    private static RouteConfiguration routeConfiguration() {
+        InvocationTargetConfiguration target = new InvocationTargetConfiguration(
+                "dubbo", "cn.example.ActivityService", "query",
+                List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
+                Duration.ofMillis(2500), Map.of("version", "1.0.0"));
+        return new RouteConfiguration(
+                "route-query", "/activities", "GET", "activity-service",
+                RouteAuthenticationMode.REQUIRED, target, Map.of("source", "center"));
     }
 }

@@ -1,5 +1,15 @@
 package com.lavyoung.gateweave.center.route.persistence;
 
+import com.lavyoung.gateweave.center.route.domain.RouteAuthenticationRequirement;
+import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
+import com.lavyoung.gateweave.center.route.domain.RouteDefinitionRepository;
+import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
+import com.lavyoung.gateweave.center.route.domain.RouteStatus;
+import org.springframework.dao.DataRetrievalFailureException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -8,20 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.dao.DataRetrievalFailureException;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-
-import com.lavyoung.gateweave.center.route.domain.RouteAuthenticationRequirement;
-import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
-import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
-import com.lavyoung.gateweave.center.route.domain.RouteStatus;
-import com.lavyoung.gateweave.center.route.domain.RouteDefinitionRepository;
 
 /**
  * 使用 Spring JDBC 从关系数据库读取路由聚合。
@@ -35,9 +31,6 @@ import com.lavyoung.gateweave.center.route.domain.RouteDefinitionRepository;
  */
 @Repository
 public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository {
-
-    private static final TypeReference<Map<String, String>> STRING_MAP_TYPE = new TypeReference<Map<String, String>>() {
-    };
 
     private static final String COUNT_SQL = """
             SELECT COUNT(*)
@@ -73,17 +66,19 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final ObjectMapper objectMapper;
+    private final RouteAttributesJsonReader attributesReader;
 
     /**
      * 创建路由持久化适配器。
      *
-     * @param jdbcTemplate 支持命名参数和集合参数展开的 Spring JDBC 模板
-     * @param objectMapper 用于解析数据库中的 JSON 扩展属性
+     * @param jdbcTemplate     支持命名参数和集合参数展开的 Spring JDBC 模板
+     * @param attributesReader 路由属性 JSON 读取器
+     * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public JdbcRouteDefinitionRepository(NamedParameterJdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
+    public JdbcRouteDefinitionRepository(
+            NamedParameterJdbcTemplate jdbcTemplate, RouteAttributesJsonReader attributesReader) {
         this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+        this.attributesReader = Objects.requireNonNull(attributesReader, "attributesReader must not be null");
     }
 
     @Override
@@ -156,29 +151,11 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
                     resultSet.getString("http_method"), resultSet.getString("service_operation_id"),
                     RouteAuthenticationRequirement.valueOf(resultSet.getString("authentication_mode")),
                     resultSet.getLong("invocation_timeout_ms"),
-                    readAttributes(resultSet.getString("target_attributes"), routeId, "target_attributes"),
-                    readAttributes(resultSet.getString("route_attributes"), routeId, "route_attributes"),
+                    this.attributesReader.read(resultSet.getString("target_attributes"), routeId, "target_attributes"),
+                    this.attributesReader.read(resultSet.getString("route_attributes"), routeId, "route_attributes"),
                     RouteStatus.valueOf(resultSet.getString("status")), resultSet.getLong("revision"));
         } catch (IllegalArgumentException exception) {
             throw new DataRetrievalFailureException("Route contains an unsupported enum value: " + routeId, exception);
-        }
-    }
-
-    /**
-     * 使用 Jackson 解析数据库中的 JSON 属性。
-     *
-     * @param json       JSON 文本
-     * @param routeId    所属路由标识
-     * @param columnName JSON 所在字段名称
-     * @return 不可变属性映射
-     * @throws DataRetrievalFailureException JSON 格式错误或值类型不符合契约时抛出
-     */
-    private Map<String, String> readAttributes(String json, String routeId, String columnName) {
-        try {
-            return Map.copyOf(this.objectMapper.readValue(json, STRING_MAP_TYPE));
-        } catch (JsonProcessingException exception) {
-            String message = "Unable to read %s for route %s".formatted(columnName, routeId);
-            throw new DataRetrievalFailureException(message, exception);
         }
     }
 
@@ -198,9 +175,10 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
      * @param revision                  修订号
      */
     private record RouteRow(String routeId, String gatewayGroupId, String path, String method,
-            String serviceOperationId, RouteAuthenticationRequirement authenticationRequirement,
-            long invocationTimeoutMillis, Map<String, String> targetAttributes, Map<String, String> attributes,
-            RouteStatus status, long revision) {
+                            String serviceOperationId, RouteAuthenticationRequirement authenticationRequirement,
+                            long invocationTimeoutMillis, Map<String, String> targetAttributes,
+                            Map<String, String> attributes,
+                            RouteStatus status, long revision) {
 
         /**
          * 将数据库记录和参数映射组装为完整路由聚合。

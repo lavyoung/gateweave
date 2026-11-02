@@ -3,6 +3,13 @@ spring:
     name: gateweave-engine
 
 gateweave:
+  control-plane:
+    base-uri: ${GATEWEAVE_CONTROL_PLANE_BASE_URI:http://127.0.0.1:8080}
+    node-id: ${GATEWEAVE_NODE_ID:gateweave-engine-local}
+    gateway-group-id: ${GATEWEAVE_GATEWAY_GROUP_ID:default}
+    node-name: ${GATEWEAVE_NODE_NAME:GateWeave Local Engine}
+    advertised-address: ${GATEWEAVE_ADVERTISED_ADDRESS:http://127.0.0.1:7397}
+    request-timeout: ${GATEWEAVE_CONTROL_PLANE_REQUEST_TIMEOUT:3s}
   server:
     host: 0.0.0.0
     port: 7397

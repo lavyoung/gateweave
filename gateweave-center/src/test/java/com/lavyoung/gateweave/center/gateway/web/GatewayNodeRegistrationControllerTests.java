@@ -112,7 +112,7 @@ class GatewayNodeRegistrationControllerTests {
                   "nodeId": " ",
                   "gatewayGroupId": "default",
                   "nodeName": " ",
-                  "advertisedAddress": null
+                  "advertisedAddress": "http://127.0.0.1:8080"
                 }
                 """;
 

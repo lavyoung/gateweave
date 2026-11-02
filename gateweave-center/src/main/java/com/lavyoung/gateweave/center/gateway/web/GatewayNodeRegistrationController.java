@@ -1,9 +1,13 @@
 package com.lavyoung.gateweave.center.gateway.web;
 
-import java.util.Objects;
-
-import jakarta.validation.Valid;
-
+import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
+import com.lavyoung.gateweave.center.gateway.web.response.GatewayNodeRegistrationResponse;
+import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
+import com.lavyoung.gateweave.contract.gateway.RegisterGatewayNodeRequest;
+import com.lavyoung.gateweave.contract.web.Result;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,14 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
-import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
-import com.lavyoung.gateweave.center.gateway.web.request.RegisterGatewayNodeRequest;
-import com.lavyoung.gateweave.center.gateway.web.response.GatewayNodeRegistrationResponse;
-import com.lavyoung.gateweave.contract.web.Result;
+import java.util.Objects;
 
 /**
  * 提供网关算力节点注册的 HTTP 入站接口。
@@ -60,7 +57,7 @@ public class GatewayNodeRegistrationController {
      */
     @PostMapping
     public ResponseEntity<Result<GatewayNodeRegistrationResponse>> register(
-            @Valid @RequestBody RegisterGatewayNodeRequest request) {
+            @RequestBody RegisterGatewayNodeRequest request) {
         GatewayNodeRegistration registration = new GatewayNodeRegistration(
                 request.nodeId(), request.gatewayGroupId(), request.nodeName(), request.advertisedAddress());
         GatewayNodeRegistrationResult registrationResult = this.registerGatewayNodeUseCase.register(registration);

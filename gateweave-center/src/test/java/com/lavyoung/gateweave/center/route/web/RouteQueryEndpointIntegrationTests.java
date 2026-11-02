@@ -105,6 +105,39 @@ class RouteQueryEndpointIntegrationTests {
     }
 
     /**
+     * 验证配置候选预览能够聚合路由、服务操作和参数类型。
+     *
+     * @throws Exception HTTP 请求执行失败时抛出
+     */
+    @Test
+    void shouldPreviewConfigurationCandidatesThroughCompleteApplicationChain() throws Exception {
+        // Given
+        this.insertServiceCatalog();
+        this.insertRoute("route-query", "/activities/query", "{\"version\":\"1.0.0\"}",
+                "{\"source\":\"center\"}");
+        this.insertRouteParameter("route-query", 0, "userName");
+        this.insertRouteParameter("route-query", 1, "userAge");
+
+        // When & Then
+        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes/configuration-candidates"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].routeId").value("route-query"))
+                .andExpect(jsonPath("$.data[0].serviceId").value("activity-service"))
+                .andExpect(jsonPath("$.data[0].target.protocol").value("dubbo"))
+                .andExpect(jsonPath("$.data[0].target.service").value("cn.example.ActivityService"))
+                .andExpect(jsonPath("$.data[0].target.operation").value("query"))
+                .andExpect(jsonPath("$.data[0].target.parameters[0].name").value("userName"))
+                .andExpect(jsonPath("$.data[0].target.parameters[0].typeName").value("java.lang.String"))
+                .andExpect(jsonPath("$.data[0].target.parameters[1].name").value("userAge"))
+                .andExpect(jsonPath("$.data[0].target.parameters[1].typeName").value("java.lang.Integer"))
+                .andExpect(jsonPath("$.data[0].target.attributes.version").value("1.0.0"))
+                .andExpect(jsonPath("$.data[0].attributes.source").value("center"));
+    }
+
+    /**
      * 写入路由外键依赖的服务、操作和参数元数据。
      */
     private void insertServiceCatalog() {

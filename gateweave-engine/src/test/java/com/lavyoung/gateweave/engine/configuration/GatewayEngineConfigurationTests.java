@@ -1,6 +1,9 @@
 package com.lavyoung.gateweave.engine.configuration;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -16,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpServer;
 import io.netty.channel.EventLoopGroup;
 import org.apache.dubbo.config.ReferenceConfigBase;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
@@ -27,6 +31,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlaneProperties;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
@@ -89,6 +94,8 @@ class GatewayEngineConfigurationTests {
     void shouldStartHttpToRpcPipelineAndReleaseRuntimeResources() throws Exception {
         // Given
         var port = findAvailablePort();
+        var controlPlaneServer = createControlPlaneServer();
+        controlPlaneServer.start();
         var referenceCache = mock(SimpleReferenceCache.class);
         var genericService = mock(GenericService.class);
         when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
@@ -107,6 +114,13 @@ class GatewayEngineConfigurationTests {
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
                 .withPropertyValues(
+                        "gateweave.control-plane.base-uri=http://127.0.0.1:"
+                                + controlPlaneServer.getAddress().getPort(),
+                        "gateweave.control-plane.node-id=node-1",
+                        "gateweave.control-plane.gateway-group-id=default",
+                        "gateweave.control-plane.node-name=Gateway Node 1",
+                        "gateweave.control-plane.advertised-address=http://127.0.0.1:" + port,
+                        "gateweave.control-plane.request-timeout=3s",
                         "gateweave.server.host=127.0.0.1",
                         "gateweave.server.port=" + port,
                         "gateweave.server.max-content-length=1048576",
@@ -143,6 +157,7 @@ class GatewayEngineConfigurationTests {
                 assertThat(context).hasSingleBean(GatewayRouteProperties.class);
                 assertThat(context).hasSingleBean(GatewayRpcProperties.class);
                 assertThat(context).hasSingleBean(GatewayHttpProperties.class);
+                assertThat(context).hasSingleBean(GatewayControlPlaneProperties.class);
                 assertThat(context).hasSingleBean(GatewayRouteTable.class);
                 assertThat(context).hasSingleBean(GenericReferenceRegistry.class);
                 assertThat(context).hasSingleBean(DubboProtocolInvoker.class);
@@ -162,6 +177,7 @@ class GatewayEngineConfigurationTests {
                 var workerGroup = context.getBean("gatewayWorkerGroup", EventLoopGroup.class);
                 var httpExecutor = context.getBean("gatewayHttpExecutor", ThreadPoolExecutor.class);
                 var gatewayHttpClient = context.getBean(HttpClient.class);
+                var controlPlaneProperties = context.getBean(GatewayControlPlaneProperties.class);
                 serverReference.set(server);
                 bossGroupReference.set(bossGroup);
                 workerGroupReference.set(workerGroup);
@@ -179,6 +195,14 @@ class GatewayEngineConfigurationTests {
                 assertThat(gatewayHttpClient.executor()).containsSame(httpExecutor);
                 assertThat(gatewayHttpClient.followRedirects()).isEqualTo(HttpClient.Redirect.NEVER);
                 assertThat(gatewayHttpClient.version()).isEqualTo(HttpClient.Version.HTTP_1_1);
+                assertThat(controlPlaneProperties.baseUri()).isEqualTo(
+                        URI.create("http://127.0.0.1:" + controlPlaneServer.getAddress().getPort()));
+                assertThat(controlPlaneProperties.nodeId()).isEqualTo("node-1");
+                assertThat(controlPlaneProperties.gatewayGroupId()).isEqualTo("default");
+                assertThat(controlPlaneProperties.nodeName()).isEqualTo("Gateway Node 1");
+                assertThat(controlPlaneProperties.advertisedAddress())
+                        .isEqualTo(URI.create("http://127.0.0.1:" + port));
+                assertThat(controlPlaneProperties.requestTimeout()).isEqualTo(Duration.ofSeconds(3));
 
                 var request = HttpRequest.newBuilder(
                                 URI.create("http://127.0.0.1:" + port + "/sayHi?name=gateweave"))
@@ -192,6 +216,8 @@ class GatewayEngineConfigurationTests {
                 assertThat(response.headers().firstValue("content-type")).contains("text/plain; charset=UTF-8");
                 verify(authenticationService).authenticate(any(GatewaySession.class));
             });
+        } finally {
+            controlPlaneServer.stop(0);
         }
 
         var bossGroup = bossGroupReference.get();
@@ -210,5 +236,19 @@ class GatewayEngineConfigurationTests {
         try (var socket = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) {
             return socket.getLocalPort();
         }
+    }
+
+    private static HttpServer createControlPlaneServer() throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes", exchange -> {
+            byte[] response = """
+                    {"success":true,"code":"SUCCESS","message":"Success","data":{}}
+                    """.getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(201, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            }
+        });
+        return server;
     }
 }
