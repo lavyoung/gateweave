@@ -5,6 +5,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Test;
 
@@ -91,6 +94,112 @@ class GatewayRouteTableTests {
 
         // Then
         assertThat(routeTable.match("GET", URI.create("/sayHi"))).isPresent();
+    }
+
+    @Test
+    void shouldStartWithLocalConfigurationVersionZero() {
+        // Given
+        var routeTable = new GatewayRouteTable(List.of(route("route-local", "/local", "GET")));
+
+        // When
+        var currentVersion = routeTable.currentVersion();
+
+        // Then
+        assertThat(currentVersion).isZero();
+    }
+
+    @Test
+    void shouldReplaceRoutesWhenPublishedVersionIsNew() {
+        // Given
+        var localRoute = route("route-local", "/local", "GET");
+        var publishedRoute = route("route-published", "/published", "GET");
+        var routeTable = new GatewayRouteTable(List.of(localRoute));
+
+        // When
+        var replaced = routeTable.replaceIfNew(1, List.of(publishedRoute));
+
+        // Then
+        assertThat(replaced).isTrue();
+        assertThat(routeTable.currentVersion()).isEqualTo(1);
+        assertThat(routeTable.match("GET", URI.create("/local"))).isEmpty();
+        assertThat(routeTable.match("GET", URI.create("/published"))).containsSame(publishedRoute);
+    }
+
+    @Test
+    void shouldIgnoreSameAndOlderPublishedVersions() {
+        // Given
+        var currentRoute = route("route-current", "/current", "GET");
+        var staleRoute = route("route-stale", "/stale", "GET");
+        var routeTable = new GatewayRouteTable(List.of());
+        routeTable.replaceIfNew(2, List.of(currentRoute));
+
+        // When
+        var sameVersionReplaced = routeTable.replaceIfNew(2, List.of(staleRoute));
+        var olderVersionReplaced = routeTable.replaceIfNew(1, List.of(staleRoute));
+
+        // Then
+        assertThat(sameVersionReplaced).isFalse();
+        assertThat(olderVersionReplaced).isFalse();
+        assertThat(routeTable.currentVersion()).isEqualTo(2);
+        assertThat(routeTable.match("GET", URI.create("/current"))).containsSame(currentRoute);
+        assertThat(routeTable.match("GET", URI.create("/stale"))).isEmpty();
+    }
+
+    @Test
+    void shouldKeepLastValidSnapshotWhenReplacementIsInvalid() {
+        // Given
+        var currentRoute = route("route-current", "/current", "GET");
+        var duplicateRoute = route("route-duplicate", "/duplicate", "GET");
+        var routeTable = new GatewayRouteTable(List.of());
+        routeTable.replaceIfNew(1, List.of(currentRoute));
+
+        // When & Then
+        assertThatThrownBy(() -> routeTable.replaceIfNew(2, List.of(duplicateRoute, duplicateRoute)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("duplicate routeId: route-duplicate");
+        assertThat(routeTable.currentVersion()).isEqualTo(1);
+        assertThat(routeTable.match("GET", URI.create("/current"))).containsSame(currentRoute);
+    }
+
+    @Test
+    void shouldKeepHighestVersionWhenReplacementsAreConcurrent() throws Exception {
+        // Given
+        var routeTable = new GatewayRouteTable(List.of());
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+
+        try {
+            // When
+            List<Future<Boolean>> replacements = executor.invokeAll(List.of(
+                    () -> routeTable.replaceIfNew(1, List.of(route("route-v1", "/v1", "GET"))),
+                    () -> routeTable.replaceIfNew(2, List.of(route("route-v2", "/v2", "GET"))),
+                    () -> routeTable.replaceIfNew(3, List.of(route("route-v3", "/v3", "GET"))),
+                    () -> routeTable.replaceIfNew(4, List.of(route("route-v4", "/v4", "GET")))));
+            for (Future<Boolean> replacement : replacements) {
+                replacement.get();
+            }
+
+            // Then
+            assertThat(routeTable.currentVersion()).isEqualTo(4);
+            assertThat(routeTable.match("GET", URI.create("/v4"))).isPresent();
+            assertThat(routeTable.match("GET", URI.create("/v1"))).isEmpty();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void shouldKeepPublishedSnapshotWhenSourceListChanges() {
+        // Given
+        var publishedRoute = route("route-published", "/published", "GET");
+        var sourceRoutes = new ArrayList<>(List.of(publishedRoute));
+        var routeTable = new GatewayRouteTable(List.of());
+
+        // When
+        routeTable.replaceIfNew(1, sourceRoutes);
+        sourceRoutes.clear();
+
+        // Then
+        assertThat(routeTable.match("GET", URI.create("/published"))).containsSame(publishedRoute);
     }
 
     @Test
