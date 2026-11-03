@@ -89,6 +89,11 @@ Starter 注册和控制台手工录入最终都进入同一个应用用例，不
 - 记录创建、发布、失败和回滚状态。
 - 支持读取指定版本和最后一个已发布版本。
 
+当前摘要针对 `gw_config_release.snapshot_content` 中保存的原始内容计算。Center 读取快照时使用摘要检查存储
+完整性；Engine 只把摘要作为不透明版本指纹，用于关联通知与拉取结果，不得重新序列化路由后计算摘要。
+如果后续需要跨进程端到端内容校验，必须升级契约以传输原始载荷或规定规范化编码，再由两端复用同一契约，
+不能在 Engine 中复制一套 Jackson 与摘要实现。
+
 回滚通过重新发布历史快照形成新版本，不修改已经发布的历史记录。
 
 ### 4.4 网关集群 `gateway`
@@ -127,51 +132,54 @@ Repository。
 gateweave-center
 └── src/main/java/com/lavyoung/gateweave/center
     ├── GateWeaveCenterApplication.java
+    ├── web
+    │   ├── GlobalExceptionHandler.java
+    │   ├── LocalizedResultFactory.java
+    │   └── RequestIdFilter.java
+    ├── shared
+    │   └── exception
     ├── catalog
     │   ├── domain
-    │   │   └── repository
     │   ├── application
-    │   │   ├── command
-    │   │   ├── query
-    │   │   ├── port
-    │   │   └── service
-    │   └── adapter
-    │       ├── in
-    │       │   ├── registration
-    │       │   └── web
-    │       └── out
-    │           └── persistence
+    │   ├── web
+    │   │   ├── request
+    │   │   └── response
+    │   ├── persistence
+    │   └── configuration
     ├── route
     │   ├── domain
-    │   │   └── repository
     │   ├── application
-    │   │   ├── command
-    │   │   ├── query
-    │   │   ├── port
-    │   │   └── service
-    │   └── adapter
-    │       ├── in
-    │       │   └── web
-    │       └── out
-    │           └── persistence
-    ├── release
-    │   ├── domain
-    │   ├── application
-    │   └── adapter
+    │   ├── web
+    │   │   └── response
+    │   ├── persistence
+    │   └── configuration
     ├── gateway
     │   ├── domain
     │   ├── application
-    │   └── adapter
+    │   ├── web
+    │   │   ├── request
+    │   │   └── response
+    │   ├── persistence
+    │   └── configuration
+    ├── release
+    │   ├── domain
+    │   ├── application
+    │   ├── web
+    │   ├── persistence
+    │   └── configuration
     ├── subscription
     │   ├── domain
     │   ├── application
-    │   └── adapter
+    │   ├── web
+    │   ├── persistence
+    │   └── configuration
     └── configuration
 ```
 
-Center 采用“业务域优先、域内分层”的组织方式。每个业务域内部仍保持
-`adapter -> application -> domain` 的单向依赖。该结构是目标路由图，不表示第九章需要立即创建全部目录；
-目录随真实用例进入教程时再创建。
+Center 采用“业务能力优先、能力内部浅分层”的组织方式。每个业务能力保持
+`web -> application -> domain`、`persistence -> domain` 的单向依赖，`configuration` 负责装配。
+Controller 直接放在 `web`，请求和响应模型分别放在 `web.request`、`web.response`。
+只有同一层出现多个真实技术实现或职责显著膨胀时才继续拆包，目录随真实用例创建，不预先占位。
 
 ## 6. 数据模型边界
 

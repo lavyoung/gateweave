@@ -9,8 +9,10 @@ GateWeave separates request execution from gateway management:
 
 The data plane uses layer-first packages around one request-execution pipeline. The
 control plane uses capability-first packages such as `catalog` and `route`, with
-`adapter -> application -> domain` layering inside each capability. Maven modules define
-deployment and publication boundaries, while packages define DDD boundaries.
+shallow `web`, `application`, `domain`, `persistence` and `configuration` packages inside
+each capability. Controllers stay in `web`; request and response records are separated
+into `web.request` and `web.response`. Maven modules define deployment and publication
+boundaries, while packages define DDD boundaries.
 
 Each executable module keeps its Spring Boot application class in the module root package.
 Module-local tests stay in that module; `gateweave-tests` is reserved for cross-module
