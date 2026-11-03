@@ -1,11 +1,12 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
-import java.util.Objects;
-import java.util.concurrent.CompletionStage;
-
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
+
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 
 /**
  * 使用 Dubbo 泛化引用执行统一调用请求。
@@ -36,6 +37,13 @@ public final class DubboProtocolInvoker implements ProtocolInvoker {
     @Override
     public String protocol() {
         return PROTOCOL;
+    }
+
+    @Override
+    public void prepare(InvocationTargetConfiguration target) {
+        Objects.requireNonNull(target, "target must not be null");
+        DubboReferenceOptions options = DubboReferenceOptions.from(target.attributes());
+        this.referenceRegistry.addGenericReference(target.service(), target.operation(), options.version());
     }
 
     @Override

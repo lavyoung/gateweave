@@ -10,6 +10,7 @@ gateweave:
     node-name: ${GATEWEAVE_NODE_NAME:GateWeave Local Engine}
     advertised-address: ${GATEWEAVE_ADVERTISED_ADDRESS:http://127.0.0.1:7397}
     request-timeout: ${GATEWEAVE_CONTROL_PLANE_REQUEST_TIMEOUT:3s}
+    refresh-interval: ${GATEWEAVE_CONTROL_PLANE_REFRESH_INTERVAL:PT30S}
   server:
     host: 0.0.0.0
     port: 7397

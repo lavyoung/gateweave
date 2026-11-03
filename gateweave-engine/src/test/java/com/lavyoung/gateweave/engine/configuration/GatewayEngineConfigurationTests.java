@@ -11,11 +11,14 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +33,11 @@ import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConf
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
+import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.ControlPlaneHttpApi;
@@ -38,10 +45,12 @@ import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlan
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
+import com.lavyoung.gateweave.engine.application.mapper.GatewayRouteConfigurationMapper;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
 import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
+import com.lavyoung.gateweave.engine.application.service.GatewayConfigurationSynchronizer;
 import com.lavyoung.gateweave.engine.application.session.GatewaySession;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
@@ -57,9 +66,45 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class GatewayEngineConfigurationTests {
+
+    @Test
+    void shouldPrepareLocalRouteResourcesBeforeCreatingRouteTable() {
+        // Given
+        var configuration = new GatewayEngineConfiguration();
+        var target = target();
+        var route = route("route-local", "/local", target);
+        var properties = new GatewayRouteProperties(List.of(route));
+        var invocationDispatcher = mock(ProtocolInvocationDispatcher.class);
+
+        // When
+        var routeTable = configuration.gatewayRouteTable(
+                properties, new GatewayRouteConfigurationMapper(), invocationDispatcher);
+
+        // Then
+        assertThat(routeTable.match("GET", URI.create("/local"))).isPresent();
+        verify(invocationDispatcher).prepare(target);
+    }
+
+    @Test
+    void shouldNotPrepareLocalResourcesWhenAnyRouteCannotBeMapped() {
+        // Given
+        var configuration = new GatewayEngineConfiguration();
+        var target = target();
+        var properties = new GatewayRouteProperties(List.of(
+                route("route-valid", "/valid", target), route("route-invalid", "invalid", target)));
+        var invocationDispatcher = mock(ProtocolInvocationDispatcher.class);
+
+        // When & Then
+        assertThatThrownBy(() -> configuration.gatewayRouteTable(
+                properties, new GatewayRouteConfigurationMapper(), invocationDispatcher))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("path must start with '/'");
+        verifyNoInteractions(invocationDispatcher);
+    }
 
     @Test
     void shouldRejectTasksWhenHttpExecutorIsSaturated() throws InterruptedException {
@@ -96,6 +141,34 @@ class GatewayEngineConfigurationTests {
     }
 
     @Test
+    void shouldContinueScheduledTasksAfterOneExecutionFails() throws InterruptedException {
+        // Given
+        var configuration = new GatewayEngineConfiguration();
+        var scheduler = configuration.gatewayControlPlaneTaskScheduler();
+        var invocations = new AtomicInteger();
+        var secondInvocation = new CountDownLatch(1);
+
+        try {
+            scheduler.initialize();
+
+            // When
+            var task = scheduler.scheduleWithFixedDelay(() -> {
+                if (invocations.incrementAndGet() == 1) {
+                    throw new IllegalStateException("expected refresh failure");
+                }
+                secondInvocation.countDown();
+            }, Duration.ofMillis(10));
+
+            // Then
+            assertThat(secondInvocation.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(invocations).hasValueGreaterThanOrEqualTo(2);
+            task.cancel(true);
+        } finally {
+            scheduler.shutdown();
+        }
+    }
+
+    @Test
     void shouldStartHttpToRpcPipelineAndReleaseRuntimeResources() throws Exception {
         // Given
         var port = findAvailablePort();
@@ -112,6 +185,7 @@ class GatewayEngineConfigurationTests {
         var bossGroupReference = new AtomicReference<EventLoopGroup>();
         var workerGroupReference = new AtomicReference<EventLoopGroup>();
         var httpExecutorReference = new AtomicReference<ThreadPoolExecutor>();
+        var controlPlaneSchedulerReference = new AtomicReference<ThreadPoolTaskScheduler>();
         var authenticationService = mock(GatewaySessionAuthenticationService.class);
         when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(true);
         var contextRunner = new ApplicationContextRunner()
@@ -127,6 +201,7 @@ class GatewayEngineConfigurationTests {
                         "gateweave.control-plane.node-name=Gateway Node 1",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + port,
                         "gateweave.control-plane.request-timeout=3s",
+                        "gateweave.control-plane.refresh-interval=PT1H",
                         "gateweave.server.host=127.0.0.1",
                         "gateweave.server.port=" + port,
                         "gateweave.server.max-content-length=1048576",
@@ -164,8 +239,10 @@ class GatewayEngineConfigurationTests {
                 assertThat(context).hasSingleBean(GatewayRpcProperties.class);
                 assertThat(context).hasSingleBean(GatewayHttpProperties.class);
                 assertThat(context).hasSingleBean(GatewayControlPlaneProperties.class);
+                assertThat(context).hasSingleBean(ThreadPoolTaskScheduler.class);
                 assertThat(context).hasSingleBean(ControlPlaneHttpApi.class);
                 assertThat(context).hasSingleBean(GatewayControlPlaneClient.class);
+                assertThat(context).hasSingleBean(GatewayConfigurationSynchronizer.class);
                 assertThat(context).hasSingleBean(GatewayNodeLifecycle.class);
                 assertThat(context).hasSingleBean(GatewayRouteTable.class);
                 assertThat(context).hasSingleBean(GenericReferenceRegistry.class);
@@ -182,17 +259,22 @@ class GatewayEngineConfigurationTests {
                 assertThat(context).hasSingleBean(NettyGatewayServer.class);
 
                 var server = context.getBean(NettyGatewayServer.class);
+                var nodeLifecycle = context.getBean(GatewayNodeLifecycle.class);
                 var bossGroup = context.getBean("gatewayBossGroup", EventLoopGroup.class);
                 var workerGroup = context.getBean("gatewayWorkerGroup", EventLoopGroup.class);
                 var httpExecutor = context.getBean("gatewayHttpExecutor", ThreadPoolExecutor.class);
                 var gatewayHttpClient = context.getBean(HttpClient.class);
                 var controlPlaneProperties = context.getBean(GatewayControlPlaneProperties.class);
+                var controlPlaneScheduler = context.getBean(ThreadPoolTaskScheduler.class);
                 serverReference.set(server);
                 bossGroupReference.set(bossGroup);
                 workerGroupReference.set(workerGroup);
                 httpExecutorReference.set(httpExecutor);
+                controlPlaneSchedulerReference.set(controlPlaneScheduler);
 
                 assertThat(server.isRunning()).isTrue();
+                assertThat(nodeLifecycle.isRunning()).isTrue();
+                assertThat(nodeLifecycle.getPhase()).isLessThan(server.getPhase());
                 assertThat(bossGroup.isShuttingDown()).isFalse();
                 assertThat(workerGroup.isShuttingDown()).isFalse();
                 assertThat(httpExecutor.getCorePoolSize()).isEqualTo(2);
@@ -200,6 +282,8 @@ class GatewayEngineConfigurationTests {
                 assertThat(httpExecutor.getQueue().remainingCapacity()).isEqualTo(256);
                 assertThat(httpExecutor.getRejectedExecutionHandler())
                         .isInstanceOf(ThreadPoolExecutor.AbortPolicy.class);
+                assertThat(controlPlaneScheduler.getPoolSize()).isEqualTo(1);
+                assertThat(controlPlaneScheduler.getThreadNamePrefix()).isEqualTo("gateweave-control-plane-");
                 assertThat(gatewayHttpClient.connectTimeout()).contains(Duration.ofSeconds(2));
                 assertThat(gatewayHttpClient.executor()).containsSame(httpExecutor);
                 assertThat(gatewayHttpClient.followRedirects()).isEqualTo(HttpClient.Redirect.NEVER);
@@ -212,6 +296,7 @@ class GatewayEngineConfigurationTests {
                 assertThat(controlPlaneProperties.advertisedAddress())
                         .isEqualTo(URI.create("http://127.0.0.1:" + port));
                 assertThat(controlPlaneProperties.requestTimeout()).isEqualTo(Duration.ofSeconds(3));
+                assertThat(controlPlaneProperties.refreshInterval()).isEqualTo(Duration.ofHours(1));
 
                 var request = HttpRequest.newBuilder(
                                 URI.create("http://127.0.0.1:" + port + "/sayHi?name=gateweave"))
@@ -238,6 +323,7 @@ class GatewayEngineConfigurationTests {
         assertThat(bossGroup.isTerminated()).isTrue();
         assertThat(workerGroup.isTerminated()).isTrue();
         assertThat(httpExecutorReference.get().isShutdown()).isTrue();
+        assertThat(controlPlaneSchedulerReference.get().getScheduledThreadPoolExecutor().isShutdown()).isTrue();
         verify(referenceCache).destroyAll();
     }
 
@@ -245,6 +331,17 @@ class GatewayEngineConfigurationTests {
         try (var socket = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) {
             return socket.getLocalPort();
         }
+    }
+
+    private static InvocationTargetConfiguration target() {
+        return new InvocationTargetConfiguration("dubbo", "cn.example.ActivityBooth", "sayHi", List.of(),
+                Duration.ofSeconds(3), Map.of("version", "1.0.0"));
+    }
+
+    private static RouteConfiguration route(
+            String routeId, String path, InvocationTargetConfiguration target) {
+        return new RouteConfiguration(routeId, path, "GET", "activity-service", RouteAuthenticationMode.ANONYMOUS,
+                target, Map.of());
     }
 
     private static HttpServer createControlPlaneServer() throws IOException {
@@ -258,6 +355,10 @@ class GatewayEngineConfigurationTests {
             try (OutputStream outputStream = exchange.getResponseBody()) {
                 outputStream.write(response);
             }
+        });
+        server.createContext("/api/v1/gateway-groups/default/configuration-releases/latest", exchange -> {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
         });
         return server;
     }

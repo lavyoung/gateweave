@@ -29,6 +29,8 @@ class NettyGatewayServerTests {
         try {
             assertThat(server.isRunning()).isFalse();
             assertThat(server.localAddress()).isEmpty();
+            assertThat(server.getPhase()).isZero();
+            assertThat(server.isAutoStartup()).isTrue();
 
             // When
             server.start();
@@ -42,11 +44,12 @@ class NettyGatewayServerTests {
             assertThat(((InetSocketAddress) firstAddress.orElseThrow()).getPort()).isPositive();
 
             // When
-            server.close();
+            server.stop();
 
             // Then
             assertThat(server.isRunning()).isFalse();
             assertThat(server.localAddress()).isEmpty();
+            assertThatCode(server::stop).doesNotThrowAnyException();
             assertThatCode(server::close).doesNotThrowAnyException();
         } finally {
             server.close();

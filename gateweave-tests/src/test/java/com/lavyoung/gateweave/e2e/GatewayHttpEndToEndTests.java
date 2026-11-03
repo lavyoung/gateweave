@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -22,6 +23,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import io.jsonwebtoken.Jwts;
 import io.netty.channel.EventLoopGroup;
@@ -34,8 +36,10 @@ import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfigura
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
 import com.lavyoung.gateweave.engine.configuration.GatewayEngineConfiguration;
 import com.lavyoung.gateweave.engine.configuration.GatewaySecurityConfiguration;
+import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -48,6 +52,102 @@ class GatewayHttpEndToEndTests {
     private static final byte[] JWT_KEY_BYTES =
             "01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8);
     private static final String JWT_KEY_BASE64 = Base64.getEncoder().encodeToString(JWT_KEY_BYTES);
+
+    @Test
+    void shouldApplyPublishedConfigurationBeforeAcceptingRequests() throws Exception {
+        // Given
+        int gatewayPort = findAvailablePort();
+        AtomicReference<String> downstreamMethod = new AtomicReference<>();
+        AtomicReference<String> downstreamBody = new AtomicReference<>();
+        AtomicReference<String> downstreamTraceId = new AtomicReference<>();
+        AtomicInteger downstreamInvocations = new AtomicInteger();
+        HttpServer downstreamServer = createDownstreamServer(
+                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        int downstreamPort = downstreamServer.getAddress().getPort();
+        HttpServer controlPlaneServer = createControlPlaneServerWithPublishedConfiguration(downstreamPort);
+        int controlPlanePort = controlPlaneServer.getAddress().getPort();
+        SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
+        ApplicationContextRunner contextRunner = createContextRunner(
+                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+
+        // When & Then
+        downstreamServer.start();
+        controlPlaneServer.start();
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            contextRunner.run(context -> {
+                assertThat(context).hasNotFailed();
+                assertThat(context.getBean(GatewayRouteTable.class).currentVersion()).isEqualTo(1);
+
+                HttpRequest request = HttpRequest.newBuilder(
+                                URI.create("http://127.0.0.1:" + gatewayPort + "/published/http"))
+                        .header("Content-Type", "text/plain; charset=UTF-8")
+                        .POST(HttpRequest.BodyPublishers.ofString("published", StandardCharsets.UTF_8))
+                        .build();
+                HttpResponse<String> response = HttpClient.newHttpClient().send(
+                        request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+                assertThat(response.statusCode()).isEqualTo(200);
+                assertThat(response.body()).isEqualTo("downstream:published");
+                assertThat(downstreamMethod.get()).isEqualTo("POST");
+                assertThat(downstreamInvocations.get()).isEqualTo(1);
+            });
+        } finally {
+            downstreamServer.stop(0);
+            controlPlaneServer.stop(0);
+        }
+    }
+
+    @Test
+    void shouldRefreshPublishedConfigurationWithoutRestartingGateway() throws Exception {
+        // Given
+        int gatewayPort = findAvailablePort();
+        AtomicReference<String> downstreamMethod = new AtomicReference<>();
+        AtomicReference<String> downstreamBody = new AtomicReference<>();
+        AtomicReference<String> downstreamTraceId = new AtomicReference<>();
+        AtomicInteger downstreamInvocations = new AtomicInteger();
+        HttpServer downstreamServer = createDownstreamServer(
+                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        int downstreamPort = downstreamServer.getAddress().getPort();
+        AtomicBoolean configurationPublished = new AtomicBoolean();
+        HttpServer controlPlaneServer = createSwitchingControlPlaneServer(
+                downstreamPort, configurationPublished);
+        int controlPlanePort = controlPlaneServer.getAddress().getPort();
+        SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
+        ApplicationContextRunner contextRunner = createContextRunner(
+                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+
+        // When & Then
+        downstreamServer.start();
+        controlPlaneServer.start();
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            contextRunner.run(context -> {
+                assertThat(context).hasNotFailed();
+                GatewayRouteTable routeTable = context.getBean(GatewayRouteTable.class);
+                GatewayNodeLifecycle nodeLifecycle = context.getBean(GatewayNodeLifecycle.class);
+                assertThat(routeTable.currentVersion()).isZero();
+
+                configurationPublished.set(true);
+                nodeLifecycle.refreshConfiguration();
+
+                assertThat(routeTable.currentVersion()).isEqualTo(1);
+                HttpRequest request = HttpRequest.newBuilder(
+                                URI.create("http://127.0.0.1:" + gatewayPort + "/published/http"))
+                        .POST(HttpRequest.BodyPublishers.ofString("refreshed", StandardCharsets.UTF_8))
+                        .build();
+                HttpResponse<String> response = HttpClient.newHttpClient().send(
+                        request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+                assertThat(response.statusCode()).isEqualTo(200);
+                assertThat(response.body()).isEqualTo("downstream:refreshed");
+                assertThat(downstreamInvocations.get()).isEqualTo(1);
+            });
+        } finally {
+            downstreamServer.stop(0);
+            controlPlaneServer.stop(0);
+        }
+    }
 
     @Test
     void shouldProxyRequestFromNettyGatewayToHttpService() throws Exception {
@@ -186,6 +286,7 @@ class GatewayHttpEndToEndTests {
                         "gateweave.control-plane.node-name=E2E Gateway Node",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
                         "gateweave.control-plane.request-timeout=2s",
+                        "gateweave.control-plane.refresh-interval=PT1H",
                         "gateweave.rpc.application-name=gateweave-http-test",
                         "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
                         "gateweave.rpc.discovery-mode=INTERFACE",
@@ -221,6 +322,42 @@ class GatewayHttpEndToEndTests {
     }
 
     private static HttpServer createControlPlaneServer() throws IOException {
+        return createControlPlaneServer(exchange -> {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+        });
+    }
+
+    private static HttpServer createControlPlaneServerWithPublishedConfiguration(int downstreamPort)
+            throws IOException {
+        byte[] response = publishedConfigurationResponse(downstreamPort).getBytes(StandardCharsets.UTF_8);
+        return createControlPlaneServer(exchange -> {
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            }
+        });
+    }
+
+    private static HttpServer createSwitchingControlPlaneServer(
+            int downstreamPort, AtomicBoolean configurationPublished) throws IOException {
+        byte[] response = publishedConfigurationResponse(downstreamPort).getBytes(StandardCharsets.UTF_8);
+        return createControlPlaneServer(exchange -> {
+            if (!configurationPublished.get()) {
+                exchange.sendResponseHeaders(204, -1);
+                exchange.close();
+                return;
+            }
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            }
+        });
+    }
+
+    private static HttpServer createControlPlaneServer(HttpHandler configurationHandler) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/api/v1/gateway-nodes", exchange -> {
             byte[] response = """
@@ -232,7 +369,43 @@ class GatewayHttpEndToEndTests {
                 outputStream.write(response);
             }
         });
+        server.createContext(
+                "/api/v1/gateway-groups/default/configuration-releases/latest", configurationHandler);
         return server;
+    }
+
+    private static String publishedConfigurationResponse(int downstreamPort) {
+        return """
+                {
+                  "success": true,
+                  "code": "SUCCESS",
+                  "message": "Success",
+                  "data": {
+                    "gatewayGroupId": "default",
+                    "version": 1,
+                    "publishedAt": "2026-11-03T05:00:00Z",
+                    "checksum": "sha256:published-http",
+                    "routes": [
+                      {
+                        "routeId": "route-published-http",
+                        "path": "/published/http",
+                        "method": "POST",
+                        "serviceId": "published-http-service",
+                        "authenticationMode": "ANONYMOUS",
+                        "target": {
+                          "protocol": "http",
+                          "service": "http://127.0.0.1:%d",
+                          "operation": "/downstream",
+                          "parameters": [],
+                          "timeout": "PT2S",
+                          "attributes": {"method": "POST"}
+                        },
+                        "attributes": {"source": "control-plane"}
+                      }
+                    ]
+                  }
+                }
+                """.formatted(downstreamPort);
     }
 
     private static void handleDownstreamRequest(HttpExchange exchange, AtomicReference<String> method,

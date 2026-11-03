@@ -1,4 +1,4 @@
-package com.lavyoung.gateweave.engine.adapter.in.configuration;
+package com.lavyoung.gateweave.engine.application.mapper;
 
 import java.util.List;
 import java.util.Objects;

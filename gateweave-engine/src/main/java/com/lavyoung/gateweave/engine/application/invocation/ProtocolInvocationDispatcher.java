@@ -1,5 +1,9 @@
 package com.lavyoung.gateweave.engine.application.invocation;
 
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.extension.InvocationRequest;
+import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -7,9 +11,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import com.lavyoung.gateweave.contract.extension.InvocationRequest;
-import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 
 /**
  * 根据调用请求中的协议标识选择对应的协议调用器。
@@ -51,6 +52,24 @@ public final class ProtocolInvocationDispatcher {
             }
         }
         this.invokers = Map.copyOf(registryInvokers);
+    }
+
+    /**
+     * 根据目标协议选择调用器并准备运行时资源。
+     *
+     * @param target 即将生效的调用目标
+     * @throws NullPointerException  target 为 null 时抛出
+     * @throws IllegalStateException 目标协议没有对应调用器时抛出
+     * @throws RuntimeException      协议运行时资源准备失败时抛出
+     */
+    public void prepare(InvocationTargetConfiguration target) {
+        Objects.requireNonNull(target, "target must not be null");
+        String protocol = target.protocol().toLowerCase(Locale.ROOT);
+        ProtocolInvoker invoker = this.invokers.get(protocol);
+        if (invoker == null) {
+            throw new IllegalStateException("No protocol invoker registered for: " + protocol);
+        }
+        invoker.prepare(target);
     }
 
     /**

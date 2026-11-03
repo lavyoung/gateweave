@@ -2,15 +2,17 @@ package com.lavyoung.gateweave.engine.adapter.out.controlplane;
 
 import com.lavyoung.gateweave.contract.gateway.RegisterGatewayNodeRequest;
 import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
+import com.lavyoung.gateweave.engine.application.service.GatewayConfigurationSynchronizer;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.Objects;
 
 /**
- * 在网关进程生命周期中维护节点与控制面的注册关系。
+ * 在网关进程生命周期中完成节点注册和初始配置同步。
  *
- * <p>当前阶段只完成启动注册。后续心跳与注销仍归属于该生命周期边界，
- * 不需要再次创建监听器或生命周期组件。</p>
+ * <p>启动时先注册节点，再拉取所属网关分组最后发布的配置。任一步失败都不会将生命周期
+ * 标记为运行。后续心跳、注销和持续配置刷新仍复用该生命周期边界。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @version 1.0.0
@@ -19,26 +21,34 @@ import java.util.Objects;
 public final class GatewayNodeLifecycle implements SmartLifecycle {
 
     private final GatewayControlPlaneClient controlPlaneClient;
+    private final GatewayConfigurationSynchronizer configurationSynchronizer;
     private final GatewayControlPlaneProperties properties;
     private volatile boolean running;
 
     /**
      * 创建网关节点生命周期适配器。
      *
-     * @param controlPlaneClient 控制面出站端口
-     * @param properties         控制面连接和节点身份配置
+     * @param controlPlaneClient        控制面出站端口
+     * @param configurationSynchronizer 配置同步应用服务
+     * @param properties                控制面连接和节点身份配置
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
     public GatewayNodeLifecycle(
-            GatewayControlPlaneClient controlPlaneClient, GatewayControlPlaneProperties properties) {
-        this.controlPlaneClient = Objects.requireNonNull(controlPlaneClient, "controlPlaneClient must not be null");
+            GatewayControlPlaneClient controlPlaneClient,
+            GatewayConfigurationSynchronizer configurationSynchronizer,
+            GatewayControlPlaneProperties properties) {
+        this.controlPlaneClient = Objects.requireNonNull(
+                controlPlaneClient, "controlPlaneClient must not be null");
+        this.configurationSynchronizer = Objects.requireNonNull(
+                configurationSynchronizer, "configurationSynchronizer must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
     }
 
+
     /**
-     * 在 Spring 完成单例初始化后向控制面注册当前网关节点。
+     * 注册当前节点并同步最后发布的配置快照。
      *
-     * @throws IllegalStateException 请求序列化失败、控制面响应无法解析或注册被拒绝时抛出
+     * @throws IllegalStateException 节点注册、控制面查询或配置同步失败时抛出
      */
     @Override
     public synchronized void start() {
@@ -49,6 +59,7 @@ public final class GatewayNodeLifecycle implements SmartLifecycle {
                 this.properties.nodeId(), this.properties.gatewayGroupId(), this.properties.nodeName(),
                 this.properties.advertisedAddress());
         this.controlPlaneClient.registerNode(request);
+        this.configurationSynchronizer.synchronize(this.properties.gatewayGroupId());
         this.running = true;
     }
 
@@ -60,5 +71,30 @@ public final class GatewayNodeLifecycle implements SmartLifecycle {
     @Override
     public boolean isRunning() {
         return this.running;
+    }
+
+    /**
+     * 按固定延迟查询并应用控制面最后发布的配置。
+     *
+     * <p>初始同步由 start 完成。周期任务只有在生命周期运行时才执行；
+     * 单次失败由统一调度器记录，并保留最后有效路由等待下次重试。</p>
+     */
+    @Scheduled(fixedDelayString = "${gateweave.control-plane.refresh-interval}",
+            initialDelayString = "${gateweave.control-plane.refresh-interval}")
+    public void refreshConfiguration() {
+        if (!this.running) {
+            return;
+        }
+        this.configurationSynchronizer.synchronize(this.properties.gatewayGroupId());
+    }
+
+    /**
+     * 让节点注册和初始配置同步早于普通运行时生命周期组件启动。
+     *
+     * @return 生命周期最早阶段
+     */
+    @Override
+    public int getPhase() {
+        return Integer.MIN_VALUE;
     }
 }

@@ -9,6 +9,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
@@ -30,6 +31,47 @@ class DubboProtocolInvokerTests {
 
         // When & Then
         assertThat(invoker.protocol()).isEqualTo("dubbo");
+    }
+
+    @Test
+    void shouldPrepareGenericReferenceFromTargetConfiguration() {
+        // Given
+        GenericReferenceRegistry registry = mock(GenericReferenceRegistry.class);
+        InvocationTargetConfiguration target = target(Map.of("version", "1.0.0"));
+        DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
+
+        // When
+        invoker.prepare(target);
+
+        // Then
+        verify(registry).addGenericReference("demo.GreetingService", "sayHello", "1.0.0");
+    }
+
+    @Test
+    void shouldRejectMissingVersionBeforePreparingReference() {
+        // Given
+        GenericReferenceRegistry registry = mock(GenericReferenceRegistry.class);
+        InvocationTargetConfiguration target = target(Map.of());
+        DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
+
+        // When & Then
+        assertThatThrownBy(() -> invoker.prepare(target))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("version must not be null");
+        verifyNoInteractions(registry);
+    }
+
+    @Test
+    void shouldRejectNullTargetBeforePreparingReference() {
+        // Given
+        GenericReferenceRegistry registry = mock(GenericReferenceRegistry.class);
+        DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
+
+        // When & Then
+        assertThatThrownBy(() -> invoker.prepare(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("target must not be null");
+        verifyNoInteractions(registry);
     }
 
     @Test
@@ -127,5 +169,10 @@ class DubboProtocolInvokerTests {
 
     private static GenericInvocationArguments stringArguments(String value) {
         return new GenericInvocationArguments(List.of("java.lang.String"), List.of(value));
+    }
+
+    private static InvocationTargetConfiguration target(Map<String, String> attributes) {
+        return new InvocationTargetConfiguration("dubbo", "demo.GreetingService", "sayHello", List.of(),
+                Duration.ofSeconds(3), attributes);
     }
 }

@@ -1,10 +1,7 @@
 package com.lavyoung.gateweave.engine.configuration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
-import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
-import com.lavyoung.gateweave.engine.adapter.in.configuration.GatewayRouteConfigurationMapper;
 import com.lavyoung.gateweave.engine.adapter.in.netty.GatewayChannelInitializer;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestHandler;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayRequestMapper;
@@ -16,17 +13,19 @@ import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecyc
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.HttpGatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
+import com.lavyoung.gateweave.engine.application.mapper.GatewayRouteConfigurationMapper;
 import com.lavyoung.gateweave.engine.application.mapper.InvocationRequestMapper;
 import com.lavyoung.gateweave.engine.application.port.in.HandleGatewayRequestUseCase;
 import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.security.GatewaySessionAuthenticationService;
 import com.lavyoung.gateweave.engine.application.service.DefaultGatewayRequestService;
+import com.lavyoung.gateweave.engine.application.service.GatewayConfigurationSynchronizer;
 import com.lavyoung.gateweave.engine.application.session.DefaultGatewaySessionFactory;
 import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
+import com.lavyoung.gateweave.engine.domain.route.GatewayRoute;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 import com.lavyoung.gateweave.plugin.invoker.http.HttpProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.DubboProtocolInvoker;
-import com.lavyoung.gateweave.plugin.invoker.rpc.DubboReferenceOptions;
 import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
@@ -39,7 +38,10 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.support.TaskUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
@@ -61,6 +63,7 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0
  */
 @Configuration(proxyBeanMethods = false)
+@EnableScheduling
 @EnableConfigurationProperties({GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class,
         GatewayHttpProperties.class, GatewayControlPlaneProperties.class})
 public class GatewayEngineConfiguration {
@@ -68,35 +71,17 @@ public class GatewayEngineConfiguration {
     private static final int CONNECTION_BACKLOG = 1024;
 
     /**
-     * 创建 Dubbo 泛化调用注册表，并注册当前路由快照中的所有 Dubbo 调用目标。
+     * 创建并统一管理 Dubbo 泛化调用引用。
      *
-     * <p>注册失败时立即关闭已经创建的 Dubbo 引用，避免 Spring Bean 创建失败后遗留连接资源。</p>
+     * <p>具体服务引用由 Dubbo 协议插件按路由目标准备，装配层不解析协议专属属性。</p>
      *
-     * @param rpcProperties   RPC 运行配置
-     * @param routeProperties 当前路由配置快照
-     * @return 完成初始化的 Dubbo 泛化调用注册表
-     * @throws RuntimeException Dubbo 服务引用创建失败时抛出
+     * @param rpcProperties RPC 运行配置
+     * @return Dubbo 泛化调用注册表
      */
     @Bean(destroyMethod = "close")
-    public GenericReferenceRegistry genericReferenceRegistry(GatewayRpcProperties rpcProperties,
-                                                             GatewayRouteProperties routeProperties) {
-        GenericReferenceRegistry referenceRegistry = new GenericReferenceRegistry(
+    public GenericReferenceRegistry genericReferenceRegistry(GatewayRpcProperties rpcProperties) {
+        return new GenericReferenceRegistry(
                 rpcProperties.applicationName(), rpcProperties.registryAddress(), rpcProperties.discoveryMode());
-        try {
-            for (RouteConfiguration route : routeProperties.routes()) {
-                InvocationTargetConfiguration targetConfiguration = route.target();
-                if (!"dubbo".equalsIgnoreCase(targetConfiguration.protocol())) {
-                    continue;
-                }
-                DubboReferenceOptions options = DubboReferenceOptions.from(targetConfiguration.attributes());
-                referenceRegistry.addGenericReference(
-                        targetConfiguration.service(), targetConfiguration.operation(), options.version());
-            }
-            return referenceRegistry;
-        } catch (RuntimeException exception) {
-            referenceRegistry.close();
-            throw exception;
-        }
     }
 
     /**
@@ -236,16 +221,24 @@ public class GatewayEngineConfiguration {
     /**
      * 根据启动配置建立当前生效的不可变领域路由表。
      *
-     * @param properties 绑定完成的路由配置
-     * @param mapper     路由契约防腐转换器
+     * <p>全部路由完成领域转换后，再通过统一协议分派器准备运行时资源。
+     * 任一路由转换或资源准备失败时，网关启动失败，不会开放不完整的请求链路。</p>
+     *
+     * @param properties           绑定完成的路由配置
+     * @param mapper               路由契约防腐转换器
+     * @param invocationDispatcher 协议调用与资源准备分派器
      * @return 当前生效的领域路由表
-     * @throws NullPointerException     路由配置包含 null 时抛出
+     * @throws NullPointerException     参数或路由必要属性为 null 时抛出
      * @throws IllegalArgumentException 路由重复或违反领域不变量时抛出
+     * @throws RuntimeException         协议运行时资源准备失败时抛出
      */
     @Bean
     public GatewayRouteTable gatewayRouteTable(
-            GatewayRouteProperties properties, GatewayRouteConfigurationMapper mapper) {
-        return new GatewayRouteTable(properties.routes().stream().map(mapper::toDomain).toList());
+            GatewayRouteProperties properties, GatewayRouteConfigurationMapper mapper,
+            ProtocolInvocationDispatcher invocationDispatcher) {
+        List<GatewayRoute> routes = properties.routes().stream().map(mapper::toDomain).toList();
+        properties.routes().forEach(route -> invocationDispatcher.prepare(route.target()));
+        return new GatewayRouteTable(routes);
     }
 
     /**
@@ -337,7 +330,7 @@ public class GatewayEngineConfiguration {
      * @param properties 网关服务器配置
      * @return Netty 网关服务器
      */
-    @Bean(initMethod = "start", destroyMethod = "close")
+    @Bean
     public NettyGatewayServer nettyGatewayServer(ServerBootstrap bootstrap, GatewayServerProperties properties) {
         InetSocketAddress address = new InetSocketAddress(properties.host(), properties.port());
         return new NettyGatewayServer(bootstrap, address);
@@ -382,15 +375,55 @@ public class GatewayEngineConfiguration {
     }
 
     /**
+     * 创建控制面配置同步应用服务。
+     *
+     * @param controlPlaneClient   控制面出站端口
+     * @param routeMapper          配置契约到领域路由的转换器
+     * @param invocationDispatcher 协议调用与资源准备分派器
+     * @param routeTable           当前运行时路由表
+     * @return 配置同步应用服务
+     */
+    @Bean
+    public GatewayConfigurationSynchronizer gatewayConfigurationSynchronizer(
+            GatewayControlPlaneClient controlPlaneClient, GatewayRouteConfigurationMapper routeMapper,
+            ProtocolInvocationDispatcher invocationDispatcher, GatewayRouteTable routeTable) {
+        return new GatewayConfigurationSynchronizer(controlPlaneClient, routeMapper, invocationDispatcher, routeTable);
+    }
+
+    /**
      * 创建随 Spring 容器启动和停止的网关节点生命周期组件。
      *
-     * @param controlPlaneClient     控制面应用端口
-     * @param controlPlaneProperties 控制面节点身份配置
+     * @param controlPlaneClient        控制面应用端口
+     * @param configurationSynchronizer 配置同步应用服务
+     * @param controlPlaneProperties    控制面节点身份配置
      * @return 网关节点生命周期组件
      */
     @Bean
-    public GatewayNodeLifecycle gatewayNodeLifecycle(GatewayControlPlaneClient controlPlaneClient,
+    public GatewayNodeLifecycle gatewayNodeLifecycle(
+            GatewayControlPlaneClient controlPlaneClient,
+            GatewayConfigurationSynchronizer configurationSynchronizer,
             GatewayControlPlaneProperties controlPlaneProperties) {
-        return new GatewayNodeLifecycle(controlPlaneClient, controlPlaneProperties);
+        return new GatewayNodeLifecycle(controlPlaneClient, configurationSynchronizer, controlPlaneProperties);
+    }
+
+    /**
+     * 创建控制面周期任务使用的统一调度器。
+     *
+     * <p>当前只执行配置刷新任务，单线程可以避免同一网关节点并发拉取配置。
+     * 周期任务异常由 Spring 官方错误处理器记录并抑制，不会终止后续调度。</p>
+     *
+     * @return 控制面任务调度器
+     */
+    @Bean(name = "gatewayControlPlaneTaskScheduler", destroyMethod = "shutdown")
+    public ThreadPoolTaskScheduler gatewayControlPlaneTaskScheduler() {
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("gateweave-control-plane-");
+        scheduler.setRemoveOnCancelPolicy(true);
+        scheduler.setWaitForTasksToCompleteOnShutdown(true);
+        scheduler.setAwaitTerminationSeconds(5);
+        // scheduler.setDaemon(true);
+        scheduler.setErrorHandler(TaskUtils.LOG_AND_SUPPRESS_ERROR_HANDLER);
+        return scheduler;
     }
 }

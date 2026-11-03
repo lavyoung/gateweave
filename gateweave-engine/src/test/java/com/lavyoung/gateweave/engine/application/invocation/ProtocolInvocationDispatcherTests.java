@@ -9,17 +9,64 @@ import java.util.concurrent.CompletionException;
 
 import org.junit.jupiter.api.Test;
 
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
 import com.lavyoung.gateweave.contract.extension.InvocationRequest;
 import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ProtocolInvocationDispatcherTests {
+
+    @Test
+    void shouldPrepareTargetByNormalizedProtocol() {
+        // Given
+        InvocationTargetConfiguration target = target("DUBBO");
+        ProtocolInvoker invoker = mock(ProtocolInvoker.class);
+        when(invoker.protocol()).thenReturn("DuBbO");
+        ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
+
+        // When
+        dispatcher.prepare(target);
+
+        // Then
+        verify(invoker).prepare(target);
+    }
+
+    @Test
+    void shouldRejectUnregisteredProtocolBeforePreparingTarget() {
+        // Given
+        ProtocolInvoker invoker = mock(ProtocolInvoker.class);
+        when(invoker.protocol()).thenReturn("dubbo");
+        ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
+
+        // When & Then
+        assertThatThrownBy(() -> dispatcher.prepare(target("http")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("No protocol invoker registered for: http");
+        verify(invoker, never()).prepare(any());
+    }
+
+    @Test
+    void shouldPropagateProtocolPreparationFailure() {
+        // Given
+        InvocationTargetConfiguration target = target("dubbo");
+        IllegalStateException failure = new IllegalStateException("reference unavailable");
+        ProtocolInvoker invoker = mock(ProtocolInvoker.class);
+        when(invoker.protocol()).thenReturn("dubbo");
+        doThrow(failure).when(invoker).prepare(target);
+        ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
+
+        // When & Then
+        assertThatThrownBy(() -> dispatcher.prepare(target)).isSameAs(failure);
+    }
 
     @Test
     void shouldDispatchRequestByNormalizedProtocol() {
@@ -132,6 +179,9 @@ class ProtocolInvocationDispatcherTests {
         assertThatThrownBy(() -> dispatcher.invoke(null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
+        assertThatThrownBy(() -> dispatcher.prepare(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("target must not be null");
     }
 
     private static InvocationRequest request(String protocol) {
@@ -140,5 +190,10 @@ class ProtocolInvocationDispatcherTests {
         return new InvocationRequest("request-1", "route-1", protocol, "demo.GreetingService", "sayHello",
                 arguments, Duration.ofSeconds(3), Map.of(), Map.of(),
                 "GateWeave".getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static InvocationTargetConfiguration target(String protocol) {
+        return new InvocationTargetConfiguration(protocol, "demo.GreetingService", "sayHello", List.of(),
+                Duration.ofSeconds(3), Map.of("version", "1.0.0"));
     }
 }

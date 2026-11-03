@@ -9,7 +9,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 
 import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
-import com.lavyoung.gateweave.engine.adapter.in.configuration.GatewayRouteConfigurationMapper;
+import com.lavyoung.gateweave.engine.application.mapper.GatewayRouteConfigurationMapper;
 import com.lavyoung.gateweave.engine.domain.route.RouteAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
