@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.config.ReferenceConfigBase;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
+import org.apache.dubbo.rpc.model.ModuleModel;
 import org.apache.dubbo.rpc.service.GenericService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -54,7 +55,7 @@ class GenericReferenceRegistryTests {
                 .thenReturn(CompletableFuture.completedFuture("hi gateweave"));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
@@ -75,6 +76,7 @@ class GenericReferenceRegistryTests {
                 assertThat(referenceCaptor.getValue().getApplication().getQosEnable()).isFalse();
                 assertThat(referenceCaptor.getValue().getApplication().getRegisterMode())
                         .isEqualTo(CommonConstants.INTERFACE_REGISTER_MODE);
+                assertThat(referenceCaptor.getValue().getScopeModel()).isInstanceOf(ModuleModel.class);
             }
         }
 
@@ -88,7 +90,7 @@ class GenericReferenceRegistryTests {
         when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(mock(GenericService.class));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 // When
@@ -102,6 +104,29 @@ class GenericReferenceRegistryTests {
     }
 
     @Test
+    void shouldReuseServiceReferenceAcrossMethodsOfSameInterfaceVersion() {
+        // Given
+        var referenceCache = mock(SimpleReferenceCache.class);
+        var genericService = mock(GenericService.class);
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
+
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
+            try (var registry = new GenericReferenceRegistry(
+                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+                // When
+                registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
+                registry.addGenericReference("cn.example.ActivityBooth", "sayBye", "1.0.0");
+
+                // Then
+                verify(referenceCache, times(1)).get(any(ReferenceConfigBase.class));
+                assertThat(registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0")).isNotNull();
+                assertThat(registry.getGenericReference("cn.example.ActivityBooth", "sayBye", "1.0.0")).isNotNull();
+            }
+        }
+    }
+
+    @Test
     void shouldReuseSingleRegistrationDuringConcurrentAccess() throws InterruptedException {
         // Given
         var referenceCache = mock(SimpleReferenceCache.class);
@@ -109,7 +134,7 @@ class GenericReferenceRegistryTests {
         var executor = Executors.newFixedThreadPool(8);
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 // When
@@ -142,7 +167,7 @@ class GenericReferenceRegistryTests {
                 .thenReturn(CompletableFuture.completedFuture("second"));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.FirstService", "sayHi", "1.0.0");
@@ -168,7 +193,7 @@ class GenericReferenceRegistryTests {
         var referenceCache = mock(SimpleReferenceCache.class);
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 // When & Then
@@ -190,7 +215,7 @@ class GenericReferenceRegistryTests {
                 aryEq(new Object[]{"gateweave"}))).thenReturn(CompletableFuture.completedFuture(1));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
@@ -217,7 +242,7 @@ class GenericReferenceRegistryTests {
                 aryEq(new Object[]{"gateweave"}))).thenReturn(CompletableFuture.failedFuture(failure));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             try (var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
@@ -239,7 +264,7 @@ class GenericReferenceRegistryTests {
         when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(mock(GenericService.class));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE);
             registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
@@ -264,7 +289,7 @@ class GenericReferenceRegistryTests {
         doThrow(new IllegalStateException("close failed")).doNothing().when(referenceCache).destroyAll();
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             var registry = new GenericReferenceRegistry(
                     "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE);
 

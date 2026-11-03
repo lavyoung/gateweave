@@ -1,21 +1,21 @@
 package com.lavyoung.gateweave.plugin.invoker.rpc;
 
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
-
+import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
+import com.lavyoung.gateweave.contract.extension.IGenericReference;
 import org.apache.dubbo.common.config.ReferenceCache;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
+import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.model.ScopeModel;
 import org.apache.dubbo.rpc.service.GenericService;
 
-import com.lavyoung.gateweave.contract.extension.GenericInvocationArguments;
-import com.lavyoung.gateweave.contract.extension.IGenericReference;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.dubbo.registry.Constants.MIGRATION_STEP_KEY;
 
@@ -32,11 +32,12 @@ public final class GenericReferenceRegistry implements AutoCloseable {
 
     private final AtomicBoolean closed = new AtomicBoolean();
 
+    private final DubboBootstrap dubboBootstrap;
     private final DubboDiscoveryMode discoveryMode;
-    private final ApplicationConfig applicationConfig;
-    private final RegistryConfig registryConfig;
     private final ReferenceCache referenceCache = SimpleReferenceCache.newCache();
     private final ConcurrentHashMap<GenericReferenceKey, IGenericReference> knownGenericReferences =
+            new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<DubboServiceReferenceKey, DubboServiceReference> knownServiceReferences =
             new ConcurrentHashMap<>();
 
     /**
@@ -59,12 +60,13 @@ public final class GenericReferenceRegistry implements AutoCloseable {
         if (registryAddress.isBlank()) {
             throw new IllegalArgumentException("registryAddress must not be blank");
         }
-
-        this.applicationConfig = new ApplicationConfig(applicationName);
-        // 关闭 22222。
-        this.applicationConfig.setQosEnable(false);
-        this.applicationConfig.setRegisterMode(this.discoveryMode.registerMode());
-        this.registryConfig = new RegistryConfig(registryAddress);
+        ApplicationConfig applicationConfig = new ApplicationConfig(applicationName);
+        applicationConfig.setQosEnable(false);
+        applicationConfig.setRegisterMode(this.discoveryMode.registerMode());
+        RegistryConfig registryConfig = new RegistryConfig(registryAddress);
+        this.dubboBootstrap = DubboBootstrap.newInstance()
+                .application(applicationConfig)
+                .registry(registryConfig);
     }
 
     /**
@@ -81,7 +83,11 @@ public final class GenericReferenceRegistry implements AutoCloseable {
      */
     public void addGenericReference(String interfaceName, String methodName, String version) {
         GenericReferenceKey key = new GenericReferenceKey(interfaceName, methodName, version);
-        this.knownGenericReferences.computeIfAbsent(key, this::createGenericReference);
+        DubboServiceReferenceKey serviceReferenceKey = new DubboServiceReferenceKey(interfaceName, version);
+        DubboServiceReference serviceReference = this.knownServiceReferences.computeIfAbsent(
+                serviceReferenceKey, this::createServiceReference);
+        this.knownGenericReferences.computeIfAbsent(key, kk ->
+                arguments -> invoke(serviceReference.genericService(), key.methodName(), arguments));
     }
 
     /**
@@ -119,12 +125,14 @@ public final class GenericReferenceRegistry implements AutoCloseable {
             return;
         }
         this.knownGenericReferences.clear();
-        ScopeModel scopeModel = this.applicationConfig.getScopeModel();
+        this.knownServiceReferences.clear();
+        ScopeModel scopeModel = this.dubboBootstrap.getApplicationModel();
         if (scopeModel.isDestroyed()) {
             return;
         }
         try {
             this.referenceCache.destroyAll();
+            this.dubboBootstrap.destroy();
         } catch (RuntimeException e) {
             if (!scopeModel.isDestroyed()) {
                 this.closed.set(false);
@@ -134,39 +142,39 @@ public final class GenericReferenceRegistry implements AutoCloseable {
     }
 
     /**
-     * 创建目标 Dubbo 服务引用及统一调用函数。
+     * 创建并缓存一个 Dubbo 服务引用。
+     *
+     * <p>服务引用由接口和版本唯一确定，同一服务下的不同方法共享该引用。</p>
      *
      * @param key Dubbo 服务引用唯一键
-     * @return 绑定到指定 Dubbo 方法的统一调用函数
+     * @return 服务引用配置及其泛化代理
      * @throws RuntimeException Dubbo 服务引用创建失败时抛出
      */
-    private IGenericReference createGenericReference(GenericReferenceKey key) {
+    private DubboServiceReference createServiceReference(DubboServiceReferenceKey key) {
         ReferenceConfig<GenericService> referenceConfig = new ReferenceConfig<>();
-        // todo 方法过时处理
-        referenceConfig.setApplication(this.applicationConfig);
-        referenceConfig.setRegistry(this.registryConfig);
         referenceConfig.setInterface(key.interfaceName());
         referenceConfig.setVersion(key.version());
         referenceConfig.setGeneric("true");
         referenceConfig.setCheck(false);
         referenceConfig.setParameters(Map.of(MIGRATION_STEP_KEY, this.discoveryMode.migrationStep()));
+        this.dubboBootstrap.reference(referenceConfig);
 
         GenericService genericService = this.referenceCache.get(referenceConfig);
         Objects.requireNonNull(genericService, "Dubbo GenericService must not be null");
-        return invocationArguments -> invoke(genericService, key.methodName(), invocationArguments);
+        return new DubboServiceReference(referenceConfig, genericService);
     }
 
     /**
      * 将项目统一调用参数转换为 Dubbo 泛化调用参数并校验返回类型。
      *
-     * @param genericService     Dubbo 官方泛化服务
-     * @param methodName        目标方法名称
+     * @param genericService      Dubbo 官方泛化服务
+     * @param methodName          目标方法名称
      * @param invocationArguments 项目统一调用参数
      * @return 异步字符串调用结果
      * @throws NullPointerException invocationArguments 为 null 时抛出
      */
     private CompletionStage<String> invoke(GenericService genericService, String methodName,
-            GenericInvocationArguments invocationArguments) {
+                                           GenericInvocationArguments invocationArguments) {
         Objects.requireNonNull(invocationArguments, "invocationArguments must not be null");
         String[] parameterTypes = invocationArguments.parameterTypes().toArray(String[]::new);
         Object[] arguments = invocationArguments.arguments().toArray();
@@ -208,5 +216,42 @@ public final class GenericReferenceRegistry implements AutoCloseable {
                 throw new IllegalArgumentException("version must not be blank");
             }
         }
+    }
+
+    /**
+     * 唯一标识一个 Dubbo 服务引用。
+     *
+     * @param interfaceName Dubbo 服务接口全限定名
+     * @param version       Dubbo 服务版本
+     */
+    private record DubboServiceReferenceKey(String interfaceName, String version) {
+
+        private DubboServiceReferenceKey {
+            Objects.requireNonNull(interfaceName, "interfaceName must not be null");
+            Objects.requireNonNull(version, "version must not be null");
+
+            if (interfaceName.isBlank()) {
+                throw new IllegalArgumentException("interfaceName must not be blank");
+            }
+            if (version.isBlank()) {
+                throw new IllegalArgumentException("version must not be blank");
+            }
+        }
+    }
+
+
+    /**
+     * 保存 Dubbo 官方引用配置及其泛化代理。
+     *
+     * @param referenceConfig 引用配置，用于后续精确释放官方缓存
+     * @param genericService  Dubbo 泛化调用代理
+     */
+    private record DubboServiceReference(ReferenceConfig<GenericService> referenceConfig,
+                                         GenericService genericService) {
+        private DubboServiceReference {
+            Objects.requireNonNull(referenceConfig, "referenceConfig must not be null");
+            Objects.requireNonNull(genericService, "genericService must not be null");
+        }
+
     }
 }

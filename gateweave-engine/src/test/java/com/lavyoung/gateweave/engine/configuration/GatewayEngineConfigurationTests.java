@@ -231,7 +231,7 @@ class GatewayEngineConfigurationTests {
 
         // When & Then
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             contextRunner.run(context -> {
                 assertThat(context).hasNotFailed();
                 assertThat(context).hasSingleBean(GatewayServerProperties.class);
