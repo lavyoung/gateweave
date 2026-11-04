@@ -33,6 +33,8 @@ class GatewayConfigurationSynchronizerTests {
     private static final InvocationTargetConfiguration TARGET = new InvocationTargetConfiguration(
             "dubbo", "cn.example.ActivityService", "sayHi", List.of(), Duration.ofSeconds(3),
             Map.of("version", "1.0.0"));
+    private static final InvocationTargetConfiguration HTTP_TARGET = new InvocationTargetConfiguration(
+            "http", "http://127.0.0.1:8080", "/activities", List.of(), Duration.ofSeconds(2), Map.of());
     private static final GatewayRouteConfigurationMapper ROUTE_MAPPER = new GatewayRouteConfigurationMapper();
 
     @Test
@@ -56,6 +58,33 @@ class GatewayConfigurationSynchronizerTests {
         assertThat(routeTable.match("GET", URI.create("/published"))).isPresent();
         verify(controlPlaneClient).findLatestPublishedConfiguration("default");
         verify(invocationDispatcher).prepare(TARGET);
+    }
+
+    @Test
+    void shouldApplyAllRoutesFromSamePublishedSnapshot() {
+        // Given
+        var controlPlaneClient = mock(GatewayControlPlaneClient.class);
+        var invocationDispatcher = mock(ProtocolInvocationDispatcher.class);
+        var routeTable = new GatewayRouteTable(List.of());
+        var dubboRoute = route("route-dubbo", "/dubbo");
+        var httpRoute = new RouteConfiguration(
+                "route-http", "/http", "POST", "activity-http-service", RouteAuthenticationMode.ANONYMOUS,
+                HTTP_TARGET, Map.of());
+        when(controlPlaneClient.findLatestPublishedConfiguration("default"))
+                .thenReturn(Optional.of(snapshot(2, dubboRoute, httpRoute)));
+        var synchronizer = new GatewayConfigurationSynchronizer(
+                controlPlaneClient, ROUTE_MAPPER, invocationDispatcher, routeTable);
+
+        // When
+        var replaced = synchronizer.synchronize("default");
+
+        // Then
+        assertThat(replaced).isTrue();
+        assertThat(routeTable.currentVersion()).isEqualTo(2);
+        assertThat(routeTable.match("GET", URI.create("/dubbo"))).isPresent();
+        assertThat(routeTable.match("POST", URI.create("/http"))).isPresent();
+        verify(invocationDispatcher).prepare(TARGET);
+        verify(invocationDispatcher).prepare(HTTP_TARGET);
     }
 
     @Test
@@ -104,7 +133,7 @@ class GatewayConfigurationSynchronizerTests {
     }
 
     @Test
-    void shouldKeepLastValidSnapshotWhenPublishedConfigurationCannotBeMapped() {
+    void shouldNotPrepareResourcesWhenAnyPublishedRouteCannotBeMapped() {
         // Given
         var controlPlaneClient = mock(GatewayControlPlaneClient.class);
         var invocationDispatcher = mock(ProtocolInvocationDispatcher.class);
@@ -112,7 +141,8 @@ class GatewayConfigurationSynchronizerTests {
         var routeTable = new GatewayRouteTable(List.of());
         routeTable.replaceIfNew(1, List.of(currentRoute));
         when(controlPlaneClient.findLatestPublishedConfiguration("default"))
-                .thenReturn(Optional.of(snapshot(2, route("route-invalid", "invalid"))));
+                .thenReturn(Optional.of(snapshot(
+                        2, route("route-valid", "/valid"), route("route-invalid", "invalid"))));
         var synchronizer = new GatewayConfigurationSynchronizer(
                 controlPlaneClient, ROUTE_MAPPER, invocationDispatcher, routeTable);
 

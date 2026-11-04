@@ -127,6 +127,29 @@ class GenericReferenceRegistryTests {
     }
 
     @Test
+    void shouldIsolateReferencesAcrossVersionsOfSameInterface() {
+        // Given
+        var referenceCache = mock(SimpleReferenceCache.class);
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class)))
+                .thenReturn(mock(GenericService.class), mock(GenericService.class));
+
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
+            try (var registry = new GenericReferenceRegistry(
+                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+                // When
+                registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
+                registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "2.0.0");
+
+                // Then
+                verify(referenceCache, times(2)).get(any(ReferenceConfigBase.class));
+                assertThat(registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0"))
+                        .isNotSameAs(registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "2.0.0"));
+            }
+        }
+    }
+
+    @Test
     void shouldReuseSingleRegistrationDuringConcurrentAccess() throws InterruptedException {
         // Given
         var referenceCache = mock(SimpleReferenceCache.class);

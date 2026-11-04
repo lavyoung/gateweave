@@ -172,6 +172,60 @@ class GatewayEngineConfigurationTests {
     }
 
     @Test
+    void shouldNotStartNettyWhenInitialNodeRegistrationFails() throws Exception {
+        // Given
+        var controlPlaneServer = createRejectingControlPlaneServer();
+        controlPlaneServer.start();
+        var referenceCache = mock(SimpleReferenceCache.class);
+        var authenticationService = mock(GatewaySessionAuthenticationService.class);
+
+        try (var occupiedGatewayPort = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+                var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            int gatewayPort = occupiedGatewayPort.getLocalPort();
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
+            var contextRunner = new ApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
+                            HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
+                    .withUserConfiguration(GatewayEngineConfiguration.class)
+                    .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
+                    .withPropertyValues(
+                            "gateweave.control-plane.base-uri=http://127.0.0.1:"
+                                    + controlPlaneServer.getAddress().getPort(),
+                            "gateweave.control-plane.node-id=node-1",
+                            "gateweave.control-plane.gateway-group-id=default",
+                            "gateweave.control-plane.node-name=Gateway Node 1",
+                            "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
+                            "gateweave.control-plane.request-timeout=1s",
+                            "gateweave.control-plane.refresh-interval=PT1H",
+                            "gateweave.server.host=127.0.0.1",
+                            "gateweave.server.port=" + gatewayPort,
+                            "gateweave.server.max-content-length=1048576",
+                            "gateweave.server.boss-threads=1",
+                            "gateweave.server.worker-threads=1",
+                            "gateweave.server.connection-backlog=128",
+                            "gateweave.rpc.application-name=gateweave",
+                            "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
+                            "gateweave.rpc.discovery-mode=INTERFACE",
+                            "gateweave.http.connect-timeout=1s",
+                            "gateweave.http.core-threads=1",
+                            "gateweave.http.maximum-threads=1",
+                            "gateweave.http.queue-capacity=16",
+                            "gateweave.http.keep-alive=30s");
+
+            // When & Then
+            contextRunner.run(context -> {
+                assertThat(context).hasFailed();
+                assertThat(context.getStartupFailure()).hasRootCauseMessage(
+                        "Gateway node registration failed with status 200 and code NODE_REJECTED");
+            });
+        } finally {
+            controlPlaneServer.stop(0);
+        }
+
+        verify(referenceCache).destroyAll();
+    }
+
+    @Test
     void shouldStartHttpToRpcPipelineAndReleaseRuntimeResources() throws Exception {
         // Given
         var port = findAvailablePort();
@@ -350,6 +404,21 @@ class GatewayEngineConfigurationTests {
             String routeId, String path, InvocationTargetConfiguration target) {
         return new RouteConfiguration(routeId, path, "GET", "activity-service", RouteAuthenticationMode.ANONYMOUS,
                 target, Map.of());
+    }
+
+    private static HttpServer createRejectingControlPlaneServer() throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes", exchange -> {
+            byte[] response = """
+                    {"success":false,"code":"NODE_REJECTED","message":"Node rejected","data":null}
+                    """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            }
+        });
+        return server;
     }
 
     private static HttpServer createControlPlaneServer() throws IOException {

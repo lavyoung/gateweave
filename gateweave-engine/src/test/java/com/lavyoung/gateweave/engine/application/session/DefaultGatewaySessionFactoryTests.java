@@ -67,6 +67,30 @@ class DefaultGatewaySessionFactoryTests {
     }
 
     @Test
+    void shouldKeepCapturedRouteWhenRouteTableIsReplaced() {
+        // Given
+        GatewayRoute previousRoute = new GatewayRoute(
+                "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
+                target("1.0.0"), Map.of());
+        GatewayRoute currentRoute = new GatewayRoute(
+                "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
+                target("2.0.0"), Map.of());
+        GatewayRouteTable routeTable = new GatewayRouteTable(List.of(previousRoute));
+        var factory = new DefaultGatewaySessionFactory(routeTable);
+
+        // When
+        GatewaySession previousSession = factory.openSession(command("POST", "/sayHi")).orElseThrow();
+        routeTable.replaceIfNew(1, List.of(currentRoute));
+        GatewaySession currentSession = factory.openSession(command("POST", "/sayHi")).orElseThrow();
+
+        // Then
+        assertThat(previousSession.route()).isSameAs(previousRoute);
+        assertThat(previousSession.route().target().attributes()).containsEntry("version", "1.0.0");
+        assertThat(currentSession.route()).isSameAs(currentRoute);
+        assertThat(currentSession.route().target().attributes()).containsEntry("version", "2.0.0");
+    }
+
+    @Test
     void shouldRejectMissingRouteTableOrCommand() {
         // Given
         var factory = new DefaultGatewaySessionFactory(ROUTE_TABLE);
@@ -86,8 +110,12 @@ class DefaultGatewaySessionFactoryTests {
     }
 
     private static InvocationTarget target() {
+        return target("1.0.0");
+    }
+
+    private static InvocationTarget target(String version) {
         return new InvocationTarget("dubbo", "cn.example.GreetingService", "sayHi",
                 List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
-                Map.of("version", "1.0.0"));
+                Map.of("version", version));
     }
 }
