@@ -68,8 +68,6 @@ import java.util.concurrent.TimeUnit;
         GatewayHttpProperties.class, GatewayControlPlaneProperties.class})
 public class GatewayEngineConfiguration {
 
-    private static final int CONNECTION_BACKLOG = 1024;
-
     /**
      * 创建并统一管理 Dubbo 泛化调用引用。
      *
@@ -308,16 +306,17 @@ public class GatewayEngineConfiguration {
      * @param bossGroup   接收连接的 EventLoopGroup
      * @param workerGroup 处理连接读写的 EventLoopGroup
      * @param initializer Channel Pipeline 初始化器
+     * @param properties  网关服务器配置
      * @return 配置完成的 ServerBootstrap
      */
     @Bean
     public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
-                                                  @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup,
-                                                  GatewayChannelInitializer initializer) {
+            @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer,
+            GatewayServerProperties properties) {
         return new ServerBootstrap()
                 .group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
-                .option(ChannelOption.SO_BACKLOG, CONNECTION_BACKLOG)
+                .option(ChannelOption.SO_BACKLOG, properties.connectionBacklog())
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childHandler(initializer);

@@ -74,7 +74,7 @@ class GatewayHttpEndToEndTests {
         downstreamServer.start();
         controlPlaneServer.start();
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             contextRunner.run(context -> {
                 assertThat(context).hasNotFailed();
                 assertThat(context.getBean(GatewayRouteTable.class).currentVersion()).isEqualTo(1);
@@ -121,7 +121,7 @@ class GatewayHttpEndToEndTests {
         downstreamServer.start();
         controlPlaneServer.start();
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             contextRunner.run(context -> {
                 assertThat(context).hasNotFailed();
                 GatewayRouteTable routeTable = context.getBean(GatewayRouteTable.class);
@@ -174,7 +174,7 @@ class GatewayHttpEndToEndTests {
         downstreamServer.start();
         controlPlaneServer.start();
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             contextRunner.run(context -> {
                 assertThat(context).hasNotFailed();
                 gatewayServerReference.set(context.getBean(NettyGatewayServer.class));
@@ -235,7 +235,7 @@ class GatewayHttpEndToEndTests {
         downstreamServer.start();
         controlPlaneServer.start();
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
-            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache);
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
             contextRunner.run(context -> {
                 assertThat(context).hasNotFailed();
 
@@ -280,6 +280,7 @@ class GatewayHttpEndToEndTests {
                         "gateweave.server.max-content-length=1048576",
                         "gateweave.server.boss-threads=1",
                         "gateweave.server.worker-threads=1",
+                        "gateweave.server.connection-backlog=128",
                         "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
                         "gateweave.control-plane.node-id=e2e-node",
                         "gateweave.control-plane.gateway-group-id=default",

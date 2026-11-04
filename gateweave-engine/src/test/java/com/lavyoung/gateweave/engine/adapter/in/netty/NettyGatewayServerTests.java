@@ -1,7 +1,9 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -71,5 +73,31 @@ class NettyGatewayServerTests {
         assertThatThrownBy(() -> new NettyGatewayServer(bootstrap, null))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("bindAddress must not be null");
+    }
+
+    @Test
+    void shouldRemainStoppedWhenBindAddressIsAlreadyInUse() throws Exception {
+        // Given
+        var loopbackAddress = InetAddress.getLoopbackAddress();
+        var occupiedSocket = new ServerSocket(0, 50, loopbackAddress);
+        var bossGroup = new NioEventLoopGroup(1);
+        var workerGroup = new NioEventLoopGroup(1);
+        var initializer = new GatewayChannelInitializer(1024, ChannelInboundHandlerAdapter::new);
+        var bootstrap = new ServerBootstrap().group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
+                .childHandler(initializer);
+        var bindAddress = new InetSocketAddress(loopbackAddress, occupiedSocket.getLocalPort());
+        var server = new NettyGatewayServer(bootstrap, bindAddress);
+
+        try {
+            // When & Then
+            assertThatThrownBy(server::start).isInstanceOf(BindException.class);
+            assertThat(server.isRunning()).isFalse();
+            assertThat(server.localAddress()).isEmpty();
+        } finally {
+            server.close();
+            occupiedSocket.close();
+            bossGroup.shutdownGracefully().syncUninterruptibly();
+            workerGroup.shutdownGracefully().syncUninterruptibly();
+        }
     }
 }

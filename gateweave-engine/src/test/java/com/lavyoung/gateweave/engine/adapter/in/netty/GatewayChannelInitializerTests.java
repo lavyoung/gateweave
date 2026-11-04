@@ -5,8 +5,15 @@ import java.util.ArrayList;
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.ReferenceCountUtil;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -63,6 +70,32 @@ class GatewayChannelInitializerTests {
         } finally {
             firstChannel.finishAndReleaseAll();
             secondChannel.finishAndReleaseAll();
+        }
+    }
+
+    @Test
+    void shouldRejectRequestWhoseDeclaredContentLengthExceedsLimit() {
+        // Given
+        var initializer = new GatewayChannelInitializer(4, ChannelInboundHandlerAdapter::new);
+        var channel = new EmbeddedChannel();
+        Object response = null;
+        try {
+            initializer.initChannel(channel);
+            channel.pipeline().remove("httpCodec");
+            var request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/upload");
+            request.headers().set(HttpHeaderNames.CONTENT_LENGTH, 5);
+
+            // When
+            channel.writeInbound(request);
+            response = channel.readOutbound();
+
+            // Then
+            assertThat(response).isInstanceOf(FullHttpResponse.class);
+            assertThat(((FullHttpResponse) response).status())
+                    .isEqualTo(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE);
+        } finally {
+            ReferenceCountUtil.release(response);
+            channel.finishAndReleaseAll();
         }
     }
 

@@ -12,11 +12,12 @@ gateweave:
     request-timeout: ${GATEWEAVE_CONTROL_PLANE_REQUEST_TIMEOUT:3s}
     refresh-interval: ${GATEWEAVE_CONTROL_PLANE_REFRESH_INTERVAL:PT30S}
   server:
-    host: 0.0.0.0
-    port: 7397
-    max-content-length: 1048576
-    boss-threads: 1
-    worker-threads: 4
+    host: ${GATEWEAVE_SERVER_HOST:0.0.0.0}
+    port: ${GATEWEAVE_SERVER_PORT:7397}
+    max-content-length: ${GATEWEAVE_SERVER_MAX_CONTENT_LENGTH:1048576}
+    boss-threads: ${GATEWEAVE_SERVER_BOSS_THREADS:1}
+    worker-threads: ${GATEWEAVE_SERVER_WORKER_THREADS:4}
+    connection-backlog: ${GATEWEAVE_SERVER_CONNECTION_BACKLOG:1024}
   routing:
     routes:
       - route-id: route-say-hi
@@ -34,7 +35,7 @@ gateweave:
           timeout: 3s
           attributes:
             version: 1.0.0
-        attributes: {}
+        attributes: { }
   rpc:
     application-name: gateweave-engine
     registry-address: zookeeper://192.168.3.127:2181

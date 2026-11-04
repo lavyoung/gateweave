@@ -23,7 +23,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import org.apache.dubbo.config.ReferenceConfigBase;
 import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.service.GenericService;
@@ -205,8 +208,9 @@ class GatewayEngineConfigurationTests {
                         "gateweave.server.host=127.0.0.1",
                         "gateweave.server.port=" + port,
                         "gateweave.server.max-content-length=1048576",
-                        "gateweave.server.boss-threads=1",
-                        "gateweave.server.worker-threads=1",
+                        "gateweave.server.boss-threads=2",
+                        "gateweave.server.worker-threads=3",
+                        "gateweave.server.connection-backlog=512",
                         "gateweave.rpc.application-name=gateweave",
                         "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
                         "gateweave.rpc.discovery-mode=INTERFACE",
@@ -260,8 +264,9 @@ class GatewayEngineConfigurationTests {
 
                 var server = context.getBean(NettyGatewayServer.class);
                 var nodeLifecycle = context.getBean(GatewayNodeLifecycle.class);
-                var bossGroup = context.getBean("gatewayBossGroup", EventLoopGroup.class);
-                var workerGroup = context.getBean("gatewayWorkerGroup", EventLoopGroup.class);
+                var bossGroup = context.getBean("gatewayBossGroup", NioEventLoopGroup.class);
+                var workerGroup = context.getBean("gatewayWorkerGroup", NioEventLoopGroup.class);
+                var serverBootstrap = context.getBean(ServerBootstrap.class);
                 var httpExecutor = context.getBean("gatewayHttpExecutor", ThreadPoolExecutor.class);
                 var gatewayHttpClient = context.getBean(HttpClient.class);
                 var controlPlaneProperties = context.getBean(GatewayControlPlaneProperties.class);
@@ -277,6 +282,9 @@ class GatewayEngineConfigurationTests {
                 assertThat(nodeLifecycle.getPhase()).isLessThan(server.getPhase());
                 assertThat(bossGroup.isShuttingDown()).isFalse();
                 assertThat(workerGroup.isShuttingDown()).isFalse();
+                assertThat(bossGroup.executorCount()).isEqualTo(2);
+                assertThat(workerGroup.executorCount()).isEqualTo(3);
+                assertThat(serverBootstrap.config().options()).containsEntry(ChannelOption.SO_BACKLOG, 512);
                 assertThat(httpExecutor.getCorePoolSize()).isEqualTo(2);
                 assertThat(httpExecutor.getMaximumPoolSize()).isEqualTo(8);
                 assertThat(httpExecutor.getQueue().remainingCapacity()).isEqualTo(256);
