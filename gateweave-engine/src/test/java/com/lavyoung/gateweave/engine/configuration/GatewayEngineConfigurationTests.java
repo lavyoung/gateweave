@@ -183,40 +183,42 @@ class GatewayEngineConfigurationTests {
                 var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             int gatewayPort = occupiedGatewayPort.getLocalPort();
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            var contextRunner = new ApplicationContextRunner()
-                    .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
-                            HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
-                    .withUserConfiguration(GatewayEngineConfiguration.class)
-                    .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
-                    .withPropertyValues(
-                            "gateweave.control-plane.base-uri=http://127.0.0.1:"
-                                    + controlPlaneServer.getAddress().getPort(),
-                            "gateweave.control-plane.node-id=node-1",
-                            "gateweave.control-plane.gateway-group-id=default",
-                            "gateweave.control-plane.node-name=Gateway Node 1",
-                            "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
-                            "gateweave.control-plane.request-timeout=1s",
-                            "gateweave.control-plane.refresh-interval=PT1H",
-                            "gateweave.server.host=127.0.0.1",
-                            "gateweave.server.port=" + gatewayPort,
-                            "gateweave.server.max-content-length=1048576",
-                            "gateweave.server.boss-threads=1",
-                            "gateweave.server.worker-threads=1",
-                            "gateweave.server.connection-backlog=128",
-                            "gateweave.rpc.application-name=gateweave",
-                            "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
-                            "gateweave.rpc.discovery-mode=INTERFACE",
-                            "gateweave.http.connect-timeout=1s",
-                            "gateweave.http.core-threads=1",
-                            "gateweave.http.maximum-threads=1",
-                            "gateweave.http.queue-capacity=16",
-                            "gateweave.http.keep-alive=30s");
+            var contextRunner = createStartupFailureContextRunner(
+                    controlPlaneServer.getAddress().getPort(), gatewayPort, authenticationService);
 
             // When & Then
             contextRunner.run(context -> {
                 assertThat(context).hasFailed();
                 assertThat(context.getStartupFailure()).hasRootCauseMessage(
                         "Gateway node registration failed with status 200 and code NODE_REJECTED");
+            });
+        } finally {
+            controlPlaneServer.stop(0);
+        }
+
+        verify(referenceCache).destroyAll();
+    }
+
+    @Test
+    void shouldNotStartNettyWhenInitialConfigurationQueryFails() throws Exception {
+        // Given
+        var controlPlaneServer = createConfigurationRejectingControlPlaneServer();
+        controlPlaneServer.start();
+        var referenceCache = mock(SimpleReferenceCache.class);
+        var authenticationService = mock(GatewaySessionAuthenticationService.class);
+
+        try (var occupiedGatewayPort = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+                var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            int gatewayPort = occupiedGatewayPort.getLocalPort();
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
+            var contextRunner = createStartupFailureContextRunner(
+                    controlPlaneServer.getAddress().getPort(), gatewayPort, authenticationService);
+
+            // When & Then
+            contextRunner.run(context -> {
+                assertThat(context).hasFailed();
+                assertThat(context.getStartupFailure()).hasRootCauseMessage(
+                        "Gateway configuration query failed with status 200 and code CONFIGURATION_REJECTED");
             });
         } finally {
             controlPlaneServer.stop(0);
@@ -239,6 +241,7 @@ class GatewayEngineConfigurationTests {
                 .thenReturn(CompletableFuture.completedFuture("hi gateweave"));
 
         var serverReference = new AtomicReference<NettyGatewayServer>();
+        var nodeLifecycleReference = new AtomicReference<GatewayNodeLifecycle>();
         var bossGroupReference = new AtomicReference<EventLoopGroup>();
         var workerGroupReference = new AtomicReference<EventLoopGroup>();
         var httpExecutorReference = new AtomicReference<ThreadPoolExecutor>();
@@ -326,6 +329,7 @@ class GatewayEngineConfigurationTests {
                 var controlPlaneProperties = context.getBean(GatewayControlPlaneProperties.class);
                 var controlPlaneScheduler = context.getBean(ThreadPoolTaskScheduler.class);
                 serverReference.set(server);
+                nodeLifecycleReference.set(nodeLifecycle);
                 bossGroupReference.set(bossGroup);
                 workerGroupReference.set(workerGroup);
                 httpExecutorReference.set(httpExecutor);
@@ -382,10 +386,13 @@ class GatewayEngineConfigurationTests {
         workerGroup.terminationFuture().syncUninterruptibly();
 
         assertThat(serverReference.get().isRunning()).isFalse();
+        assertThat(nodeLifecycleReference.get().isRunning()).isFalse();
         assertThat(bossGroup.isTerminated()).isTrue();
         assertThat(workerGroup.isTerminated()).isTrue();
         assertThat(httpExecutorReference.get().isShutdown()).isTrue();
+        assertThat(httpExecutorReference.get().awaitTermination(1, TimeUnit.SECONDS)).isTrue();
         assertThat(controlPlaneSchedulerReference.get().getScheduledThreadPoolExecutor().isShutdown()).isTrue();
+        assertThat(controlPlaneSchedulerReference.get().getScheduledThreadPoolExecutor().isTerminated()).isTrue();
         verify(referenceCache).destroyAll();
     }
 
@@ -393,6 +400,45 @@ class GatewayEngineConfigurationTests {
         try (var socket = new ServerSocket(0, 50, InetAddress.getLoopbackAddress())) {
             return socket.getLocalPort();
         }
+    }
+
+    /**
+     * 创建用于验证控制面初始化失败的最小 Spring 上下文。
+     *
+     * @param controlPlanePort 控制面测试服务器端口
+     * @param gatewayPort      网关监听端口
+     * @param authenticationService 会话鉴权服务
+     * @return 配置完成但尚未运行的上下文执行器
+     */
+    private static ApplicationContextRunner createStartupFailureContextRunner(
+            int controlPlanePort, int gatewayPort, GatewaySessionAuthenticationService authenticationService) {
+        return new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
+                        HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
+                .withUserConfiguration(GatewayEngineConfiguration.class)
+                .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
+                .withPropertyValues(
+                        "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
+                        "gateweave.control-plane.node-id=node-1",
+                        "gateweave.control-plane.gateway-group-id=default",
+                        "gateweave.control-plane.node-name=Gateway Node 1",
+                        "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
+                        "gateweave.control-plane.request-timeout=1s",
+                        "gateweave.control-plane.refresh-interval=PT1H",
+                        "gateweave.server.host=127.0.0.1",
+                        "gateweave.server.port=" + gatewayPort,
+                        "gateweave.server.max-content-length=1048576",
+                        "gateweave.server.boss-threads=1",
+                        "gateweave.server.worker-threads=1",
+                        "gateweave.server.connection-backlog=128",
+                        "gateweave.rpc.application-name=gateweave",
+                        "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
+                        "gateweave.rpc.discovery-mode=INTERFACE",
+                        "gateweave.http.connect-timeout=1s",
+                        "gateweave.http.core-threads=1",
+                        "gateweave.http.maximum-threads=1",
+                        "gateweave.http.queue-capacity=16",
+                        "gateweave.http.keep-alive=30s");
     }
 
     private static InvocationTargetConfiguration target() {
@@ -436,6 +482,39 @@ class GatewayEngineConfigurationTests {
         server.createContext("/api/v1/gateway-groups/default/configuration-releases/latest", exchange -> {
             exchange.sendResponseHeaders(204, -1);
             exchange.close();
+        });
+        return server;
+    }
+
+    /**
+     * 创建节点注册成功但拒绝返回初始配置的控制面测试服务器。
+     *
+     * @return 尚未启动的控制面测试服务器
+     * @throws IOException 创建本地 HTTP 服务失败时抛出
+     */
+    private static HttpServer createConfigurationRejectingControlPlaneServer() throws IOException {
+        HttpServer server = createControlPlaneServer();
+        server.removeContext("/api/v1/gateway-groups/default/configuration-releases/latest");
+        server.createContext("/api/v1/gateway-groups/default/configuration-releases/latest", exchange -> {
+            byte[] response = """
+                    {
+                      "success": false,
+                      "code": "CONFIGURATION_REJECTED",
+                      "message": "Configuration rejected",
+                      "data": {
+                        "gatewayGroupId": "default",
+                        "version": 1,
+                        "publishedAt": "2026-11-05T00:00:00Z",
+                        "checksum": "sha256:rejected",
+                        "routes": []
+                      }
+                    }
+                    """.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, response.length);
+            try (OutputStream outputStream = exchange.getResponseBody()) {
+                outputStream.write(response);
+            }
         });
         return server;
     }

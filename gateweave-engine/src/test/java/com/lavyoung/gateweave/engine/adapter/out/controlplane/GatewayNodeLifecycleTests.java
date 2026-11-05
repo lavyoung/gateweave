@@ -143,6 +143,28 @@ class GatewayNodeLifecycleTests {
     }
 
     @Test
+    void shouldRemainRunningAndAllowNextRefreshAfterOneRefreshFails() {
+        // Given
+        GatewayControlPlaneClient controlPlaneClient = mock(GatewayControlPlaneClient.class);
+        GatewayConfigurationSynchronizer synchronizer = mock(GatewayConfigurationSynchronizer.class);
+        IllegalStateException failure = new IllegalStateException("configuration unavailable");
+        when(synchronizer.synchronize("default")).thenReturn(true).thenThrow(failure).thenReturn(false);
+        GatewayNodeLifecycle lifecycle = new GatewayNodeLifecycle(controlPlaneClient, synchronizer, properties());
+        lifecycle.start();
+
+        // When & Then
+        assertThatThrownBy(lifecycle::refreshConfiguration).isSameAs(failure);
+        assertThat(lifecycle.isRunning()).isTrue();
+
+        // When
+        lifecycle.refreshConfiguration();
+
+        // Then
+        assertThat(lifecycle.isRunning()).isTrue();
+        verify(synchronizer, times(3)).synchronize("default");
+    }
+
+    @Test
     void shouldRejectMissingDependencies() {
         // Given
         GatewayControlPlaneClient controlPlaneClient = mock(GatewayControlPlaneClient.class);

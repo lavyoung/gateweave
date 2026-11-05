@@ -105,6 +105,37 @@ class HttpGatewayControlPlaneClientTests {
     }
 
     @Test
+    void shouldRejectFailedConfigurationEnvelope() {
+        // Given
+        ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
+        Result<GatewayConfigurationSnapshot> failure = new Result<>(
+                false, "CONFIGURATION_UNAVAILABLE", "Configuration unavailable", snapshot());
+        when(httpApi.findLatestPublishedConfiguration("default"))
+                .thenReturn(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(failure));
+        HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
+
+        // When & Then
+        assertThatThrownBy(() -> client.findLatestPublishedConfiguration("default"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Gateway configuration query failed with status 503 and code CONFIGURATION_UNAVAILABLE");
+    }
+
+    @Test
+    void shouldWrapConfigurationTransportFailure() {
+        // Given
+        ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
+        ResourceAccessException failure = new ResourceAccessException("connection refused");
+        when(httpApi.findLatestPublishedConfiguration("default")).thenThrow(failure);
+        HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
+
+        // When & Then
+        assertThatThrownBy(() -> client.findLatestPublishedConfiguration("default"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Gateway configuration query request failed")
+                .hasCause(failure);
+    }
+
+    @Test
     void shouldRejectInvalidArguments() {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);

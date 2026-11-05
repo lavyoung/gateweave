@@ -1,9 +1,11 @@
 package com.lavyoung.gateweave.engine.adapter.in.netty;
 
 import java.net.BindException;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -37,6 +39,7 @@ class NettyGatewayServerTests {
             // When
             server.start();
             var firstAddress = server.localAddress();
+            var actualAddress = (InetSocketAddress) firstAddress.orElseThrow();
             server.start();
 
             // Then
@@ -51,6 +54,9 @@ class NettyGatewayServerTests {
             // Then
             assertThat(server.isRunning()).isFalse();
             assertThat(server.localAddress()).isEmpty();
+            try (var socket = new Socket()) {
+                assertThatThrownBy(() -> socket.connect(actualAddress, 500)).isInstanceOf(ConnectException.class);
+            }
             assertThatCode(server::stop).doesNotThrowAnyException();
             assertThatCode(server::close).doesNotThrowAnyException();
         } finally {

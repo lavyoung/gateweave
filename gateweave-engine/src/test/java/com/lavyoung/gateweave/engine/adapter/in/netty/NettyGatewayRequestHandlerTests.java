@@ -90,6 +90,94 @@ class NettyGatewayRequestHandlerTests {
     }
 
     @Test
+    void shouldReturnInternalServerErrorWhenApplicationThrowsSynchronously() {
+        // Given
+        HandleGatewayRequestUseCase useCase = command -> {
+            throw new IllegalStateException("database address must stay private");
+        };
+        var channel = new EmbeddedChannel(new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, RESPONSE_MAPPER));
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/orders");
+
+        // When
+        channel.writeInbound(request);
+        FullHttpResponse response = channel.readOutbound();
+
+        // Then
+        try {
+            assertThat(response.status().code()).isEqualTo(500);
+            assertThat(response.content().toString(StandardCharsets.UTF_8)).isEqualTo("Internal Server Error");
+            assertThat(response.content().toString(StandardCharsets.UTF_8)).doesNotContain("database address");
+            assertThat(channel.isActive()).isTrue();
+        } finally {
+            ReferenceCountUtil.release(response);
+            channel.finishAndReleaseAll();
+        }
+    }
+
+    @Test
+    void shouldReturnInternalServerErrorWhenApplicationReturnsNullStage() {
+        // Given
+        HandleGatewayRequestUseCase useCase = command -> null;
+        var channel = new EmbeddedChannel(new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, RESPONSE_MAPPER));
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/orders");
+
+        // When
+        channel.writeInbound(request);
+        FullHttpResponse response = channel.readOutbound();
+
+        // Then
+        try {
+            assertThat(response.status().code()).isEqualTo(500);
+            assertThat(response.content().toString(StandardCharsets.UTF_8)).isEqualTo("Internal Server Error");
+            assertThat(channel.isActive()).isTrue();
+        } finally {
+            ReferenceCountUtil.release(response);
+            channel.finishAndReleaseAll();
+        }
+    }
+
+    @Test
+    void shouldReturnInternalServerErrorWhenApplicationCompletesWithNullResponse() {
+        // Given
+        HandleGatewayRequestUseCase useCase = command -> CompletableFuture.completedFuture(null);
+        var channel = new EmbeddedChannel(new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, RESPONSE_MAPPER));
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/orders");
+
+        // When
+        channel.writeInbound(request);
+        FullHttpResponse response = channel.readOutbound();
+
+        // Then
+        try {
+            assertThat(response.status().code()).isEqualTo(500);
+            assertThat(response.content().toString(StandardCharsets.UTF_8)).isEqualTo("Internal Server Error");
+            assertThat(channel.isActive()).isTrue();
+        } finally {
+            ReferenceCountUtil.release(response);
+            channel.finishAndReleaseAll();
+        }
+    }
+
+    @Test
+    void shouldCloseOnlyCurrentConnectionWhenPipelineExceptionIsUnhandled() {
+        // Given
+        HandleGatewayRequestUseCase useCase = command ->
+                CompletableFuture.completedFuture(GatewayResponse.text(200, "must-not-be-called"));
+        var channel = new EmbeddedChannel(new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, RESPONSE_MAPPER));
+
+        // When
+        channel.pipeline().fireExceptionCaught(new IllegalStateException("decoder failed"));
+        channel.runPendingTasks();
+
+        // Then
+        try {
+            assertThat(channel.isActive()).isFalse();
+        } finally {
+            channel.finishAndReleaseAll();
+        }
+    }
+
+    @Test
     void shouldReturnBadRequestAndCloseConnectionWhenUriIsInvalid() {
         // Given
         HandleGatewayRequestUseCase useCase = command ->
