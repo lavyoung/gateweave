@@ -2,6 +2,7 @@ package com.lavyoung.gateweave.center.gateway.configuration;
 
 import java.net.URI;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
@@ -36,13 +37,20 @@ class GatewayApplicationConfigurationTests {
         ApplicationContextRunner contextRunner = new ApplicationContextRunner()
                 .withUserConfiguration(
                         ControlPlaneClockConfiguration.class, GatewayApplicationConfiguration.class)
-                .withBean(GatewayNodeRepository.class, () -> repository);
+                .withBean(GatewayNodeRepository.class, () -> repository)
+                .withPropertyValues(
+                        "gateweave.gateway-node.lease.heartbeat-interval=15s",
+                        "gateweave.gateway-node.lease.lease-timeout=45s");
 
         // When & Then
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(Clock.class);
             assertThat(context).hasSingleBean(RegisterGatewayNodeUseCase.class);
+            assertThat(context).hasSingleBean(GatewayNodeLeaseProperties.class);
             assertThat(context.getBean(Clock.class).getZone()).isEqualTo(ZoneOffset.UTC);
+            GatewayNodeLeaseProperties leaseProperties = context.getBean(GatewayNodeLeaseProperties.class);
+            assertThat(leaseProperties.heartbeatInterval()).isEqualTo(Duration.ofSeconds(15));
+            assertThat(leaseProperties.leaseTimeout()).isEqualTo(Duration.ofSeconds(45));
 
             RegisterGatewayNodeUseCase useCase = context.getBean(RegisterGatewayNodeUseCase.class);
             assertThat(useCase).isInstanceOf(DefaultGatewayNodeRegistrationService.class);

@@ -90,6 +90,7 @@ class JdbcGatewayNodeRepositoryTests {
         assertThat(result.node().registration().advertisedAddress())
                 .isEqualTo(URI.create("http://127.0.0.1:8082"));
         assertThat(result.node().status()).isEqualTo(GatewayNodeStatus.ONLINE);
+        assertThat(result.node().leaseId()).isEqualTo(refreshedNode.leaseId()).isNotEqualTo(firstNode.leaseId());
         assertThat(result.node().lastHeartbeatAt()).isEqualTo(SECOND_HEARTBEAT);
         assertThat(result.node().currentConfigVersion()).isEqualTo(7);
         assertThat(nodeCount("node-1")).isEqualTo(1);

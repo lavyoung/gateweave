@@ -151,6 +151,7 @@ CREATE TABLE gw_gateway_node
     node_name                  VARCHAR(128) NOT NULL,
     advertised_address         VARCHAR(512) NOT NULL,
     status                     VARCHAR(32)  NOT NULL,
+    lease_id                   VARCHAR(36)  NOT NULL,
     last_heartbeat_at          TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     current_config_version     BIGINT       NOT NULL DEFAULT 0,
     last_successful_refresh_at TIMESTAMP(6) NULL,

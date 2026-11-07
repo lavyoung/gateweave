@@ -14,10 +14,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayClusterMigrationTests {
 
+    private static final String LEASE_ID = "00000000-0000-0000-0000-000000000001";
     private static final String INSERT_NODE = """
             INSERT INTO gw_gateway_node
-                (node_id, gateway_group_id, node_name, advertised_address, status, current_config_version)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (node_id, gateway_group_id, node_name, advertised_address, status, lease_id,
+                 current_config_version)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """;
 
     @Test
@@ -70,24 +72,36 @@ class GatewayClusterMigrationTests {
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
 
             jdbcTemplate.update(INSERT_NODE, "gateway-node-1", "default", "Gateway Node 1",
-                    "http://127.0.0.1:7397", "ONLINE", 1L);
+                    "http://127.0.0.1:7397", "ONLINE", LEASE_ID, 1L);
 
             assertThat(jdbcTemplate.queryForObject("""
                     SELECT current_config_version
                     FROM gw_gateway_node
                     WHERE node_id = 'gateway-node-1'
                     """, Long.class)).isEqualTo(1L);
+            assertThat(jdbcTemplate.queryForObject("""
+                    SELECT lease_id
+                    FROM gw_gateway_node
+                    WHERE node_id = 'gateway-node-1'
+                    """, String.class)).isEqualTo(LEASE_ID);
             assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-1", "default",
-                    "Duplicated Node", "http://127.0.0.1:7398", "ONLINE", 1L))
+                    "Duplicated Node", "http://127.0.0.1:7398", "ONLINE",
+                    "00000000-0000-0000-0000-000000000002", 1L))
                     .isInstanceOf(DataIntegrityViolationException.class);
             assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-2", "default",
-                    "Duplicated Address", "http://127.0.0.1:7397", "ONLINE", 1L))
+                    "Duplicated Address", "http://127.0.0.1:7397", "ONLINE",
+                    "00000000-0000-0000-0000-000000000003", 1L))
                     .isInstanceOf(DataIntegrityViolationException.class);
             assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-3", "missing-group",
-                    "Missing Group", "http://127.0.0.1:7399", "ONLINE", 1L))
+                    "Missing Group", "http://127.0.0.1:7399", "ONLINE",
+                    "00000000-0000-0000-0000-000000000004", 1L))
                     .isInstanceOf(DataIntegrityViolationException.class);
             assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-4", "default",
-                    "Invalid Version", "http://127.0.0.1:7400", "ONLINE", -1L))
+                    "Invalid Version", "http://127.0.0.1:7400", "ONLINE",
+                    "00000000-0000-0000-0000-000000000005", -1L))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-5", "default",
+                    "Missing Lease", "http://127.0.0.1:7401", "ONLINE", null, 1L))
                     .isInstanceOf(DataIntegrityViolationException.class);
         });
     }

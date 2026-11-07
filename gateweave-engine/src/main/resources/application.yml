@@ -38,7 +38,7 @@ gateweave:
         attributes: { }
   rpc:
     application-name: gateweave-engine
-    registry-address: zookeeper://192.168.3.127:2181
+    registry-address: ${GATEWEAVE_RPC_REGISTRY_ADDRESS:zookeeper://127.0.0.1:2181}
     discovery-mode: INTERFACE
   http:
     connect-timeout: 2s

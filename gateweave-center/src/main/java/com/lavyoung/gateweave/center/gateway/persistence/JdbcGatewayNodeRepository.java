@@ -6,6 +6,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DataRetrievalFailureException;
@@ -43,6 +44,7 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                 node_name = :nodeName,
                 advertised_address = :advertisedAddress,
                 status = :status,
+                lease_id = :leaseId,
                 last_heartbeat_at = :lastHeartbeatAt,
                 updated_at = CURRENT_TIMESTAMP(6)
             WHERE node_id = :nodeId
@@ -50,10 +52,10 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
 
     private static final String INSERT_NODE_SQL = """
             INSERT INTO gw_gateway_node
-                (node_id, gateway_group_id, node_name, advertised_address, status,
+                (node_id, gateway_group_id, node_name, advertised_address, status, lease_id,
                  last_heartbeat_at, current_config_version)
             VALUES
-                (:nodeId, :gatewayGroupId, :nodeName, :advertisedAddress, :status,
+                (:nodeId, :gatewayGroupId, :nodeName, :advertisedAddress, :status, :leaseId,
                  :lastHeartbeatAt, :currentConfigVersion)
             """;
 
@@ -75,6 +77,7 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                    node_name,
                    advertised_address,
                    status,
+                   lease_id,
                    last_heartbeat_at,
                    current_config_version
             FROM gw_gateway_node
@@ -191,6 +194,7 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                 .addValue("nodeName", registration.nodeName())
                 .addValue("advertisedAddress", registration.advertisedAddress().toASCIIString())
                 .addValue("status", node.status().name())
+                .addValue("leaseId", node.leaseId().toString())
                 .addValue("lastHeartbeatAt", Timestamp.from(node.lastHeartbeatAt()))
                 .addValue("currentConfigVersion", node.currentConfigVersion());
     }
@@ -215,6 +219,7 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
             return new GatewayNode(
                     registration,
                     GatewayNodeStatus.valueOf(resultSet.getString("status")),
+                    UUID.fromString(resultSet.getString("lease_id")),
                     resultSet.getTimestamp("last_heartbeat_at").toInstant(),
                     resultSet.getLong("current_config_version"));
         } catch (IllegalArgumentException exception) {

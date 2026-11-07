@@ -2,6 +2,7 @@ package com.lavyoung.gateweave.center.gateway.web;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +24,9 @@ class GatewayNodeWebModelTests {
         Instant heartbeatAt = Instant.parse("2026-10-31T12:00:00Z");
         GatewayNodeRegistration registration = new GatewayNodeRegistration(
                 "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:8080"));
-        GatewayNode node = new GatewayNode(registration, GatewayNodeStatus.ONLINE, heartbeatAt, 7);
+        GatewayNode node = new GatewayNode(
+                registration, GatewayNodeStatus.ONLINE,
+                UUID.fromString("00000000-0000-0000-0000-000000000001"), heartbeatAt, 7);
         GatewayNodeRegistrationResult result = new GatewayNodeRegistrationResult(
                 node, GatewayNodeRegistrationOutcome.REFRESHED);
 

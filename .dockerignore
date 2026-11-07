@@ -1,0 +1,7 @@
+**
+
+!.dockerignore
+!gateweave-engine/
+!gateweave-engine/Dockerfile
+!gateweave-engine/target/
+!gateweave-engine/target/gateweave-engine-*-exec.jar

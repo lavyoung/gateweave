@@ -15,6 +15,7 @@ import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -32,17 +33,19 @@ class DefaultGatewayNodeRegistrationServiceTests {
         DefaultGatewayNodeRegistrationService service = new DefaultGatewayNodeRegistrationService(
                 repository, FIXED_CLOCK);
         GatewayNodeRegistration registration = registration();
-        GatewayNode expectedNode = GatewayNode.registered(registration, REGISTERED_AT);
-        GatewayNodeRegistrationResult expectedResult = new GatewayNodeRegistrationResult(
-                expectedNode, GatewayNodeRegistrationOutcome.REGISTERED);
-        when(repository.registerOrRefresh(expectedNode)).thenReturn(expectedResult);
+        when(repository.registerOrRefresh(any(GatewayNode.class))).thenAnswer(invocation ->
+                new GatewayNodeRegistrationResult(
+                        invocation.getArgument(0), GatewayNodeRegistrationOutcome.REGISTERED));
 
         // When
         GatewayNodeRegistrationResult result = service.register(registration);
 
         // Then
-        assertThat(result).isEqualTo(expectedResult);
-        verify(repository).registerOrRefresh(expectedNode);
+        assertThat(result.node().registration()).isEqualTo(registration);
+        assertThat(result.node().leaseId()).isNotNull();
+        assertThat(result.node().lastHeartbeatAt()).isEqualTo(REGISTERED_AT);
+        assertThat(result.outcome()).isEqualTo(GatewayNodeRegistrationOutcome.REGISTERED);
+        verify(repository).registerOrRefresh(result.node());
     }
 
     @Test
@@ -52,9 +55,8 @@ class DefaultGatewayNodeRegistrationServiceTests {
         DefaultGatewayNodeRegistrationService service = new DefaultGatewayNodeRegistrationService(
                 repository, FIXED_CLOCK);
         GatewayNodeRegistration registration = registration();
-        GatewayNode node = GatewayNode.registered(registration, REGISTERED_AT);
         IllegalStateException failure = new IllegalStateException("storage unavailable");
-        when(repository.registerOrRefresh(node)).thenThrow(failure);
+        when(repository.registerOrRefresh(any(GatewayNode.class))).thenThrow(failure);
 
         // When & Then
         assertThatThrownBy(() -> service.register(registration)).isSameAs(failure);

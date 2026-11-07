@@ -3,6 +3,7 @@ package com.lavyoung.gateweave.center.gateway.configuration;
 import com.lavyoung.gateweave.center.gateway.application.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,6 +20,7 @@ import java.time.Clock;
  * @date 2026/10/31
  */
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(GatewayNodeLeaseProperties.class)
 public class GatewayApplicationConfiguration {
 
     /**

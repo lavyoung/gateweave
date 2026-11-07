@@ -2,6 +2,7 @@ package com.lavyoung.gateweave.center.gateway.web;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -225,7 +226,9 @@ class GatewayNodeRegistrationControllerTests {
     }
 
     private static GatewayNodeRegistrationResult result(GatewayNodeRegistrationOutcome outcome) {
-        GatewayNode node = new GatewayNode(registration(), GatewayNodeStatus.ONLINE, HEARTBEAT_AT, 0);
+        GatewayNode node = new GatewayNode(
+                registration(), GatewayNodeStatus.ONLINE,
+                UUID.fromString("00000000-0000-0000-0000-000000000001"), HEARTBEAT_AT, 0);
         return new GatewayNodeRegistrationResult(node, outcome);
     }
 
