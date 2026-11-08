@@ -1,10 +1,12 @@
 package com.lavyoung.gateweave.center.gateway.web;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import com.lavyoung.gateweave.center.web.GlobalExceptionHandler;
 import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
 import com.lavyoung.gateweave.center.web.RequestIdFilter;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
+import com.lavyoung.gateweave.center.gateway.configuration.GatewayNodeLeaseProperties;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
@@ -41,23 +44,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(GatewayNodeRegistrationController.class)
-@MockBean(RegisterGatewayNodeUseCase.class)
+@MockBean({RegisterGatewayNodeUseCase.class, GatewayNodeLeaseProperties.class})
 @Import({GlobalExceptionHandler.class, LocalizedResultFactory.class, RequestIdFilter.class})
 class GatewayNodeRegistrationControllerTests {
 
     private static final Instant HEARTBEAT_AT = Instant.parse("2026-10-31T12:00:00Z");
+    private static final UUID LEASE_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     private final MockMvc mockMvc;
     private final RegisterGatewayNodeUseCase registerGatewayNodeUseCase;
     private final LocalizedResultFactory resultFactory;
+    private final GatewayNodeLeaseProperties leaseProperties;
 
     @Autowired
     GatewayNodeRegistrationControllerTests(
             MockMvc mockMvc, RegisterGatewayNodeUseCase registerGatewayNodeUseCase,
-            LocalizedResultFactory resultFactory) {
+            LocalizedResultFactory resultFactory, GatewayNodeLeaseProperties leaseProperties) {
         this.mockMvc = mockMvc;
         this.registerGatewayNodeUseCase = registerGatewayNodeUseCase;
         this.resultFactory = resultFactory;
+        this.leaseProperties = leaseProperties;
+    }
+
+    @BeforeEach
+    void configureLeasePolicy() {
+        when(this.leaseProperties.heartbeatInterval()).thenReturn(Duration.ofSeconds(10));
+        when(this.leaseProperties.leaseTimeout()).thenReturn(Duration.ofSeconds(30));
     }
 
     @AfterEach
@@ -80,10 +92,12 @@ class GatewayNodeRegistrationControllerTests {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.nodeId").value("node-1"))
-                .andExpect(jsonPath("$.data.gatewayGroupId").value("default"))
-                .andExpect(jsonPath("$.data.status").value("ONLINE"))
-                .andExpect(jsonPath("$.data.outcome").value("REGISTERED"))
-                .andExpect(jsonPath("$.data.currentConfigVersion").value(0));
+                .andExpect(jsonPath("$.data.leaseId").value(LEASE_ID.toString()))
+                .andExpect(jsonPath("$.data.heartbeatInterval").value("PT10S"))
+                .andExpect(jsonPath("$.data.leaseTimeout").value("PT30S"))
+                .andExpect(jsonPath("$.data.gatewayGroupId").doesNotExist())
+                .andExpect(jsonPath("$.data.status").doesNotExist())
+                .andExpect(jsonPath("$.data.outcome").doesNotExist());
 
         ArgumentCaptor<GatewayNodeRegistration> registrationCaptor =
                 ArgumentCaptor.forClass(GatewayNodeRegistration.class);
@@ -102,7 +116,8 @@ class GatewayNodeRegistrationControllerTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequestBody()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.outcome").value("REFRESHED"));
+                .andExpect(jsonPath("$.data.nodeId").value("node-1"))
+                .andExpect(jsonPath("$.data.leaseId").value(LEASE_ID.toString()));
     }
 
     @Test
@@ -217,18 +232,23 @@ class GatewayNodeRegistrationControllerTests {
     @Test
     void shouldRejectMissingDependencies() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeRegistrationController(null, this.resultFactory))
+        assertThatThrownBy(() -> new GatewayNodeRegistrationController(
+                null, this.resultFactory, this.leaseProperties))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("registerGatewayNodeUseCase must not be null");
-        assertThatThrownBy(() -> new GatewayNodeRegistrationController(this.registerGatewayNodeUseCase, null))
+        assertThatThrownBy(() -> new GatewayNodeRegistrationController(
+                this.registerGatewayNodeUseCase, null, this.leaseProperties))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("resultFactory must not be null");
+        assertThatThrownBy(() -> new GatewayNodeRegistrationController(
+                this.registerGatewayNodeUseCase, this.resultFactory, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("leaseProperties must not be null");
     }
 
     private static GatewayNodeRegistrationResult result(GatewayNodeRegistrationOutcome outcome) {
         GatewayNode node = new GatewayNode(
-                registration(), GatewayNodeStatus.ONLINE,
-                UUID.fromString("00000000-0000-0000-0000-000000000001"), HEARTBEAT_AT, 0);
+                registration(), GatewayNodeStatus.ONLINE, LEASE_ID, HEARTBEAT_AT, 0);
         return new GatewayNodeRegistrationResult(node, outcome);
     }
 
