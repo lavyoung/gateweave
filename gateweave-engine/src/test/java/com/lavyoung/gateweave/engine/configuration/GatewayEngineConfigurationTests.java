@@ -45,6 +45,7 @@ import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.ControlPlaneHttpApi;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlaneProperties;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLeaseManager;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
 import com.lavyoung.gateweave.engine.application.mapper.GatewayInvocationArgumentsResolver;
@@ -304,6 +305,7 @@ class GatewayEngineConfigurationTests {
                 assertThat(context).hasSingleBean(ControlPlaneHttpApi.class);
                 assertThat(context).hasSingleBean(GatewayControlPlaneClient.class);
                 assertThat(context).hasSingleBean(GatewayConfigurationSynchronizer.class);
+                assertThat(context).hasSingleBean(GatewayNodeLeaseManager.class);
                 assertThat(context).hasSingleBean(GatewayNodeLifecycle.class);
                 assertThat(context).hasSingleBean(GatewayRouteTable.class);
                 assertThat(context).hasSingleBean(GenericReferenceRegistry.class);
@@ -348,7 +350,7 @@ class GatewayEngineConfigurationTests {
                 assertThat(httpExecutor.getQueue().remainingCapacity()).isEqualTo(256);
                 assertThat(httpExecutor.getRejectedExecutionHandler())
                         .isInstanceOf(ThreadPoolExecutor.AbortPolicy.class);
-                assertThat(controlPlaneScheduler.getPoolSize()).isEqualTo(1);
+                assertThat(controlPlaneScheduler.getPoolSize()).isEqualTo(2);
                 assertThat(controlPlaneScheduler.getThreadNamePrefix()).isEqualTo("gateweave-control-plane-");
                 assertThat(gatewayHttpClient.connectTimeout()).contains(Duration.ofSeconds(2));
                 assertThat(gatewayHttpClient.executor()).containsSame(httpExecutor);
@@ -456,7 +458,17 @@ class GatewayEngineConfigurationTests {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/api/v1/gateway-nodes", exchange -> {
             byte[] response = """
-                    {"success":false,"code":"NODE_REJECTED","message":"Node rejected","data":null}
+                    {
+                      "success": false,
+                      "code": "NODE_REJECTED",
+                      "message": "Node rejected",
+                      "data": {
+                        "nodeId": "node-1",
+                        "leaseId": "00000000-0000-0000-0000-000000000001",
+                        "heartbeatInterval": "PT10S",
+                        "leaseTimeout": "PT30S"
+                      }
+                    }
                     """.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(200, response.length);
@@ -469,9 +481,23 @@ class GatewayEngineConfigurationTests {
 
     private static HttpServer createControlPlaneServer() throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes/node-1/lease", exchange -> {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+        });
         server.createContext("/api/v1/gateway-nodes", exchange -> {
             byte[] response = """
-                    {"success":true,"code":"SUCCESS","message":"Success","data":{}}
+                    {
+                      "success": true,
+                      "code": "SUCCESS",
+                      "message": "Success",
+                      "data": {
+                        "nodeId": "node-1",
+                        "leaseId": "00000000-0000-0000-0000-000000000001",
+                        "heartbeatInterval": "PT10S",
+                        "leaseTimeout": "PT30S"
+                      }
+                    }
                     """.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(201, response.length);

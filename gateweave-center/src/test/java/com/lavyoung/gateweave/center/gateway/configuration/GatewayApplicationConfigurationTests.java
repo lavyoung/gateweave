@@ -5,13 +5,16 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import com.lavyoung.gateweave.center.configuration.ControlPlaneClockConfiguration;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
-import com.lavyoung.gateweave.center.gateway.application.DefaultGatewayNodeRegistrationService;
+import com.lavyoung.gateweave.center.gateway.application.RenewGatewayNodeLeaseUseCase;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeLeaseService;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
@@ -22,18 +25,20 @@ import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayApplicationConfigurationTests {
 
     @Test
-    void shouldAssembleRegistrationUseCaseWithUtcClock() {
+    void shouldAssembleGatewayUseCasesWithUtcClock() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
         when(repository.registerOrRefresh(any(GatewayNode.class))).thenAnswer(invocation -> {
             GatewayNode node = invocation.getArgument(0);
             return new GatewayNodeRegistrationResult(node, GatewayNodeRegistrationOutcome.REGISTERED);
         });
+        when(repository.renewLease(any())).thenReturn(true);
         ApplicationContextRunner contextRunner = new ApplicationContextRunner()
                 .withUserConfiguration(
                         ControlPlaneClockConfiguration.class, GatewayApplicationConfiguration.class)
@@ -46,6 +51,7 @@ class GatewayApplicationConfigurationTests {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(Clock.class);
             assertThat(context).hasSingleBean(RegisterGatewayNodeUseCase.class);
+            assertThat(context).hasSingleBean(RenewGatewayNodeLeaseUseCase.class);
             assertThat(context).hasSingleBean(GatewayNodeLeaseProperties.class);
             assertThat(context.getBean(Clock.class).getZone()).isEqualTo(ZoneOffset.UTC);
             GatewayNodeLeaseProperties leaseProperties = context.getBean(GatewayNodeLeaseProperties.class);
@@ -66,6 +72,11 @@ class GatewayApplicationConfigurationTests {
             assertThat(result.node().status()).isEqualTo(GatewayNodeStatus.ONLINE);
             assertThat(result.node().lastHeartbeatAt()).isBetween(beforeRegistration, afterRegistration);
             assertThat(result.node().currentConfigVersion()).isZero();
+
+            RenewGatewayNodeLeaseUseCase leaseUseCase = context.getBean(RenewGatewayNodeLeaseUseCase.class);
+            assertThat(leaseUseCase).isInstanceOf(DefaultGatewayNodeLeaseService.class);
+            leaseUseCase.renew("node-1", UUID.fromString("00000000-0000-0000-0000-000000000001"), 0);
+            verify(repository).renewLease(any());
         });
     }
 }

@@ -360,9 +360,23 @@ class GatewayHttpEndToEndTests {
 
     private static HttpServer createControlPlaneServer(HttpHandler configurationHandler) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes/e2e-node/lease", exchange -> {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+        });
         server.createContext("/api/v1/gateway-nodes", exchange -> {
             byte[] response = """
-                    {"success":true,"code":"SUCCESS","message":"Success","data":{}}
+                    {
+                      "success": true,
+                      "code": "SUCCESS",
+                      "message": "Success",
+                      "data": {
+                        "nodeId": "e2e-node",
+                        "leaseId": "00000000-0000-0000-0000-000000000001",
+                        "heartbeatInterval": "PT10S",
+                        "leaseTimeout": "PT30S"
+                      }
+                    }
                     """.getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json");
             exchange.sendResponseHeaders(201, response.length);

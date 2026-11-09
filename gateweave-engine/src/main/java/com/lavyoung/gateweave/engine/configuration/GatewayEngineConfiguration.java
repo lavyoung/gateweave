@@ -9,6 +9,7 @@ import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayResponseMapper
 import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.ControlPlaneHttpApi;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayControlPlaneProperties;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLeaseManager;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
 import com.lavyoung.gateweave.engine.adapter.out.controlplane.HttpGatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.invocation.ProtocolInvocationDispatcher;
@@ -38,6 +39,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.CustomizableThreadFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -310,7 +312,8 @@ public class GatewayEngineConfiguration {
      * @return 配置完成的 ServerBootstrap
      */
     @Bean
-    public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
+    public ServerBootstrap gatewayServerBootstrap(
+            @Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
             @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer,
             GatewayServerProperties properties) {
         return new ServerBootstrap()
@@ -347,8 +350,9 @@ public class GatewayEngineConfiguration {
      * @return 控制面 HTTP 代理
      */
     @Bean
-    public ControlPlaneHttpApi controlPlaneHttpApi(RestClient.Builder restClientBuilder,
-            HttpClient gatewayHttpClient, GatewayControlPlaneProperties controlPlaneProperties) {
+    public ControlPlaneHttpApi controlPlaneHttpApi(
+            RestClient.Builder restClientBuilder, HttpClient gatewayHttpClient,
+            GatewayControlPlaneProperties controlPlaneProperties) {
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(gatewayHttpClient);
         requestFactory.setReadTimeout(controlPlaneProperties.requestTimeout());
         RestClient restClient = restClientBuilder.baseUrl(controlPlaneProperties.baseUri().toString())
@@ -390,25 +394,40 @@ public class GatewayEngineConfiguration {
     }
 
     /**
+     * 创建网关节点租约管理器。
+     *
+     * @param controlPlaneClient 控制面出站端口
+     * @param routeTable         当前运行时路由表
+     * @param taskScheduler      控制面统一任务调度器
+     * @return 网关节点租约管理器
+     */
+    @Bean
+    public GatewayNodeLeaseManager gatewayNodeLeaseManager(
+            GatewayControlPlaneClient controlPlaneClient, GatewayRouteTable routeTable,
+            @Qualifier("gatewayControlPlaneTaskScheduler") TaskScheduler taskScheduler) {
+        return new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
+    }
+
+    /**
      * 创建随 Spring 容器启动和停止的网关节点生命周期组件。
      *
-     * @param controlPlaneClient        控制面应用端口
+     * @param leaseManager              节点租赁管理器
      * @param configurationSynchronizer 配置同步应用服务
      * @param controlPlaneProperties    控制面节点身份配置
      * @return 网关节点生命周期组件
      */
     @Bean
     public GatewayNodeLifecycle gatewayNodeLifecycle(
-            GatewayControlPlaneClient controlPlaneClient,
+            GatewayNodeLeaseManager leaseManager,
             GatewayConfigurationSynchronizer configurationSynchronizer,
             GatewayControlPlaneProperties controlPlaneProperties) {
-        return new GatewayNodeLifecycle(controlPlaneClient, configurationSynchronizer, controlPlaneProperties);
+        return new GatewayNodeLifecycle(leaseManager, configurationSynchronizer, controlPlaneProperties);
     }
 
     /**
      * 创建控制面周期任务使用的统一调度器。
      *
-     * <p>当前只执行配置刷新任务，单线程可以避免同一网关节点并发拉取配置。
+     * <p>节点续租与配置刷新分别占用调度线程，避免配置拉取阻塞心跳续租。
      * 周期任务异常由 Spring 官方错误处理器记录并抑制，不会终止后续调度。</p>
      *
      * @return 控制面任务调度器
@@ -416,7 +435,7 @@ public class GatewayEngineConfiguration {
     @Bean(name = "gatewayControlPlaneTaskScheduler", destroyMethod = "shutdown")
     public ThreadPoolTaskScheduler gatewayControlPlaneTaskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(1);
+        scheduler.setPoolSize(2);
         scheduler.setThreadNamePrefix("gateweave-control-plane-");
         scheduler.setRemoveOnCancelPolicy(true);
         scheduler.setWaitForTasksToCompleteOnShutdown(true);

@@ -25,7 +25,12 @@ public enum GatewayResponseCode implements ResponseCode {
     /**
      * 节点注册操作未能完成。
      */
-    GATEWAY_NODE_REGISTRATION_FAILED("GATEWAY-0003", "gateway.node.registration-failed", "网关节点注册失败");
+    GATEWAY_NODE_REGISTRATION_FAILED("GATEWAY-0003", "gateway.node.registration-failed", "网关节点注册失败"),
+
+    /**
+     * 节点心跳携带的租约已经失效。
+     */
+    GATEWAY_NODE_LEASE_REJECTED("GATEWAY-0004", "gateway.node.lease-rejected", "网关节点 {0} 的租约已失效");
 
     private final String code;
     private final String messageKey;

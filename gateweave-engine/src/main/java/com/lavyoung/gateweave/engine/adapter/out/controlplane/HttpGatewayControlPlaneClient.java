@@ -1,7 +1,8 @@
 package com.lavyoung.gateweave.engine.adapter.out.controlplane;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.lavyoung.gateweave.contract.configuration.GatewayConfigurationSnapshot;
+import com.lavyoung.gateweave.contract.gateway.GatewayNodeHeartbeatRequest;
+import com.lavyoung.gateweave.contract.gateway.GatewayNodeLease;
 import com.lavyoung.gateweave.contract.gateway.RegisterGatewayNodeRequest;
 import com.lavyoung.gateweave.contract.web.Result;
 import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
@@ -11,12 +12,13 @@ import org.springframework.web.client.RestClientException;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * 通过 Spring HTTP Interface 访问 GateWeave 控制面。
  *
  * <p>HTTP 请求构建、路径变量编码和 JSON 编解码由 Spring 负责；该适配器只把 HTTP 响应
- * 转换为应用层端口定义的注册和配置查询语义。</p>
+ * 转换为应用层端口定义的节点租约和配置查询语义。</p>
  *
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @version 1.0.0
@@ -36,28 +38,41 @@ public final class HttpGatewayControlPlaneClient implements GatewayControlPlaneC
         this.controlPlaneHttpApi = Objects.requireNonNull(controlPlaneHttpApi, "controlPlaneHttpApi must not be null");
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void registerNode(RegisterGatewayNodeRequest request) {
+    public GatewayNodeLease registerNode(RegisterGatewayNodeRequest request) {
         Objects.requireNonNull(request, "request must not be null");
         try {
-            ResponseEntity<Result<JsonNode>> response = this.controlPlaneHttpApi.registerNode(request);
-            Result<JsonNode> result = response.getBody();
+            ResponseEntity<Result<GatewayNodeLease>> response = this.controlPlaneHttpApi.registerNode(request);
+            Result<GatewayNodeLease> result = response.getBody();
             if (!response.getStatusCode().is2xxSuccessful() || result == null || !result.success()) {
                 String responseCode = result == null ? "missing-result" : result.code();
                 throw new IllegalStateException("Gateway node registration failed with status %d and code %s"
                         .formatted(response.getStatusCode().value(), responseCode));
             }
+            return result.data();
         } catch (RestClientException exception) {
             throw new IllegalStateException("Gateway node registration request failed", exception);
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public void renewNodeLease(String nodeId, UUID leaseId, long currentConfigVersion) {
+        nodeId = Objects.requireNonNull(nodeId, "nodeId must not be null").strip();
+        if (nodeId.isEmpty()) {
+            throw new IllegalArgumentException("nodeId must not be blank");
+        }
+        GatewayNodeHeartbeatRequest heartbeatRequest = new GatewayNodeHeartbeatRequest(leaseId, currentConfigVersion);
+        try {
+            ResponseEntity<Void> response = this.controlPlaneHttpApi.renewNodeLease(nodeId, heartbeatRequest);
+            if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
+                throw new IllegalStateException("Gateway node lease renewal failed with status %d"
+                        .formatted(response.getStatusCode().value()));
+            }
+        } catch (RestClientException exception) {
+            throw new IllegalStateException("Gateway node lease renewal request failed", exception);
+        }
+    }
+
     @Override
     public Optional<GatewayConfigurationSnapshot> findLatestPublishedConfiguration(String gatewayGroupId) {
         String groupId = Objects.requireNonNull(gatewayGroupId, "gatewayGroupId must not be null").strip();

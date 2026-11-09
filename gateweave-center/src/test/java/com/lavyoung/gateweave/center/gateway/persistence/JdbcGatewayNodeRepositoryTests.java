@@ -1,8 +1,11 @@
 package com.lavyoung.gateweave.center.gateway.persistence;
 
 import java.net.URI;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.lavyoung.gateweave.center.GateWeaveCenterApplication;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeHeartbeat;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
@@ -38,6 +42,7 @@ class JdbcGatewayNodeRepositoryTests {
 
     private static final Instant FIRST_HEARTBEAT = Instant.parse("2026-10-31T12:00:00Z");
     private static final Instant SECOND_HEARTBEAT = Instant.parse("2026-10-31T12:05:00Z");
+    private static final Instant THIRD_HEARTBEAT = Instant.parse("2026-10-31T12:10:00Z");
 
     private final JdbcGatewayNodeRepository repository;
     private final JdbcTemplate jdbcTemplate;
@@ -155,6 +160,108 @@ class JdbcGatewayNodeRepositoryTests {
         }
     }
 
+    @Test
+    void shouldRenewCurrentOnlineLeaseAndAdvanceConfigurationVersion() {
+        // Given
+        GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(node);
+        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(
+                "node-1", node.leaseId(), SECOND_HEARTBEAT, 7);
+
+        // When
+        boolean renewed = this.repository.renewLease(heartbeat);
+
+        // Then
+        assertThat(renewed).isTrue();
+        Map<String, Object> state = nodeState("node-1");
+        assertThat(((Timestamp) state.get("last_heartbeat_at")).toInstant()).isEqualTo(SECOND_HEARTBEAT);
+        assertThat(state.get("current_config_version")).isEqualTo(7L);
+        assertThat(state.get("status")).isEqualTo(GatewayNodeStatus.ONLINE.name());
+    }
+
+    @Test
+    void shouldRejectHeartbeatFromLeaseReplacedByRegistration() {
+        // Given
+        GatewayNode firstNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(firstNode);
+        GatewayNode replacement = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", SECOND_HEARTBEAT);
+        this.repository.registerOrRefresh(replacement);
+        GatewayNodeHeartbeat staleHeartbeat = new GatewayNodeHeartbeat(
+                "node-1", firstNode.leaseId(), THIRD_HEARTBEAT, 7);
+
+        // When
+        boolean renewed = this.repository.renewLease(staleHeartbeat);
+
+        // Then
+        assertThat(renewed).isFalse();
+        Map<String, Object> state = nodeState("node-1");
+        assertThat(state.get("lease_id")).isEqualTo(replacement.leaseId().toString());
+        assertThat(((Timestamp) state.get("last_heartbeat_at")).toInstant()).isEqualTo(SECOND_HEARTBEAT);
+        assertThat(state.get("current_config_version")).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldRejectHeartbeatForOfflineNode() {
+        // Given
+        GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(node);
+        this.jdbcTemplate.update("UPDATE gw_gateway_node SET status = 'OFFLINE' WHERE node_id = 'node-1'");
+        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(
+                "node-1", node.leaseId(), SECOND_HEARTBEAT, 7);
+
+        // When
+        boolean renewed = this.repository.renewLease(heartbeat);
+
+        // Then
+        assertThat(renewed).isFalse();
+        Map<String, Object> state = nodeState("node-1");
+        assertThat(state.get("status")).isEqualTo(GatewayNodeStatus.OFFLINE.name());
+        assertThat(((Timestamp) state.get("last_heartbeat_at")).toInstant()).isEqualTo(FIRST_HEARTBEAT);
+        assertThat(state.get("current_config_version")).isEqualTo(0L);
+    }
+
+    @Test
+    void shouldRejectConfigurationVersionRegression() {
+        // Given
+        GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(node);
+        assertThat(this.repository.renewLease(
+                new GatewayNodeHeartbeat("node-1", node.leaseId(), SECOND_HEARTBEAT, 7))).isTrue();
+        GatewayNodeHeartbeat regressedHeartbeat = new GatewayNodeHeartbeat(
+                "node-1", node.leaseId(), THIRD_HEARTBEAT, 6);
+
+        // When
+        boolean renewed = this.repository.renewLease(regressedHeartbeat);
+
+        // Then
+        assertThat(renewed).isFalse();
+        Map<String, Object> state = nodeState("node-1");
+        assertThat(((Timestamp) state.get("last_heartbeat_at")).toInstant()).isEqualTo(SECOND_HEARTBEAT);
+        assertThat(state.get("current_config_version")).isEqualTo(7L);
+    }
+
+    @Test
+    void shouldReturnFalseWhenHeartbeatNodeDoesNotExist() {
+        // Given
+        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(
+                "missing-node", UUID.fromString("00000000-0000-0000-0000-000000000001"), FIRST_HEARTBEAT, 0);
+
+        // When
+        boolean renewed = this.repository.renewLease(heartbeat);
+
+        // Then
+        assertThat(renewed).isFalse();
+        assertThat(totalNodeCount()).isZero();
+    }
+
+    @Test
+    void shouldRejectMissingHeartbeat() {
+        // When & Then
+        assertThatThrownBy(() -> this.repository.renewLease(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("heartbeat must not be null");
+    }
+
     private CompletableFuture<GatewayNodeRegistrationResult> registerAsync(
             GatewayNode node, ExecutorService executor, CountDownLatch ready, CountDownLatch start) {
         return CompletableFuture.supplyAsync(() -> {
@@ -182,6 +289,14 @@ class JdbcGatewayNodeRepositoryTests {
 
     private int totalNodeCount() {
         return this.jdbcTemplate.queryForObject("SELECT COUNT(*) FROM gw_gateway_node", Integer.class);
+    }
+
+    private Map<String, Object> nodeState(String nodeId) {
+        return this.jdbcTemplate.queryForMap("""
+                SELECT status, lease_id, last_heartbeat_at, current_config_version
+                FROM gw_gateway_node
+                WHERE node_id = ?
+                """, nodeId);
     }
 
     private static GatewayNode node(String nodeId, String nodeName, String address, Instant heartbeatAt) {

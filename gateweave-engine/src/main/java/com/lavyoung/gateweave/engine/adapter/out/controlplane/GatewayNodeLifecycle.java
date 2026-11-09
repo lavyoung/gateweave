@@ -1,7 +1,6 @@
 package com.lavyoung.gateweave.engine.adapter.out.controlplane;
 
 import com.lavyoung.gateweave.contract.gateway.RegisterGatewayNodeRequest;
-import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.application.service.GatewayConfigurationSynchronizer;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,7 +19,7 @@ import java.util.Objects;
  */
 public final class GatewayNodeLifecycle implements SmartLifecycle {
 
-    private final GatewayControlPlaneClient controlPlaneClient;
+    private final GatewayNodeLeaseManager leaseManager;
     private final GatewayConfigurationSynchronizer configurationSynchronizer;
     private final GatewayControlPlaneProperties properties;
     private volatile boolean running;
@@ -28,17 +27,16 @@ public final class GatewayNodeLifecycle implements SmartLifecycle {
     /**
      * 创建网关节点生命周期适配器。
      *
-     * @param controlPlaneClient        控制面出站端口
+     * @param leaseManager              节点租约管理器
      * @param configurationSynchronizer 配置同步应用服务
      * @param properties                控制面连接和节点身份配置
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
     public GatewayNodeLifecycle(
-            GatewayControlPlaneClient controlPlaneClient,
+            GatewayNodeLeaseManager leaseManager,
             GatewayConfigurationSynchronizer configurationSynchronizer,
             GatewayControlPlaneProperties properties) {
-        this.controlPlaneClient = Objects.requireNonNull(
-                controlPlaneClient, "controlPlaneClient must not be null");
+        this.leaseManager = Objects.requireNonNull(leaseManager, "leaseManager must not be null");
         this.configurationSynchronizer = Objects.requireNonNull(
                 configurationSynchronizer, "configurationSynchronizer must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
@@ -58,14 +56,20 @@ public final class GatewayNodeLifecycle implements SmartLifecycle {
         RegisterGatewayNodeRequest request = new RegisterGatewayNodeRequest(
                 this.properties.nodeId(), this.properties.gatewayGroupId(), this.properties.nodeName(),
                 this.properties.advertisedAddress());
-        this.controlPlaneClient.registerNode(request);
-        this.configurationSynchronizer.synchronize(this.properties.gatewayGroupId());
-        this.running = true;
+        this.leaseManager.start(request);
+        try {
+            this.configurationSynchronizer.synchronize(this.properties.gatewayGroupId());
+            this.running = true;
+        } catch (RuntimeException exception) {
+            this.leaseManager.stop();
+            throw exception;
+        }
     }
 
     @Override
     public synchronized void stop() {
         this.running = false;
+        this.leaseManager.stop();
     }
 
     @Override

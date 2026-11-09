@@ -1,13 +1,14 @@
 package com.lavyoung.gateweave.center.gateway.persistence;
 
-import java.net.URI;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
-
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeHeartbeat;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
+import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeStatus;
+import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
+import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.dao.DuplicateKeyException;
@@ -16,14 +17,13 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeStatus;
-import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
-import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
+import java.net.URI;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * 使用 Spring JDBC 持久化网关算力节点。
@@ -84,6 +84,17 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
             WHERE node_id = :nodeId
             """;
 
+    private static final String RENEW_LEASE_SQL = """
+            UPDATE gw_gateway_node
+            SET last_heartbeat_at = :receivedAt,
+                current_config_version = :currentConfigVersion,
+                updated_at = CURRENT_TIMESTAMP(6)
+            WHERE node_id = :nodeId
+              AND lease_id = :leaseId
+              AND status = :status
+              AND current_config_version <= :currentConfigVersion
+            """;
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     /**
@@ -120,6 +131,18 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
             }
             throw exception;
         }
+    }
+
+    @Override
+    public boolean renewLease(GatewayNodeHeartbeat heartbeat) {
+        Objects.requireNonNull(heartbeat, "heartbeat must not be null");
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource()
+                .addValue("nodeId", heartbeat.nodeId())
+                .addValue("leaseId", heartbeat.leaseId().toString())
+                .addValue("status", GatewayNodeStatus.ONLINE.name())
+                .addValue("receivedAt", Timestamp.from(heartbeat.receivedAt()))
+                .addValue("currentConfigVersion", heartbeat.currentConfigVersion());
+        return this.jdbcTemplate.update(RENEW_LEASE_SQL, parameterSource) == 1;
     }
 
     /**

@@ -1,7 +1,9 @@
 package com.lavyoung.gateweave.center.gateway.configuration;
 
-import com.lavyoung.gateweave.center.gateway.application.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
+import com.lavyoung.gateweave.center.gateway.application.RenewGatewayNodeLeaseUseCase;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeLeaseService;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -34,5 +36,18 @@ public class GatewayApplicationConfiguration {
     public RegisterGatewayNodeUseCase registerGatewayNodeUseCase(
             GatewayNodeRepository gatewayNodeRepository, Clock controlPlaneClock) {
         return new DefaultGatewayNodeRegistrationService(gatewayNodeRepository, controlPlaneClock);
+    }
+
+    /**
+     * 创建网关节点续租用例。
+     *
+     * @param gatewayNodeRepository 网关节点持久化端口
+     * @param controlPlaneClock     控制面统一时钟
+     * @return 网关节点续租用例
+     */
+    @Bean
+    public RenewGatewayNodeLeaseUseCase renewGatewayNodeLeaseUseCase(
+            GatewayNodeRepository gatewayNodeRepository, Clock controlPlaneClock) {
+        return new DefaultGatewayNodeLeaseService(gatewayNodeRepository, controlPlaneClock);
     }
 }

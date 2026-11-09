@@ -1,12 +1,13 @@
-package com.lavyoung.gateweave.center.gateway.application;
+package com.lavyoung.gateweave.center.gateway.application.service;
 
-import java.time.Clock;
-import java.util.Objects;
-
+import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
+
+import java.time.Clock;
+import java.util.Objects;
 
 /**
  * 编排网关算力节点注册用例。

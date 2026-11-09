@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
 import org.junit.jupiter.api.Test;
 
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
