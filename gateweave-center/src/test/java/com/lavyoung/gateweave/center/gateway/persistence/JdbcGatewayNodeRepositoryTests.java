@@ -262,6 +262,54 @@ class JdbcGatewayNodeRepositoryTests {
                 .hasMessage("heartbeat must not be null");
     }
 
+    @Test
+    void shouldMarkOnlyExpiredOnlineLeasesOffline() {
+        // Given
+        GatewayNode expiredNode = node(
+                "node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        GatewayNode boundaryNode = node(
+                "node-2", "Gateway Node 2", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
+        GatewayNode activeNode = node(
+                "node-3", "Gateway Node 3", "http://127.0.0.1:8083", THIRD_HEARTBEAT);
+        GatewayNode offlineNode = node(
+                "node-4", "Gateway Node 4", "http://127.0.0.1:8084", FIRST_HEARTBEAT);
+        List.of(expiredNode, boundaryNode, activeNode, offlineNode)
+                .forEach(this.repository::registerOrRefresh);
+        this.jdbcTemplate.update("UPDATE gw_gateway_node SET status = 'OFFLINE' WHERE node_id = 'node-4'");
+
+        // When
+        int updated = this.repository.markExpiredLeasesOffline(SECOND_HEARTBEAT);
+
+        // Then
+        assertThat(updated).isEqualTo(2);
+        assertThat(nodeState("node-1").get("status")).isEqualTo(GatewayNodeStatus.OFFLINE.name());
+        assertThat(nodeState("node-2").get("status")).isEqualTo(GatewayNodeStatus.OFFLINE.name());
+        assertThat(nodeState("node-3").get("status")).isEqualTo(GatewayNodeStatus.ONLINE.name());
+        assertThat(nodeState("node-4").get("status")).isEqualTo(GatewayNodeStatus.OFFLINE.name());
+    }
+
+    @Test
+    void shouldLeaveOnlineLeaseUnchangedBeforeDeadline() {
+        // Given
+        GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(node);
+
+        // When
+        int updated = this.repository.markExpiredLeasesOffline(FIRST_HEARTBEAT.minusNanos(1));
+
+        // Then
+        assertThat(updated).isZero();
+        assertThat(nodeState("node-1").get("status")).isEqualTo(GatewayNodeStatus.ONLINE.name());
+    }
+
+    @Test
+    void shouldRejectMissingLeaseExpirationDeadline() {
+        // When & Then
+        assertThatThrownBy(() -> this.repository.markExpiredLeasesOffline(null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("heartbeatDeadline must not be null");
+    }
+
     private CompletableFuture<GatewayNodeRegistrationResult> registerAsync(
             GatewayNode node, ExecutorService executor, CountDownLatch ready, CountDownLatch start) {
         return CompletableFuture.supplyAsync(() -> {

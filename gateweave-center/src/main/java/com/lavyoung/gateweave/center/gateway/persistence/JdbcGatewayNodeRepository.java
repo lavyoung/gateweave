@@ -21,6 +21,7 @@ import java.net.URI;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -95,6 +96,14 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
               AND current_config_version <= :currentConfigVersion
             """;
 
+    private static final String MARK_EXPIRED_LEASES_OFFLINE_SQL = """
+            UPDATE gw_gateway_node
+            SET status = :offlineStatus,
+                updated_at = CURRENT_TIMESTAMP(6)
+            WHERE status = :onlineStatus
+              AND last_heartbeat_at <= :heartbeatDeadline
+            """;
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     /**
@@ -143,6 +152,16 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                 .addValue("receivedAt", Timestamp.from(heartbeat.receivedAt()))
                 .addValue("currentConfigVersion", heartbeat.currentConfigVersion());
         return this.jdbcTemplate.update(RENEW_LEASE_SQL, parameterSource) == 1;
+    }
+
+    @Override
+    public int markExpiredLeasesOffline(Instant heartbeatDeadline) {
+        Objects.requireNonNull(heartbeatDeadline, "heartbeatDeadline must not be null");
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource()
+                .addValue("onlineStatus", GatewayNodeStatus.ONLINE.name())
+                .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name())
+                .addValue("heartbeatDeadline", Timestamp.from(heartbeatDeadline));
+        return this.jdbcTemplate.update(MARK_EXPIRED_LEASES_OFFLINE_SQL, parameterSource);
     }
 
     /**

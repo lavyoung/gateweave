@@ -1,6 +1,7 @@
 package com.lavyoung.gateweave.center.gateway.application;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -26,13 +27,15 @@ class DefaultGatewayNodeLeaseServiceTests {
 
     private static final Instant RECEIVED_AT = Instant.parse("2026-11-09T12:00:00Z");
     private static final Clock FIXED_CLOCK = Clock.fixed(RECEIVED_AT, ZoneOffset.UTC);
+    private static final Duration LEASE_TIMEOUT = Duration.ofSeconds(30);
     private static final UUID LEASE_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     @Test
     void shouldRenewLeaseAtControlPlaneTime() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
-        DefaultGatewayNodeLeaseService service = new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK);
+        DefaultGatewayNodeLeaseService service =
+                new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
         when(repository.renewLease(any(GatewayNodeHeartbeat.class))).thenReturn(true);
 
         // When
@@ -52,7 +55,8 @@ class DefaultGatewayNodeLeaseServiceTests {
     void shouldReportStableBusinessErrorWhenLeaseIsRejected() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
-        DefaultGatewayNodeLeaseService service = new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK);
+        DefaultGatewayNodeLeaseService service =
+                new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
         when(repository.renewLease(any(GatewayNodeHeartbeat.class))).thenReturn(false);
 
         // When & Then
@@ -69,12 +73,15 @@ class DefaultGatewayNodeLeaseServiceTests {
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
 
         // When & Then
-        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(null, FIXED_CLOCK))
+        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(null, FIXED_CLOCK, LEASE_TIMEOUT))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("gatewayNodeRepository must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, null))
+        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, null, LEASE_TIMEOUT))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("clock must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("leaseTimeout must not be null");
         verifyNoInteractions(repository);
     }
 
@@ -82,7 +89,8 @@ class DefaultGatewayNodeLeaseServiceTests {
     void shouldRejectInvalidHeartbeatBeforeAccessingRepository() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
-        DefaultGatewayNodeLeaseService service = new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK);
+        DefaultGatewayNodeLeaseService service =
+                new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
 
         // When & Then
         assertThatThrownBy(() -> service.renew(null, LEASE_ID, 0))
@@ -98,5 +106,21 @@ class DefaultGatewayNodeLeaseServiceTests {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("currentConfigVersion must not be negative");
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void shouldExpireLeasesUsingConfiguredTimeoutAndControlPlaneTime() {
+        // Given
+        GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
+        DefaultGatewayNodeLeaseService service =
+                new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
+        when(repository.markExpiredLeasesOffline(RECEIVED_AT.minus(LEASE_TIMEOUT))).thenReturn(3);
+
+        // When
+        int expired = service.expire();
+
+        // Then
+        assertThat(expired).isEqualTo(3);
+        verify(repository).markExpiredLeasesOffline(RECEIVED_AT.minus(LEASE_TIMEOUT));
     }
 }
