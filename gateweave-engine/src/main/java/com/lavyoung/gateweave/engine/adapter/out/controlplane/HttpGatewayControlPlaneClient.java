@@ -74,6 +74,24 @@ public final class HttpGatewayControlPlaneClient implements GatewayControlPlaneC
     }
 
     @Override
+    public void releaseNodeLease(String nodeId, UUID leaseId) {
+        nodeId = Objects.requireNonNull(nodeId, "nodeId must not be null").strip();
+        if (nodeId.isEmpty()) {
+            throw new IllegalArgumentException("nodeId must not be blank");
+        }
+        Objects.requireNonNull(leaseId, "leaseId must not be null");
+        try {
+            ResponseEntity<Void> response = this.controlPlaneHttpApi.releaseNodeLease(nodeId, leaseId);
+            if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
+                throw new IllegalStateException("Gateway node lease release failed with status %d"
+                        .formatted(response.getStatusCode().value()));
+            }
+        } catch (RestClientException exception) {
+            throw new IllegalStateException("Gateway node lease release request failed", exception);
+        }
+    }
+
+    @Override
     public Optional<GatewayConfigurationSnapshot> findLatestPublishedConfiguration(String gatewayGroupId) {
         String groupId = Objects.requireNonNull(gatewayGroupId, "gatewayGroupId must not be null").strip();
         if (groupId.isEmpty()) {

@@ -43,6 +43,20 @@ public interface GatewayControlPlaneClient {
     void renewNodeLease(String nodeId, UUID leaseId, long currentConfigVersion);
 
     /**
+     * 主动释放当前节点租约。
+     *
+     * <p>该操作用于 Engine 正常关闭时及时下线节点。重复释放或租约已经失效时，
+     * 控制面按照幂等成功处理。</p>
+     *
+     * @param nodeId  节点唯一标识
+     * @param leaseId 当前运行实例持有的租约标识
+     * @throws NullPointerException     nodeId 或 leaseId 为 null 时抛出
+     * @throws IllegalArgumentException nodeId 为空白时抛出
+     * @throws IllegalStateException    控制面通信失败或拒绝释放租约时抛出
+     */
+    void releaseNodeLease(String nodeId, UUID leaseId);
+
+    /**
      * 查询指定网关分组最后一个已发布配置快照。
      *
      * @param gatewayGroupId 网关分组标识

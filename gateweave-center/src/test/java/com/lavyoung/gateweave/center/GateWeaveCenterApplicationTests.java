@@ -45,6 +45,7 @@ class GateWeaveCenterApplicationTests {
             GatewayNodeLeaseProperties leaseProperties = context.getBean(GatewayNodeLeaseProperties.class);
             assertThat(leaseProperties.heartbeatInterval()).isEqualTo(Duration.ofSeconds(10));
             assertThat(leaseProperties.leaseTimeout()).isEqualTo(Duration.ofSeconds(30));
+            assertThat(leaseProperties.expirationScanInterval()).isEqualTo(Duration.ofSeconds(5));
         });
     }
 

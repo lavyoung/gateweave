@@ -263,6 +263,51 @@ class JdbcGatewayNodeRepositoryTests {
     }
 
     @Test
+    void shouldReleaseCurrentOnlineLeaseIdempotently() {
+        // Given
+        GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(node);
+
+        // When
+        boolean released = this.repository.releaseLease("node-1", node.leaseId());
+        boolean releasedAgain = this.repository.releaseLease("node-1", node.leaseId());
+
+        // Then
+        assertThat(released).isTrue();
+        assertThat(releasedAgain).isFalse();
+        assertThat(nodeState("node-1").get("status")).isEqualTo(GatewayNodeStatus.OFFLINE.name());
+    }
+
+    @Test
+    void shouldNotReleaseLeaseReplacedByRegistration() {
+        // Given
+        GatewayNode firstNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(firstNode);
+        GatewayNode replacement = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", SECOND_HEARTBEAT);
+        this.repository.registerOrRefresh(replacement);
+
+        // When
+        boolean released = this.repository.releaseLease("node-1", firstNode.leaseId());
+
+        // Then
+        assertThat(released).isFalse();
+        Map<String, Object> state = nodeState("node-1");
+        assertThat(state.get("status")).isEqualTo(GatewayNodeStatus.ONLINE.name());
+        assertThat(state.get("lease_id")).isEqualTo(replacement.leaseId().toString());
+    }
+
+    @Test
+    void shouldRejectMissingLeaseReleaseIdentity() {
+        // When & Then
+        assertThatThrownBy(() -> this.repository.releaseLease(null, UUID.randomUUID()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> this.repository.releaseLease("node-1", null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("leaseId must not be null");
+    }
+
+    @Test
     void shouldMarkOnlyExpiredOnlineLeasesOffline() {
         // Given
         GatewayNode expiredNode = node(

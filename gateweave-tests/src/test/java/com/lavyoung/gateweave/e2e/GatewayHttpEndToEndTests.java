@@ -268,6 +268,43 @@ class GatewayHttpEndToEndTests {
         }
     }
 
+    @Test
+    void shouldReleaseNodeLeaseWhenGatewayContextCloses() throws Exception {
+        // Given
+        int gatewayPort = findAvailablePort();
+        int downstreamPort = findAvailablePort();
+        AtomicReference<String> releaseMethod = new AtomicReference<>();
+        AtomicReference<String> releaseQuery = new AtomicReference<>();
+        HttpServer controlPlaneServer = createControlPlaneServer(exchange -> {
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+        }, exchange -> {
+            if ("DELETE".equals(exchange.getRequestMethod())) {
+                releaseMethod.set(exchange.getRequestMethod());
+                releaseQuery.set(exchange.getRequestURI().getRawQuery());
+            }
+            exchange.sendResponseHeaders(204, -1);
+            exchange.close();
+        });
+        int controlPlanePort = controlPlaneServer.getAddress().getPort();
+        SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
+        ApplicationContextRunner contextRunner = createContextRunner(
+                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+
+        // When
+        controlPlaneServer.start();
+        try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+            cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
+            contextRunner.run(context -> assertThat(context).hasNotFailed());
+
+            // Then
+            assertThat(releaseMethod.get()).isEqualTo("DELETE");
+            assertThat(releaseQuery.get()).isEqualTo("leaseId=00000000-0000-0000-0000-000000000001");
+        } finally {
+            controlPlaneServer.stop(0);
+        }
+    }
+
     private static ApplicationContextRunner createContextRunner(
             int gatewayPort, int downstreamPort, int controlPlanePort, String authenticationMode) {
         return new ApplicationContextRunner()
@@ -359,11 +396,16 @@ class GatewayHttpEndToEndTests {
     }
 
     private static HttpServer createControlPlaneServer(HttpHandler configurationHandler) throws IOException {
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/api/v1/gateway-nodes/e2e-node/lease", exchange -> {
+        return createControlPlaneServer(configurationHandler, exchange -> {
             exchange.sendResponseHeaders(204, -1);
             exchange.close();
         });
+    }
+
+    private static HttpServer createControlPlaneServer(
+            HttpHandler configurationHandler, HttpHandler leaseHandler) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes/e2e-node/lease", leaseHandler);
         server.createContext("/api/v1/gateway-nodes", exchange -> {
             byte[] response = """
                     {

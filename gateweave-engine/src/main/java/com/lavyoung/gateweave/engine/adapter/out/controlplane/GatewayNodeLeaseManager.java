@@ -4,6 +4,8 @@ import com.lavyoung.gateweave.contract.gateway.GatewayNodeLease;
 import com.lavyoung.gateweave.contract.gateway.RegisterGatewayNodeRequest;
 import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
 
 import java.time.Instant;
@@ -22,9 +24,12 @@ import java.util.concurrent.ScheduledFuture;
  */
 public final class GatewayNodeLeaseManager {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GatewayNodeLeaseManager.class);
+
     private final GatewayControlPlaneClient controlPlaneClient;
     private final GatewayRouteTable routeTable;
     private final TaskScheduler taskScheduler;
+    private GatewayNodeLease activeLease;
     private ScheduledFuture<?> heartbeatTask;
 
     /**
@@ -57,19 +62,44 @@ public final class GatewayNodeLeaseManager {
             return;
         }
         GatewayNodeLease lease = this.controlPlaneClient.registerNode(request);
-        Instant firstHeartbeatAt = this.taskScheduler.getClock().instant().plus(lease.heartbeatInterval());
-        this.heartbeatTask = this.taskScheduler.scheduleWithFixedDelay(
-                () -> this.renewLease(lease), firstHeartbeatAt, lease.heartbeatInterval());
+        try {
+            Instant firstHeartbeatAt = this.taskScheduler.getClock().instant().plus(lease.heartbeatInterval());
+            ScheduledFuture<?> scheduledFuture = this.taskScheduler.scheduleWithFixedDelay(
+                    () -> this.renewLease(lease), firstHeartbeatAt, lease.heartbeatInterval());
+            this.activeLease = lease;
+            this.heartbeatTask = scheduledFuture;
+        } catch (RuntimeException exception) {
+            try {
+                this.controlPlaneClient.releaseNodeLease(lease.nodeId(), lease.leaseId());
+            } catch (RuntimeException runtimeException) {
+                exception.addSuppressed(runtimeException);
+            }
+            throw exception;
+        }
     }
 
     /**
-     * 停止后续心跳任务。
+     * 停止后续心跳并主动释放当前节点租约。
+     *
+     * <p>控制面暂时不可用时不阻止 Engine 关闭，节点最终由控制面的租约超时扫描下线。</p>
      */
     public synchronized void stop() {
         ScheduledFuture<?> scheduledFuture = this.heartbeatTask;
+        GatewayNodeLease lease = this.activeLease;
         this.heartbeatTask = null;
+        this.activeLease = null;
         if (scheduledFuture != null) {
             scheduledFuture.cancel(false);
+        }
+        if (lease == null) {
+            return;
+        }
+
+        try {
+            this.controlPlaneClient.releaseNodeLease(lease.nodeId(), lease.leaseId());
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Gateway node lease release failed during shutdown nodeId={} leaseId={}",
+                    lease.nodeId(), lease.leaseId(), exception);
         }
     }
 

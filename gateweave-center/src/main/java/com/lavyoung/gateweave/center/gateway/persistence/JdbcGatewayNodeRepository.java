@@ -96,6 +96,15 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
               AND current_config_version <= :currentConfigVersion
             """;
 
+    private static final String RELEASE_LEASE_SQL = """
+            UPDATE gw_gateway_node
+            SET status = :offlineStatus,
+                updated_at = CURRENT_TIMESTAMP(6)
+            WHERE node_id = :nodeId
+              AND lease_id = :leaseId
+              AND status = :onlineStatus
+            """;
+
     private static final String MARK_EXPIRED_LEASES_OFFLINE_SQL = """
             UPDATE gw_gateway_node
             SET status = :offlineStatus,
@@ -152,6 +161,18 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                 .addValue("receivedAt", Timestamp.from(heartbeat.receivedAt()))
                 .addValue("currentConfigVersion", heartbeat.currentConfigVersion());
         return this.jdbcTemplate.update(RENEW_LEASE_SQL, parameterSource) == 1;
+    }
+
+    @Override
+    public boolean releaseLease(String nodeId, UUID leaseId) {
+        Objects.requireNonNull(nodeId, "nodeId must not be null");
+        Objects.requireNonNull(leaseId, "leaseId must not be null");
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource()
+                .addValue("nodeId", nodeId)
+                .addValue("leaseId", leaseId.toString())
+                .addValue("onlineStatus", GatewayNodeStatus.ONLINE.name())
+                .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name());
+        return this.jdbcTemplate.update(RELEASE_LEASE_SQL, parameterSource) == 1;
     }
 
     @Override

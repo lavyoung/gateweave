@@ -9,9 +9,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.service.annotation.DeleteExchange;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.PostExchange;
 import org.springframework.web.service.annotation.PutExchange;
+
+import java.util.UUID;
 
 /**
  * 声明 Engine 访问控制面 HTTP API 所需的技术契约。
@@ -46,6 +50,16 @@ public interface ControlPlaneHttpApi {
     @PutExchange(value = "/api/v1/gateway-nodes/{nodeId}/lease", contentType = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Void> renewNodeLease(
             @PathVariable("nodeId") String nodeId, @RequestBody GatewayNodeHeartbeatRequest request);
+
+    /**
+     * 主动释放当前网关节点租约。
+     *
+     * @param nodeId  节点唯一标识
+     * @param leaseId 当前运行实例持有的租约标识
+     * @return 控制面返回的 HTTP 204 响应
+     */
+    @DeleteExchange("/api/v1/gateway-nodes/{nodeId}/lease")
+    ResponseEntity<Void> releaseNodeLease(@PathVariable("nodeId") String nodeId, @RequestParam("leaseId") UUID leaseId);
 
     /**
      * 查询网关分组最后一个已发布配置快照。

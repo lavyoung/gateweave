@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.lavyoung.gateweave.center.gateway.application.ReleaseGatewayNodeLeaseUseCase;
 import com.lavyoung.gateweave.center.gateway.application.RenewGatewayNodeLeaseUseCase;
 import com.lavyoung.gateweave.center.shared.exception.BusinessException;
 import com.lavyoung.gateweave.center.web.GlobalExceptionHandler;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -34,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(GatewayNodeLeaseController.class)
-@MockBean(RenewGatewayNodeLeaseUseCase.class)
+@MockBean({RenewGatewayNodeLeaseUseCase.class, ReleaseGatewayNodeLeaseUseCase.class})
 @Import({GlobalExceptionHandler.class, LocalizedResultFactory.class, RequestIdFilter.class})
 class GatewayNodeLeaseControllerTests {
 
@@ -42,16 +44,19 @@ class GatewayNodeLeaseControllerTests {
 
     private final MockMvc mockMvc;
     private final RenewGatewayNodeLeaseUseCase renewGatewayNodeLeaseUseCase;
+    private final ReleaseGatewayNodeLeaseUseCase releaseGatewayNodeLeaseUseCase;
 
     @Autowired
-    GatewayNodeLeaseControllerTests(MockMvc mockMvc, RenewGatewayNodeLeaseUseCase renewGatewayNodeLeaseUseCase) {
+    GatewayNodeLeaseControllerTests(MockMvc mockMvc, RenewGatewayNodeLeaseUseCase renewGatewayNodeLeaseUseCase,
+            ReleaseGatewayNodeLeaseUseCase releaseGatewayNodeLeaseUseCase) {
         this.mockMvc = mockMvc;
         this.renewGatewayNodeLeaseUseCase = renewGatewayNodeLeaseUseCase;
+        this.releaseGatewayNodeLeaseUseCase = releaseGatewayNodeLeaseUseCase;
     }
 
     @AfterEach
     void resetUseCase() {
-        reset(this.renewGatewayNodeLeaseUseCase);
+        reset(this.renewGatewayNodeLeaseUseCase, this.releaseGatewayNodeLeaseUseCase);
     }
 
     @Test
@@ -121,11 +126,55 @@ class GatewayNodeLeaseControllerTests {
     }
 
     @Test
-    void shouldRejectMissingUseCase() {
+    void shouldReturnNoContentAndReleaseLease() throws Exception {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLeaseController(null))
+        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease")
+                        .queryParam("leaseId", LEASE_ID.toString()))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        verify(this.releaseGatewayNodeLeaseUseCase).release("node-1", LEASE_ID);
+    }
+
+    @Test
+    void shouldRejectMissingLeaseIdBeforeCallingReleaseUseCase() throws Exception {
+        // When & Then
+        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON-0001"))
+                .andExpect(jsonPath("$.message").value("Request parameters are invalid"));
+
+        verify(this.releaseGatewayNodeLeaseUseCase, never()).release(anyString(), any());
+    }
+
+    @Test
+    void shouldRejectInvalidLeaseIdBeforeCallingReleaseUseCase() throws Exception {
+        // When & Then
+        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease")
+                        .queryParam("leaseId", "not-a-uuid")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON-0001"))
+                .andExpect(jsonPath("$.message").value("Request parameters are invalid"));
+
+        verify(this.releaseGatewayNodeLeaseUseCase, never()).release(anyString(), any());
+    }
+
+    @Test
+    void shouldRejectMissingRenewUseCase() {
+        // When & Then
+        assertThatThrownBy(() -> new GatewayNodeLeaseController(null, this.releaseGatewayNodeLeaseUseCase))
                 .isInstanceOf(NullPointerException.class)
                 .hasMessage("renewGatewayNodeLeaseUseCase must not be null");
+    }
+
+    @Test
+    void shouldRejectMissingReleaseUseCase() {
+        // When & Then
+        assertThatThrownBy(() -> new GatewayNodeLeaseController(this.renewGatewayNodeLeaseUseCase, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("releaseGatewayNodeLeaseUseCase must not be null");
     }
 
     private static String validRequestBody() {

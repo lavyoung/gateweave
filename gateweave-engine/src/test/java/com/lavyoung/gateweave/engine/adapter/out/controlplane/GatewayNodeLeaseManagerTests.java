@@ -10,6 +10,7 @@ import java.util.concurrent.ScheduledFuture;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.scheduling.TaskScheduler;
 
 import com.lavyoung.gateweave.contract.gateway.GatewayNodeLease;
@@ -17,11 +18,13 @@ import com.lavyoung.gateweave.contract.gateway.RegisterGatewayNodeRequest;
 import com.lavyoung.gateweave.engine.application.port.out.GatewayControlPlaneClient;
 import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -68,10 +71,15 @@ class GatewayNodeLeaseManagerTests {
         // When
         heartbeatCaptor.getValue().run();
         manager.stop();
+        manager.stop();
 
         // Then
         verify(controlPlaneClient).renewNodeLease("node-1", NODE_LEASE.leaseId(), 7);
-        verify(heartbeatTask).cancel(false);
+        verify(heartbeatTask, times(1)).cancel(false);
+        verify(controlPlaneClient, times(1)).releaseNodeLease("node-1", NODE_LEASE.leaseId());
+        InOrder shutdownOrder = inOrder(heartbeatTask, controlPlaneClient);
+        shutdownOrder.verify(heartbeatTask).cancel(false);
+        shutdownOrder.verify(controlPlaneClient).releaseNodeLease("node-1", NODE_LEASE.leaseId());
     }
 
     @Test
@@ -90,6 +98,49 @@ class GatewayNodeLeaseManagerTests {
         verify(taskScheduler, never()).scheduleWithFixedDelay(
                 any(Runnable.class), any(Instant.class), any(Duration.class));
         verifyNoInteractions(routeTable);
+    }
+
+    @Test
+    void shouldReleaseRegisteredLeaseWhenHeartbeatSchedulingFails() {
+        // Given
+        GatewayControlPlaneClient controlPlaneClient = mock(GatewayControlPlaneClient.class);
+        GatewayRouteTable routeTable = mock(GatewayRouteTable.class);
+        TaskScheduler taskScheduler = mock(TaskScheduler.class);
+        IllegalStateException failure = new IllegalStateException("scheduling rejected");
+        when(controlPlaneClient.registerNode(REGISTRATION_REQUEST)).thenReturn(NODE_LEASE);
+        when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
+        doThrow(failure).when(taskScheduler).scheduleWithFixedDelay(
+                any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
+                controlPlaneClient, routeTable, taskScheduler);
+
+        // When & Then
+        assertThatThrownBy(() -> manager.start(REGISTRATION_REQUEST)).isSameAs(failure);
+        verify(controlPlaneClient).releaseNodeLease("node-1", NODE_LEASE.leaseId());
+    }
+
+    @Test
+    void shouldContinueStoppingWhenLeaseReleaseFails() {
+        // Given
+        GatewayControlPlaneClient controlPlaneClient = mock(GatewayControlPlaneClient.class);
+        GatewayRouteTable routeTable = mock(GatewayRouteTable.class);
+        TaskScheduler taskScheduler = mock(TaskScheduler.class);
+        ScheduledFuture<?> heartbeatTask = mock(ScheduledFuture.class);
+        when(controlPlaneClient.registerNode(REGISTRATION_REQUEST)).thenReturn(NODE_LEASE);
+        when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
+        doReturn(heartbeatTask).when(taskScheduler).scheduleWithFixedDelay(
+                any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
+        doThrow(new IllegalStateException("control plane unavailable"))
+                .when(controlPlaneClient).releaseNodeLease("node-1", NODE_LEASE.leaseId());
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
+                controlPlaneClient, routeTable, taskScheduler);
+        manager.start(REGISTRATION_REQUEST);
+
+        // When & Then
+        assertThatCode(manager::stop).doesNotThrowAnyException();
+        assertThatCode(manager::stop).doesNotThrowAnyException();
+        verify(heartbeatTask, times(1)).cancel(false);
+        verify(controlPlaneClient, times(1)).releaseNodeLease("node-1", NODE_LEASE.leaseId());
     }
 
     @Test

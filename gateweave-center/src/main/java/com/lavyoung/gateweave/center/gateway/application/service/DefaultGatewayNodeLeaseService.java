@@ -1,6 +1,7 @@
 package com.lavyoung.gateweave.center.gateway.application.service;
 
 import com.lavyoung.gateweave.center.gateway.application.ExpireGatewayNodeLeasesUseCase;
+import com.lavyoung.gateweave.center.gateway.application.ReleaseGatewayNodeLeaseUseCase;
 import com.lavyoung.gateweave.center.gateway.application.RenewGatewayNodeLeaseUseCase;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeHeartbeat;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
@@ -26,7 +27,8 @@ import java.util.UUID;
  * @version 1.0.0
  * @date 2026/11/09
  */
-public class DefaultGatewayNodeLeaseService implements RenewGatewayNodeLeaseUseCase, ExpireGatewayNodeLeasesUseCase {
+public class DefaultGatewayNodeLeaseService implements RenewGatewayNodeLeaseUseCase, ExpireGatewayNodeLeasesUseCase,
+        ReleaseGatewayNodeLeaseUseCase {
 
     private final GatewayNodeRepository gatewayNodeRepository;
     private final Clock clock;
@@ -61,5 +63,15 @@ public class DefaultGatewayNodeLeaseService implements RenewGatewayNodeLeaseUseC
     public int expire() {
         Instant heartbeatDeadline = this.clock.instant().minus(this.leaseTimeout);
         return this.gatewayNodeRepository.markExpiredLeasesOffline(heartbeatDeadline);
+    }
+
+    @Override
+    public void release(String nodeId, UUID leaseId) {
+        String checkedNodeId = Objects.requireNonNull(nodeId, "nodeId must not be null").strip();
+        if (checkedNodeId.isEmpty()) {
+            throw new IllegalArgumentException("nodeId must not be blank");
+        }
+        this.gatewayNodeRepository.releaseLease(checkedNodeId,
+                Objects.requireNonNull(leaseId, "leaseId must not be null"));
     }
 }

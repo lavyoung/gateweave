@@ -59,4 +59,42 @@ class ControlPlaneHttpApiTests {
             server.stop(0);
         }
     }
+
+    @Test
+    void shouldSendLeaseReleaseThroughConfiguredHttpContract() throws Exception {
+        // Given
+        AtomicReference<String> requestMethod = new AtomicReference<>();
+        AtomicReference<String> requestPath = new AtomicReference<>();
+        AtomicReference<String> requestQuery = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/gateway-nodes/node-1/lease", exchange -> {
+            requestMethod.set(exchange.getRequestMethod());
+            requestPath.set(exchange.getRequestURI().getPath());
+            requestQuery.set(exchange.getRequestURI().getRawQuery());
+            exchange.sendResponseHeaders(HttpStatus.NO_CONTENT.value(), -1);
+            exchange.close();
+        });
+        server.start();
+
+        try {
+            RestClient restClient = RestClient.builder()
+                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort())
+                    .build();
+            ControlPlaneHttpApi httpApi = HttpServiceProxyFactory
+                    .builderFor(RestClientAdapter.create(restClient))
+                    .build()
+                    .createClient(ControlPlaneHttpApi.class);
+
+            // When
+            ResponseEntity<Void> response = httpApi.releaseNodeLease("node-1", LEASE_ID);
+
+            // Then
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            assertThat(requestMethod.get()).isEqualTo("DELETE");
+            assertThat(requestPath.get()).isEqualTo("/api/v1/gateway-nodes/node-1/lease");
+            assertThat(requestQuery.get()).isEqualTo("leaseId=00000000-0000-0000-0000-000000000001");
+        } finally {
+            server.stop(0);
+        }
+    }
 }

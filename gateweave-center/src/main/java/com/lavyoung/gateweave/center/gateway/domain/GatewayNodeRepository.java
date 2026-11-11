@@ -1,6 +1,7 @@
 package com.lavyoung.gateweave.center.gateway.domain;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * 定义网关节点持久化能力。
@@ -37,6 +38,19 @@ public interface GatewayNodeRepository {
      * @throws NullPointerException heartbeat 为 null 时抛出
      */
     boolean renewLease(GatewayNodeHeartbeat heartbeat);
+
+    /**
+     * 使用当前租约原子下线网关节点。
+     *
+     * <p>实现必须同时匹配节点标识、租约标识和在线状态，防止旧进程关闭时
+     * 将已经重新注册并取得新租约的节点错误下线。</p>
+     *
+     * @param nodeId  节点唯一标识
+     * @param leaseId 当前运行实例持有的租约标识
+     * @return 当前在线租约被成功释放时返回 true；节点不存在、已离线或租约不匹配时返回 false
+     * @throws NullPointerException nodeId 或 leaseId 为 null 时抛出
+     */
+    boolean releaseLease(String nodeId, UUID leaseId);
 
     /**
      * 将最后心跳时间不晚于截止时间的在线节点批量标记为离线。

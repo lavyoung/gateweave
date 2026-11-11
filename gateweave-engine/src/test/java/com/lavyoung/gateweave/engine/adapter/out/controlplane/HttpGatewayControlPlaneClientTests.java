@@ -123,6 +123,49 @@ class HttpGatewayControlPlaneClientTests {
     }
 
     @Test
+    void shouldReleaseNodeLeaseThroughHttpApi() {
+        // Given
+        ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
+        when(httpApi.releaseNodeLease("node-1", NODE_LEASE.leaseId()))
+                .thenReturn(ResponseEntity.noContent().build());
+        HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
+
+        // When
+        client.releaseNodeLease(" node-1 ", NODE_LEASE.leaseId());
+
+        // Then
+        verify(httpApi).releaseNodeLease("node-1", NODE_LEASE.leaseId());
+    }
+
+    @Test
+    void shouldRejectUnexpectedLeaseReleaseStatus() {
+        // Given
+        ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
+        when(httpApi.releaseNodeLease("node-1", NODE_LEASE.leaseId())).thenReturn(ResponseEntity.ok().build());
+        HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
+
+        // When & Then
+        assertThatThrownBy(() -> client.releaseNodeLease("node-1", NODE_LEASE.leaseId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Gateway node lease release failed with status 200");
+    }
+
+    @Test
+    void shouldWrapLeaseReleaseTransportFailure() {
+        // Given
+        ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
+        ResourceAccessException failure = new ResourceAccessException("connection refused");
+        when(httpApi.releaseNodeLease("node-1", NODE_LEASE.leaseId())).thenThrow(failure);
+        HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
+
+        // When & Then
+        assertThatThrownBy(() -> client.releaseNodeLease("node-1", NODE_LEASE.leaseId()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Gateway node lease release request failed")
+                .hasCause(failure);
+    }
+
+    @Test
     void shouldReturnLatestPublishedConfiguration() {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
@@ -209,6 +252,15 @@ class HttpGatewayControlPlaneClientTests {
         assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), -1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("currentConfigVersion must not be negative");
+        assertThatThrownBy(() -> client.releaseNodeLease(null, NODE_LEASE.leaseId()))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> client.releaseNodeLease(" ", NODE_LEASE.leaseId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("nodeId must not be blank");
+        assertThatThrownBy(() -> client.releaseNodeLease("node-1", null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("leaseId must not be null");
         assertThatThrownBy(() -> client.findLatestPublishedConfiguration(" "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("gatewayGroupId must not be blank");

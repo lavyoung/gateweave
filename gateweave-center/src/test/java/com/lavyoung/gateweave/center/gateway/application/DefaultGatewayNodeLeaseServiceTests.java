@@ -123,4 +123,38 @@ class DefaultGatewayNodeLeaseServiceTests {
         assertThat(expired).isEqualTo(3);
         verify(repository).markExpiredLeasesOffline(RECEIVED_AT.minus(LEASE_TIMEOUT));
     }
+
+    @Test
+    void shouldReleaseLeaseUsingNormalizedNodeId() {
+        // Given
+        GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
+        DefaultGatewayNodeLeaseService service =
+                new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
+
+        // When
+        service.release(" node-1 ", LEASE_ID);
+
+        // Then
+        verify(repository).releaseLease("node-1", LEASE_ID);
+    }
+
+    @Test
+    void shouldRejectInvalidReleaseBeforeAccessingRepository() {
+        // Given
+        GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
+        DefaultGatewayNodeLeaseService service =
+                new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
+
+        // When & Then
+        assertThatThrownBy(() -> service.release(null, LEASE_ID))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> service.release("  ", LEASE_ID))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("nodeId must not be blank");
+        assertThatThrownBy(() -> service.release("node-1", null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("leaseId must not be null");
+        verifyNoInteractions(repository);
+    }
 }
