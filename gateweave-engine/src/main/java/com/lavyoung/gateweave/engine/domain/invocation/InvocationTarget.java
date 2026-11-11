@@ -18,8 +18,8 @@ import java.util.Objects;
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @since 1.0
  */
-public record InvocationTarget(String protocol, String service, String operation,
-                               List<InvocationParameter> parameters, Duration timeout, Map<String, String> attributes) {
+public record InvocationTarget(String protocol, String service, String operation, List<InvocationParameter> parameters,
+                               Duration timeout, Map<String, String> attributes) {
     /**
      * 校验领域属性、规范化协议并建立不可变快照。
      *

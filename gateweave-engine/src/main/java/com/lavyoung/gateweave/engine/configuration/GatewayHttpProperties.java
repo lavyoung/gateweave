@@ -18,13 +18,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @date 2026/10/27
  */
 @ConfigurationProperties(prefix = "gateweave.http")
-public record GatewayHttpProperties(
-        Duration connectTimeout,
-        int coreThreads,
-        int maximumThreads,
-        int queueCapacity,
-        Duration keepAlive
-) {
+public record GatewayHttpProperties(Duration connectTimeout, int coreThreads, int maximumThreads, int queueCapacity,
+                                    Duration keepAlive) {
     /**
      * 校验 HTTP 客户端及其执行器配置。
      *

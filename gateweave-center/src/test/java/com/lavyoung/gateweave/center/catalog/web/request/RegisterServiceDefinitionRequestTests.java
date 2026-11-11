@@ -50,46 +50,42 @@ class RegisterServiceDefinitionRequestTests {
         RegisterServiceDefinitionRequest.ServiceOperationParameterRequest parameter =
                 new RegisterServiceDefinitionRequest.ServiceOperationParameterRequest(-1, "", "");
         ServiceOperationRequest operation = new ServiceOperationRequest("", "", "", List.of(parameter));
-        RegisterServiceDefinitionRequest request = new RegisterServiceDefinitionRequest(
-                "activity-service", "activity-application", "dubbo", "", "", List.of(operation));
+        RegisterServiceDefinitionRequest request =
+                new RegisterServiceDefinitionRequest("activity-service", "activity-application", "dubbo", "", "",
+                        List.of(operation));
 
         // When
         Set<ConstraintViolation<RegisterServiceDefinitionRequest>> violations = validator.validate(request);
 
         // Then
-        assertThat(violations)
-                .extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactlyInAnyOrder(
-                "operations[0].operationId",
-                "operations[0].interfaceName",
-                "operations[0].operationName",
-                "operations[0].parameters[0].position",
-                "operations[0].parameters[0].name",
-                "operations[0].parameters[0].typeName");
+        assertThat(violations).extracting(violation -> violation.getPropertyPath().toString())
+                .containsExactlyInAnyOrder("operations[0].operationId", "operations[0].interfaceName",
+                        "operations[0].operationName", "operations[0].parameters[0].position",
+                        "operations[0].parameters[0].name", "operations[0].parameters[0].typeName");
     }
 
     @Test
     void shouldRejectMissingRequiredCollectionsAndFields() {
         // Given
-        RegisterServiceDefinitionRequest request = new RegisterServiceDefinitionRequest(
-                null, null, null, null, null, null);
+        RegisterServiceDefinitionRequest request =
+                new RegisterServiceDefinitionRequest(null, null, null, null, null, null);
 
         // When
         Set<ConstraintViolation<RegisterServiceDefinitionRequest>> violations = validator.validate(request);
 
         // Then
-        assertThat(violations)
-                .extracting(violation -> violation.getPropertyPath().toString())
-                .containsExactlyInAnyOrder(
-                        "serviceId", "applicationName", "protocol", "namespace", "version", "operations");
+        assertThat(violations).extracting(violation -> violation.getPropertyPath().toString())
+                .containsExactlyInAnyOrder("serviceId", "applicationName", "protocol", "namespace", "version",
+                        "operations");
     }
 
     private static RegisterServiceDefinitionRequest validRequest() {
         RegisterServiceDefinitionRequest.ServiceOperationParameterRequest parameter =
                 new RegisterServiceDefinitionRequest.ServiceOperationParameterRequest(0, "name", "java.lang.String");
-        ServiceOperationRequest operation = new ServiceOperationRequest(
-                "activity-query", "cn.example.ActivityService", "query", List.of(parameter));
-        return new RegisterServiceDefinitionRequest(
-                "activity-service", "activity-application", "dubbo", "production", "1.0.0", List.of(operation));
+        ServiceOperationRequest operation =
+                new ServiceOperationRequest("activity-query", "cn.example.ActivityService", "query",
+                        List.of(parameter));
+        return new RegisterServiceDefinitionRequest("activity-service", "activity-application", "dubbo", "production",
+                "1.0.0", List.of(operation));
     }
 }

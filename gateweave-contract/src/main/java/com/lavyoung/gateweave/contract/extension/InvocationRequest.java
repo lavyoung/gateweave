@@ -27,8 +27,7 @@ import java.util.Objects;
  */
 public record InvocationRequest(String requestId, String routeId, String protocol, String service, String operation,
                                 GenericInvocationArguments invocationArguments, Duration timeout,
-                                Map<String, String> headers, Map<String, String> attributes,
-                                byte[] payload) {
+                                Map<String, String> headers, Map<String, String> attributes, byte[] payload) {
 
     /**
      * 校验调用信息、规范化协议名称并建立不可变快照。

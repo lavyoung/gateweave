@@ -24,10 +24,10 @@ class GenericInvocationArgumentsTests {
         // Then
         assertThat(invocationArguments.parameterTypes()).containsExactly("java.lang.String");
         assertThat(invocationArguments.arguments()).containsExactly("world");
-        assertThatThrownBy(() -> invocationArguments.parameterTypes().add("java.lang.Long"))
-                .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> invocationArguments.arguments().add("changed"))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> invocationArguments.parameterTypes().add("java.lang.Long")).isInstanceOf(
+                UnsupportedOperationException.class);
+        assertThatThrownBy(() -> invocationArguments.arguments().add("changed")).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 
     @Test
@@ -46,12 +46,10 @@ class GenericInvocationArgumentsTests {
     @Test
     void shouldRejectNullLists() {
         // When & Then
-        assertThatThrownBy(() -> new GenericInvocationArguments(null, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("parameterTypes must not be null");
-        assertThatThrownBy(() -> new GenericInvocationArguments(List.of(), null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("arguments must not be null");
+        assertThatThrownBy(() -> new GenericInvocationArguments(null, List.of())).isInstanceOf(
+                NullPointerException.class).hasMessage("parameterTypes must not be null");
+        assertThatThrownBy(() -> new GenericInvocationArguments(List.of(), null)).isInstanceOf(
+                NullPointerException.class).hasMessage("arguments must not be null");
     }
 
     @Test
@@ -61,19 +59,16 @@ class GenericInvocationArgumentsTests {
         parameterTypesWithNull.add(null);
 
         // When & Then
-        assertThatThrownBy(() -> new GenericInvocationArguments(parameterTypesWithNull, List.of("world")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("parameterTypes must not contain null or blank values");
-        assertThatThrownBy(() -> new GenericInvocationArguments(List.of(" "), List.of("world")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("parameterTypes must not contain null or blank values");
+        assertThatThrownBy(() -> new GenericInvocationArguments(parameterTypesWithNull, List.of("world"))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("parameterTypes must not contain null or blank values");
+        assertThatThrownBy(() -> new GenericInvocationArguments(List.of(" "), List.of("world"))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("parameterTypes must not contain null or blank values");
     }
 
     @Test
     void shouldRejectDifferentTypeAndArgumentCounts() {
         // When & Then
-        assertThatThrownBy(() -> new GenericInvocationArguments(List.of("java.lang.String"), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("parameterTypes and arguments must have the same size");
+        assertThatThrownBy(() -> new GenericInvocationArguments(List.of("java.lang.String"), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("parameterTypes and arguments must have the same size");
     }
 }

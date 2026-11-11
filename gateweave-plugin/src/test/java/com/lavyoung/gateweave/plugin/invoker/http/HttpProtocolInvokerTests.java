@@ -65,10 +65,11 @@ class HttpProtocolInvokerTests {
     void shouldInvokeHttpServiceWithMethodHeadersAndPayload() throws Exception {
         // Given
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
-        InvocationRequest request = new InvocationRequest(
-                "request-1", "route-http", "http", baseUrl(), "/echo", EMPTY_ARGUMENTS, Duration.ofSeconds(2),
-                Map.of("X-Trace-Id", "trace-1", "Host", "forged-host", "Connection", "close"),
-                Map.of("method", "post"), "GateWeave".getBytes(StandardCharsets.UTF_8));
+        InvocationRequest request =
+                new InvocationRequest("request-1", "route-http", "http", baseUrl(), "/echo", EMPTY_ARGUMENTS,
+                        Duration.ofSeconds(2),
+                        Map.of("X-Trace-Id", "trace-1", "Host", "forged-host", "Connection", "close"),
+                        Map.of("method", "post"), "GateWeave".getBytes(StandardCharsets.UTF_8));
 
         // When
         String response = invoker.invoke(request).toCompletableFuture().get(3, TimeUnit.SECONDS);
@@ -86,9 +87,9 @@ class HttpProtocolInvokerTests {
     void shouldSendNoBodyWhenPayloadIsEmpty() throws Exception {
         // Given
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
-        InvocationRequest request = new InvocationRequest(
-                "request-2", "route-http", "http", baseUrl(), "/echo", EMPTY_ARGUMENTS, Duration.ofSeconds(2),
-                Map.of(), Map.of("method", "get"), new byte[0]);
+        InvocationRequest request =
+                new InvocationRequest("request-2", "route-http", "http", baseUrl(), "/echo", EMPTY_ARGUMENTS,
+                        Duration.ofSeconds(2), Map.of(), Map.of("method", "get"), new byte[0]);
 
         // When
         String response = invoker.invoke(request).toCompletableFuture().get(3, TimeUnit.SECONDS);
@@ -105,15 +106,15 @@ class HttpProtocolInvokerTests {
         CountDownLatch releaseResponse = new CountDownLatch(1);
         this.server.createContext("/slow", exchange -> handleDelayedResponse(exchange, releaseResponse));
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
-        InvocationRequest request = new InvocationRequest(
-                "request-3", "route-http", "http", baseUrl(), "/slow", EMPTY_ARGUMENTS, Duration.ofMillis(200),
-                Map.of(), Map.of("method", "get"), new byte[0]);
+        InvocationRequest request =
+                new InvocationRequest("request-3", "route-http", "http", baseUrl(), "/slow", EMPTY_ARGUMENTS,
+                        Duration.ofMillis(200), Map.of(), Map.of("method", "get"), new byte[0]);
 
         // When & Then
         try {
-            assertThatThrownBy(() -> invoker.invoke(request).toCompletableFuture().get(3, TimeUnit.SECONDS))
-                    .isInstanceOf(ExecutionException.class)
-                    .hasCauseInstanceOf(HttpTimeoutException.class);
+            assertThatThrownBy(
+                    () -> invoker.invoke(request).toCompletableFuture().get(3, TimeUnit.SECONDS)).isInstanceOf(
+                    ExecutionException.class).hasCauseInstanceOf(HttpTimeoutException.class);
         } finally {
             releaseResponse.countDown();
         }
@@ -125,11 +126,9 @@ class HttpProtocolInvokerTests {
         HttpProtocolInvoker invoker = new HttpProtocolInvoker(HttpClient.newHttpClient());
 
         // When & Then
-        assertThatThrownBy(() -> new HttpProtocolInvoker(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new HttpProtocolInvoker(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("httpClient must not be null");
-        assertThatThrownBy(() -> invoker.invoke(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.invoke(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
     }
 

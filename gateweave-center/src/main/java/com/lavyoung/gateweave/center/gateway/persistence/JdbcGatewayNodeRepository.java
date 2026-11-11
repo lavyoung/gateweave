@@ -154,10 +154,8 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
     @Override
     public boolean renewLease(GatewayNodeHeartbeat heartbeat) {
         Objects.requireNonNull(heartbeat, "heartbeat must not be null");
-        MapSqlParameterSource parameterSource = new MapSqlParameterSource()
-                .addValue("nodeId", heartbeat.nodeId())
-                .addValue("leaseId", heartbeat.leaseId().toString())
-                .addValue("status", GatewayNodeStatus.ONLINE.name())
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource().addValue("nodeId", heartbeat.nodeId())
+                .addValue("leaseId", heartbeat.leaseId().toString()).addValue("status", GatewayNodeStatus.ONLINE.name())
                 .addValue("receivedAt", Timestamp.from(heartbeat.receivedAt()))
                 .addValue("currentConfigVersion", heartbeat.currentConfigVersion());
         return this.jdbcTemplate.update(RENEW_LEASE_SQL, parameterSource) == 1;
@@ -167,21 +165,20 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
     public boolean releaseLease(String nodeId, UUID leaseId) {
         Objects.requireNonNull(nodeId, "nodeId must not be null");
         Objects.requireNonNull(leaseId, "leaseId must not be null");
-        MapSqlParameterSource parameterSource = new MapSqlParameterSource()
-                .addValue("nodeId", nodeId)
-                .addValue("leaseId", leaseId.toString())
-                .addValue("onlineStatus", GatewayNodeStatus.ONLINE.name())
-                .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name());
+        MapSqlParameterSource parameterSource =
+                new MapSqlParameterSource().addValue("nodeId", nodeId).addValue("leaseId", leaseId.toString())
+                        .addValue("onlineStatus", GatewayNodeStatus.ONLINE.name())
+                        .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name());
         return this.jdbcTemplate.update(RELEASE_LEASE_SQL, parameterSource) == 1;
     }
 
     @Override
     public int markExpiredLeasesOffline(Instant heartbeatDeadline) {
         Objects.requireNonNull(heartbeatDeadline, "heartbeatDeadline must not be null");
-        MapSqlParameterSource parameterSource = new MapSqlParameterSource()
-                .addValue("onlineStatus", GatewayNodeStatus.ONLINE.name())
-                .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name())
-                .addValue("heartbeatDeadline", Timestamp.from(heartbeatDeadline));
+        MapSqlParameterSource parameterSource =
+                new MapSqlParameterSource().addValue("onlineStatus", GatewayNodeStatus.ONLINE.name())
+                        .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name())
+                        .addValue("heartbeatDeadline", Timestamp.from(heartbeatDeadline));
         return this.jdbcTemplate.update(MARK_EXPIRED_LEASES_OFFLINE_SQL, parameterSource);
     }
 
@@ -218,8 +215,8 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
     }
 
     private boolean existsByNodeId(String nodeId) {
-        Long count = this.jdbcTemplate.queryForObject(
-                EXISTS_NODE_SQL, new MapSqlParameterSource("nodeId", nodeId), Long.class);
+        Long count = this.jdbcTemplate.queryForObject(EXISTS_NODE_SQL, new MapSqlParameterSource("nodeId", nodeId),
+                Long.class);
         if (count == null) {
             throw new DataRetrievalFailureException("Gateway node existence query returned no result");
         }
@@ -227,8 +224,8 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
     }
 
     private boolean existsGatewayGroup(String gatewayGroupId) {
-        Long count = this.jdbcTemplate.queryForObject(
-                EXISTS_GATEWAY_GROUP_SQL, new MapSqlParameterSource("gatewayGroupId", gatewayGroupId), Long.class);
+        Long count = this.jdbcTemplate.queryForObject(EXISTS_GATEWAY_GROUP_SQL,
+                new MapSqlParameterSource("gatewayGroupId", gatewayGroupId), Long.class);
         if (count == null) {
             throw new DataRetrievalFailureException("Gateway group existence query returned no result");
         }
@@ -241,8 +238,8 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
     }
 
     private GatewayNode findRequiredNode(String nodeId) {
-        List<GatewayNode> nodes = this.jdbcTemplate.query(
-                FIND_NODE_SQL, new MapSqlParameterSource("nodeId", nodeId), this::mapNode);
+        List<GatewayNode> nodes =
+                this.jdbcTemplate.query(FIND_NODE_SQL, new MapSqlParameterSource("nodeId", nodeId), this::mapNode);
         if (nodes.size() != 1) {
             throw new DataRetrievalFailureException("Gateway node was not found after registration: " + nodeId);
         }
@@ -251,13 +248,10 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
 
     private MapSqlParameterSource parameters(GatewayNode node) {
         GatewayNodeRegistration registration = node.registration();
-        return new MapSqlParameterSource()
-                .addValue("nodeId", registration.nodeId())
-                .addValue("gatewayGroupId", registration.gatewayGroupId())
-                .addValue("nodeName", registration.nodeName())
+        return new MapSqlParameterSource().addValue("nodeId", registration.nodeId())
+                .addValue("gatewayGroupId", registration.gatewayGroupId()).addValue("nodeName", registration.nodeName())
                 .addValue("advertisedAddress", registration.advertisedAddress().toASCIIString())
-                .addValue("status", node.status().name())
-                .addValue("leaseId", node.leaseId().toString())
+                .addValue("status", node.status().name()).addValue("leaseId", node.leaseId().toString())
                 .addValue("lastHeartbeatAt", Timestamp.from(node.lastHeartbeatAt()))
                 .addValue("currentConfigVersion", node.currentConfigVersion());
     }
@@ -274,20 +268,16 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
     private GatewayNode mapNode(ResultSet resultSet, int rowNumber) throws SQLException {
         String nodeId = resultSet.getString("node_id");
         try {
-            GatewayNodeRegistration registration = new GatewayNodeRegistration(
-                    nodeId,
-                    resultSet.getString("gateway_group_id"),
-                    resultSet.getString("node_name"),
-                    URI.create(resultSet.getString("advertised_address")));
-            return new GatewayNode(
-                    registration,
-                    GatewayNodeStatus.valueOf(resultSet.getString("status")),
+            GatewayNodeRegistration registration =
+                    new GatewayNodeRegistration(nodeId, resultSet.getString("gateway_group_id"),
+                            resultSet.getString("node_name"), URI.create(resultSet.getString("advertised_address")));
+            return new GatewayNode(registration, GatewayNodeStatus.valueOf(resultSet.getString("status")),
                     UUID.fromString(resultSet.getString("lease_id")),
                     resultSet.getTimestamp("last_heartbeat_at").toInstant(),
                     resultSet.getLong("current_config_version"));
         } catch (IllegalArgumentException exception) {
-            throw new DataRetrievalFailureException(
-                    "Gateway node contains invalid persisted data: " + nodeId, exception);
+            throw new DataRetrievalFailureException("Gateway node contains invalid persisted data: " + nodeId,
+                    exception);
         }
     }
 }

@@ -62,15 +62,14 @@ class BusinessExceptionTests {
     @Test
     void shouldRejectMissingResponseCode() {
         // When & Then
-        assertThatThrownBy(() -> new BusinessException(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new BusinessException(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("responseCode must not be null");
     }
 
     private enum TestResponseCode implements ResponseCode {
 
-        RESOURCE_NOT_FOUND("TEST-0001", "test.resource.not-found", "Resource {0} does not exist"),
-        OPERATION_FAILED("TEST-0002", "test.operation.failed", "Operation failed");
+        RESOURCE_NOT_FOUND("TEST-0001", "test.resource.not-found", "Resource {0} does not exist"), OPERATION_FAILED(
+                "TEST-0002", "test.operation.failed", "Operation failed");
 
         private final String code;
         private final String messageKey;

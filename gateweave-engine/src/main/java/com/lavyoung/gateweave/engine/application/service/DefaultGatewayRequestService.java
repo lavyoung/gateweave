@@ -29,8 +29,8 @@ import com.lavyoung.gateweave.engine.application.session.GatewaySessionFactory;
  */
 public final class DefaultGatewayRequestService implements HandleGatewayRequestUseCase {
 
-    private static final GatewayResponse UNAUTHORIZED_RESPONSE = new GatewayResponse(
-            401, HttpHeaders.of(Map.of("WWW-Authenticate", List.of("Bearer")), (name, value) -> true), new byte[0]);
+    private static final GatewayResponse UNAUTHORIZED_RESPONSE = new GatewayResponse(401,
+            HttpHeaders.of(Map.of("WWW-Authenticate", List.of("Bearer")), (name, value) -> true), new byte[0]);
 
     private final GatewaySessionFactory sessionFactory;
     private final InvocationRequestMapper requestMapper;
@@ -46,23 +46,21 @@ public final class DefaultGatewayRequestService implements HandleGatewayRequestU
      * @param authenticationService 会话鉴权应用服务
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public DefaultGatewayRequestService(
-            GatewaySessionFactory sessionFactory, InvocationRequestMapper requestMapper,
+    public DefaultGatewayRequestService(GatewaySessionFactory sessionFactory, InvocationRequestMapper requestMapper,
             ProtocolInvocationDispatcher invocationDispatcher,
             GatewaySessionAuthenticationService authenticationService) {
         this.sessionFactory = Objects.requireNonNull(sessionFactory, "sessionFactory must not be null");
         this.requestMapper = Objects.requireNonNull(requestMapper, "requestMapper must not be null");
-        this.invocationDispatcher = Objects.requireNonNull(
-                invocationDispatcher, "invocationDispatcher must not be null");
-        this.authenticationService = Objects.requireNonNull(
-                authenticationService, "authenticationService must not be null");
+        this.invocationDispatcher =
+                Objects.requireNonNull(invocationDispatcher, "invocationDispatcher must not be null");
+        this.authenticationService =
+                Objects.requireNonNull(authenticationService, "authenticationService must not be null");
     }
 
     @Override
     public CompletionStage<GatewayResponse> handle(GatewayRequestCommand command) {
         Objects.requireNonNull(command, "command must not be null");
-        return this.sessionFactory.openSession(command)
-                .map(this::authenticateAndInvoke)
+        return this.sessionFactory.openSession(command).map(this::authenticateAndInvoke)
                 .orElseGet(() -> CompletableFuture.completedFuture(GatewayResponse.text(404, "Route Not Found")));
     }
 

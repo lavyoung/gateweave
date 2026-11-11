@@ -100,8 +100,8 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
 
     @Override
     @Transactional
-    public GatewayConfigurationSnapshot publish(
-            String gatewayGroupId, List<RouteConfiguration> routes, Instant publishedAt) {
+    public GatewayConfigurationSnapshot publish(String gatewayGroupId, List<RouteConfiguration> routes,
+            Instant publishedAt) {
         String groupId = Objects.requireNonNull(gatewayGroupId, "gatewayGroupId must not be null").strip();
         if (groupId.isBlank()) {
             throw new IllegalArgumentException("gatewayGroupId must not be blank");
@@ -124,8 +124,7 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
         if (groupId.isBlank()) {
             throw new IllegalArgumentException("gatewayGroupId must not be blank");
         }
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("gatewayGroupId", groupId)
+        MapSqlParameterSource parameters = new MapSqlParameterSource().addValue("gatewayGroupId", groupId)
                 .addValue("releaseStatus", PUBLISHED_STATUS);
         List<GatewayConfigurationSnapshot> snapshots =
                 this.jdbcTemplate.query(FIND_LATEST_PUBLISHED_SQL, parameters, this::mapSnapshot);
@@ -155,15 +154,13 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
         }
     }
 
-    private void insertRelease(
-            String groupId, long version, String checksum, String snapshotContent, Instant checkedPublishedAt) {
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("gatewayGroupId", groupId)
-                .addValue("configVersion", version)
-                .addValue("checksum", checksum)
-                .addValue("snapshotContent", snapshotContent)
-                .addValue("releaseStatus", PUBLISHED_STATUS)
-                .addValue("publishedAt", Timestamp.from(checkedPublishedAt));
+    private void insertRelease(String groupId, long version, String checksum, String snapshotContent,
+            Instant checkedPublishedAt) {
+        MapSqlParameterSource parameters =
+                new MapSqlParameterSource().addValue("gatewayGroupId", groupId).addValue("configVersion", version)
+                        .addValue("checksum", checksum).addValue("snapshotContent", snapshotContent)
+                        .addValue("releaseStatus", PUBLISHED_STATUS)
+                        .addValue("publishedAt", Timestamp.from(checkedPublishedAt));
         this.jdbcTemplate.update(INSERT_RELEASE_SQL, parameters);
     }
 
@@ -176,13 +173,11 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
         String actualChecksum = calculateChecksum(snapshotContent);
 
         if (!storedChecksum.equals(actualChecksum)) {
-            throw new DataRetrievalFailureException(
-                    "Configuration release checksum does not match stored content");
+            throw new DataRetrievalFailureException("Configuration release checksum does not match stored content");
         }
 
         List<RouteConfiguration> routes = readRoutes(snapshotContent);
-        return new GatewayConfigurationSnapshot(
-                gatewayGroupId, version, publishedAt, storedChecksum, routes);
+        return new GatewayConfigurationSnapshot(gatewayGroupId, version, publishedAt, storedChecksum, routes);
     }
 
     private String writeRoutes(List<RouteConfiguration> routes) {
@@ -195,12 +190,10 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
 
     private List<RouteConfiguration> readRoutes(String snapshotContent) {
         try {
-            List<RouteConfiguration> routes =
-                    this.objectMapper.readValue(snapshotContent, ROUTE_LIST_TYPE);
+            List<RouteConfiguration> routes = this.objectMapper.readValue(snapshotContent, ROUTE_LIST_TYPE);
             return List.copyOf(Objects.requireNonNull(routes, "routes must not be null"));
         } catch (JsonProcessingException | NullPointerException exception) {
-            throw new DataRetrievalFailureException(
-                    "Unable to read configuration release routes", exception);
+            throw new DataRetrievalFailureException("Unable to read configuration release routes", exception);
         }
     }
 }

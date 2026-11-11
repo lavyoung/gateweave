@@ -45,8 +45,8 @@ class GatewaySecurityConfigurationTests {
             assertThat(context).hasSingleBean(BearerTokenResolver.class);
             assertThat(context).hasSingleBean(GatewaySessionAuthenticationService.class);
 
-            AbstractBeanDefinition beanDefinition = (AbstractBeanDefinition) context.getBeanFactory()
-                    .getBeanDefinition("gatewaySecurityManager");
+            AbstractBeanDefinition beanDefinition =
+                    (AbstractBeanDefinition) context.getBeanFactory().getBeanDefinition("gatewaySecurityManager");
             assertThat(beanDefinition.getDestroyMethodNames()).containsExactly("destroy");
         });
     }
@@ -56,15 +56,8 @@ class GatewaySecurityConfigurationTests {
         // Given
         ApplicationContextRunner contextRunner = contextRunner(VERIFICATION_KEY_BASE64);
         SecretKey key = new SecretKeySpec(VERIFICATION_KEY_BYTES, "HmacSHA256");
-        String token = Jwts.builder()
-                .issuer(ISSUER)
-                .audience()
-                .add(AUDIENCE)
-                .and()
-                .subject("user-10001")
-                .expiration(Date.from(Instant.now().plusSeconds(300)))
-                .signWith(key, Jwts.SIG.HS256)
-                .compact();
+        String token = Jwts.builder().issuer(ISSUER).audience().add(AUDIENCE).and().subject("user-10001")
+                .expiration(Date.from(Instant.now().plusSeconds(300))).signWith(key, Jwts.SIG.HS256).compact();
 
         // When & Then
         contextRunner.run(context -> {
@@ -99,13 +92,10 @@ class GatewaySecurityConfigurationTests {
     }
 
     private ApplicationContextRunner contextRunner(String verificationKeyBase64) {
-        return new ApplicationContextRunner()
-                .withUserConfiguration(GatewaySecurityConfiguration.class)
-                .withPropertyValues(
-                        "gateweave.security.jwt.issuer=" + ISSUER,
+        return new ApplicationContextRunner().withUserConfiguration(GatewaySecurityConfiguration.class)
+                .withPropertyValues("gateweave.security.jwt.issuer=" + ISSUER,
                         "gateweave.security.jwt.audience=" + AUDIENCE,
                         "gateweave.security.jwt.verification-key-base64=" + verificationKeyBase64,
-                        "gateweave.security.jwt.clock-skew=0s",
-                        "gateweave.security.jwt.maximum-token-length=4096");
+                        "gateweave.security.jwt.clock-skew=0s", "gateweave.security.jwt.maximum-token-length=4096");
     }
 }

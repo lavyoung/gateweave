@@ -23,12 +23,11 @@ class GateWeaveCenterApplicationTests {
     @Test
     void shouldStartIndependentCenterWebApplicationContext() {
         // Given
-        WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
-                .withUserConfiguration(GateWeaveCenterApplication.class)
-                .withPropertyValues(
-                        "spring.datasource.url=jdbc:h2:mem:gateweave-center;MODE=MySQL;DB_CLOSE_DELAY=0",
-                        "spring.datasource.username=sa",
-                        "spring.datasource.password=");
+        WebApplicationContextRunner contextRunner =
+                new WebApplicationContextRunner().withUserConfiguration(GateWeaveCenterApplication.class)
+                        .withPropertyValues(
+                                "spring.datasource.url=jdbc:h2:mem:gateweave-center;MODE=MySQL;DB_CLOSE_DELAY=0",
+                                "spring.datasource.username=sa", "spring.datasource.password=");
 
         // When & Then
         contextRunner.run(context -> {

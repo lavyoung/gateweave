@@ -34,13 +34,12 @@ public class DefaultGatewayConfigurationPublicationService implements PublishGat
      * @param clock                          控制面时钟
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public DefaultGatewayConfigurationPublicationService(
-            GatewayRouteConfigurationQuery routeConfigurationQuery,
+    public DefaultGatewayConfigurationPublicationService(GatewayRouteConfigurationQuery routeConfigurationQuery,
             ConfigurationReleaseRepository configurationReleaseRepository, Clock clock) {
-        this.routeConfigurationQuery = Objects.requireNonNull(
-                routeConfigurationQuery, "routeConfigurationQuery must not be null");
-        this.configurationReleaseRepository = Objects.requireNonNull(
-                configurationReleaseRepository, "configurationReleaseRepository must not be null");
+        this.routeConfigurationQuery =
+                Objects.requireNonNull(routeConfigurationQuery, "routeConfigurationQuery must not be null");
+        this.configurationReleaseRepository = Objects.requireNonNull(configurationReleaseRepository,
+                "configurationReleaseRepository must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 

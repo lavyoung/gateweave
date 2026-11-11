@@ -24,13 +24,12 @@ import jakarta.validation.constraints.Size;
  * @version 1.0.0
  * @date 2026/11/01
  */
-public record RegisterServiceDefinitionRequest(
-        @NotBlank @Size(max = 64) String serviceId,
-        @NotBlank @Size(max = 128) String applicationName,
-        @NotBlank @Size(max = 32) String protocol,
-        @NotNull @Size(max = 128) String namespace,
-        @NotNull @Size(max = 64) String version,
-        @NotNull List<@Valid ServiceOperationRequest> operations) {
+public record RegisterServiceDefinitionRequest(@NotBlank @Size(max = 64) String serviceId,
+                                               @NotBlank @Size(max = 128) String applicationName,
+                                               @NotBlank @Size(max = 32) String protocol,
+                                               @NotNull @Size(max = 128) String namespace,
+                                               @NotNull @Size(max = 64) String version,
+                                               @NotNull List<@Valid ServiceOperationRequest> operations) {
 
     /**
      * 表示一个可被网关路由引用的服务操作。
@@ -40,11 +39,10 @@ public record RegisterServiceDefinitionRequest(
      * @param operationName 服务方法名称
      * @param parameters    按调用位置排列的参数
      */
-    public record ServiceOperationRequest(
-            @NotBlank @Size(max = 64) String operationId,
-            @NotBlank @Size(max = 256) String interfaceName,
-            @NotBlank @Size(max = 128) String operationName,
-            @NotNull List<@Valid ServiceOperationParameterRequest> parameters) {
+    public record ServiceOperationRequest(@NotBlank @Size(max = 64) String operationId,
+                                          @NotBlank @Size(max = 256) String interfaceName,
+                                          @NotBlank @Size(max = 128) String operationName,
+                                          @NotNull List<@Valid ServiceOperationParameterRequest> parameters) {
     }
 
     /**
@@ -54,9 +52,8 @@ public record RegisterServiceDefinitionRequest(
      * @param name     参数名称
      * @param typeName 参数类型全限定名
      */
-    public record ServiceOperationParameterRequest(
-            @NotNull @PositiveOrZero Integer position,
-            @NotBlank @Size(max = 128) String name,
-            @NotBlank @Size(max = 256) String typeName) {
+    public record ServiceOperationParameterRequest(@NotNull @PositiveOrZero Integer position,
+                                                   @NotBlank @Size(max = 128) String name,
+                                                   @NotBlank @Size(max = 256) String typeName) {
     }
 }

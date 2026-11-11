@@ -82,11 +82,9 @@ class JdbcGatewayRouteConfigurationQueryTests {
             assertThat(queryRoute.target().operation()).isEqualTo("query");
             assertThat(queryRoute.target().timeout()).isEqualTo(Duration.ofSeconds(3));
             assertThat(queryRoute.target().attributes()).containsEntry("version", "1.0.0");
-            assertThat(queryRoute.target().parameters())
-                    .extracting(InvocationParameterConfiguration::name)
+            assertThat(queryRoute.target().parameters()).extracting(InvocationParameterConfiguration::name)
                     .containsExactly("userName", "userAge");
-            assertThat(queryRoute.target().parameters())
-                    .extracting(InvocationParameterConfiguration::typeName)
+            assertThat(queryRoute.target().parameters()).extracting(InvocationParameterConfiguration::typeName)
                     .containsExactly("java.lang.String", "java.lang.Integer");
             assertThat(candidates.get(1).target().parameters()).isEmpty();
         });
@@ -103,11 +101,9 @@ class JdbcGatewayRouteConfigurationQueryTests {
             GatewayRouteConfigurationQuery query = context.getBean(GatewayRouteConfigurationQuery.class);
 
             assertThat(query.findCandidates("missing")).isEmpty();
-            assertThatThrownBy(() -> query.findCandidates(null))
-                    .isInstanceOf(NullPointerException.class)
+            assertThatThrownBy(() -> query.findCandidates(null)).isInstanceOf(NullPointerException.class)
                     .hasMessage("gatewayGroupId must not be null");
-            assertThatThrownBy(() -> query.findCandidates(" "))
-                    .isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> query.findCandidates(" ")).isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("gatewayGroupId must not be blank");
         });
     }
@@ -123,59 +119,50 @@ class JdbcGatewayRouteConfigurationQueryTests {
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
             GatewayRouteConfigurationQuery query = context.getBean(GatewayRouteConfigurationQuery.class);
             insertActiveService(jdbcTemplate);
-            insertRoute(jdbcTemplate, new RouteFixture(
-                    "route-invalid", "/invalid", "GET", "activity-health", "UNSUPPORTED",
-                    "{}", "{}", "ENABLED"));
+            insertRoute(jdbcTemplate,
+                    new RouteFixture("route-invalid", "/invalid", "GET", "activity-health", "UNSUPPORTED", "{}", "{}",
+                            "ENABLED"));
 
-            assertThatThrownBy(() -> query.findCandidates("default"))
-                    .isInstanceOf(DataRetrievalFailureException.class)
+            assertThatThrownBy(() -> query.findCandidates("default")).isInstanceOf(DataRetrievalFailureException.class)
                     .hasMessage("Route contains an unsupported authentication mode: route-invalid");
         });
     }
 
     private static void insertCatalog(JdbcTemplate jdbcTemplate) {
         insertActiveService(jdbcTemplate);
-        jdbcTemplate.update(
-                INSERT_OPERATION, "activity-disabled", "activity-service",
-                "cn.example.ActivityService", "disabled", "DISABLED");
-        jdbcTemplate.update(
-                INSERT_SERVICE, "disabled-service", "disabled-application", "dubbo", "", "1.0.0", "DISABLED");
-        jdbcTemplate.update(
-                INSERT_OPERATION, "disabled-service-operation", "disabled-service",
+        jdbcTemplate.update(INSERT_OPERATION, "activity-disabled", "activity-service", "cn.example.ActivityService",
+                "disabled", "DISABLED");
+        jdbcTemplate.update(INSERT_SERVICE, "disabled-service", "disabled-application", "dubbo", "", "1.0.0",
+                "DISABLED");
+        jdbcTemplate.update(INSERT_OPERATION, "disabled-service-operation", "disabled-service",
                 "cn.example.DisabledService", "invoke", "ACTIVE");
     }
 
     private static void insertActiveService(JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.update(
-                INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0", "ACTIVE");
-        jdbcTemplate.update(
-                INSERT_OPERATION, "activity-query", "activity-service",
-                "cn.example.ActivityService", "query", "ACTIVE");
-        jdbcTemplate.update(
-                INSERT_OPERATION, "activity-health", "activity-service",
-                "cn.example.ActivityService", "health", "ACTIVE");
-        jdbcTemplate.update(
-                INSERT_OPERATION_PARAMETER, "activity-query", 0, "name", "java.lang.String");
-        jdbcTemplate.update(
-                INSERT_OPERATION_PARAMETER, "activity-query", 1, "age", "java.lang.Integer");
+        jdbcTemplate.update(INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0", "ACTIVE");
+        jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service", "cn.example.ActivityService",
+                "query", "ACTIVE");
+        jdbcTemplate.update(INSERT_OPERATION, "activity-health", "activity-service", "cn.example.ActivityService",
+                "health", "ACTIVE");
+        jdbcTemplate.update(INSERT_OPERATION_PARAMETER, "activity-query", 0, "name", "java.lang.String");
+        jdbcTemplate.update(INSERT_OPERATION_PARAMETER, "activity-query", 1, "age", "java.lang.Integer");
     }
 
     private static void insertRoutes(JdbcTemplate jdbcTemplate) {
-        insertRoute(jdbcTemplate, new RouteFixture(
-                "route-query", "/activities/query", "POST", "activity-query", "REQUIRED",
-                "{\"version\":\"1.0.0\"}", "{\"source\":\"center\"}", "ENABLED"));
-        insertRoute(jdbcTemplate, new RouteFixture(
-                "route-health", "/activities/health", "GET", "activity-health", "ANONYMOUS",
-                "{\"version\":\"1.0.0\"}", "{}", "ENABLED"));
-        insertRoute(jdbcTemplate, new RouteFixture(
-                "route-disabled", "/activities/disabled", "GET", "activity-query", "ANONYMOUS",
-                "{}", "{}", "DISABLED"));
-        insertRoute(jdbcTemplate, new RouteFixture(
-                "route-disabled-operation", "/activities/disabled-operation", "GET", "activity-disabled",
-                "ANONYMOUS", "{}", "{}", "ENABLED"));
-        insertRoute(jdbcTemplate, new RouteFixture(
-                "route-disabled-service", "/disabled-service", "GET", "disabled-service-operation",
-                "ANONYMOUS", "{}", "{}", "ENABLED"));
+        insertRoute(jdbcTemplate,
+                new RouteFixture("route-query", "/activities/query", "POST", "activity-query", "REQUIRED",
+                        "{\"version\":\"1.0.0\"}", "{\"source\":\"center\"}", "ENABLED"));
+        insertRoute(jdbcTemplate,
+                new RouteFixture("route-health", "/activities/health", "GET", "activity-health", "ANONYMOUS",
+                        "{\"version\":\"1.0.0\"}", "{}", "ENABLED"));
+        insertRoute(jdbcTemplate,
+                new RouteFixture("route-disabled", "/activities/disabled", "GET", "activity-query", "ANONYMOUS", "{}",
+                        "{}", "DISABLED"));
+        insertRoute(jdbcTemplate, new RouteFixture("route-disabled-operation", "/activities/disabled-operation", "GET",
+                "activity-disabled", "ANONYMOUS", "{}", "{}", "ENABLED"));
+        insertRoute(jdbcTemplate,
+                new RouteFixture("route-disabled-service", "/disabled-service", "GET", "disabled-service-operation",
+                        "ANONYMOUS", "{}", "{}", "ENABLED"));
     }
 
     private static void insertQueryParameters(JdbcTemplate jdbcTemplate) {
@@ -184,23 +171,20 @@ class JdbcGatewayRouteConfigurationQueryTests {
     }
 
     private static void insertRoute(JdbcTemplate jdbcTemplate, RouteFixture fixture) {
-        jdbcTemplate.update(
-                INSERT_ROUTE, fixture.routeId(), "default", fixture.path(), fixture.method(), fixture.operationId(),
-                fixture.authenticationMode(), 3000L, fixture.targetAttributes(), fixture.routeAttributes(),
-                fixture.status());
+        jdbcTemplate.update(INSERT_ROUTE, fixture.routeId(), "default", fixture.path(), fixture.method(),
+                fixture.operationId(), fixture.authenticationMode(), 3000L, fixture.targetAttributes(),
+                fixture.routeAttributes(), fixture.status());
     }
 
     private static WebApplicationContextRunner contextRunner(String databaseName) {
-        return new WebApplicationContextRunner()
-                .withUserConfiguration(GateWeaveCenterApplication.class)
+        return new WebApplicationContextRunner().withUserConfiguration(GateWeaveCenterApplication.class)
                 .withPropertyValues(
                         "spring.datasource.url=jdbc:h2:mem:%s;MODE=MySQL;DB_CLOSE_DELAY=0".formatted(databaseName),
-                        "spring.datasource.username=sa",
-                        "spring.datasource.password=");
+                        "spring.datasource.username=sa", "spring.datasource.password=");
     }
 
-    private record RouteFixture(
-            String routeId, String path, String method, String operationId, String authenticationMode,
-            String targetAttributes, String routeAttributes, String status) {
+    private record RouteFixture(String routeId, String path, String method, String operationId,
+                                String authenticationMode, String targetAttributes, String routeAttributes,
+                                String status) {
     }
 }

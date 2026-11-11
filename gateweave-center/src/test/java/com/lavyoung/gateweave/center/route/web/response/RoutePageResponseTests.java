@@ -20,10 +20,9 @@ class RoutePageResponseTests {
     @Test
     void shouldConvertApplicationPageToWebResponse() {
         // Given
-        RouteDefinition route = new RouteDefinition(
-                "route-query", "default", "/activities", "GET", "activity-query",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofMillis(2500),
-                Map.of("version", "1.0.0"), Map.of("source", "center"), RouteStatus.ENABLED, 3L,
+        RouteDefinition route = new RouteDefinition("route-query", "default", "/activities", "GET", "activity-query",
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofMillis(2500), Map.of("version", "1.0.0"),
+                Map.of("source", "center"), RouteStatus.ENABLED, 3L,
                 List.of(new RouteParameterMapping(0, "name"), new RouteParameterMapping(1, "age")));
         RoutePage page = new RoutePage(List.of(route), 2, 10, 11);
 
@@ -47,12 +46,10 @@ class RoutePageResponseTests {
             assertThat(routeResponse.attributes()).containsExactly(Map.entry("source", "center"));
             assertThat(routeResponse.status()).isEqualTo("ENABLED");
             assertThat(routeResponse.revision()).isEqualTo(3L);
-            assertThat(routeResponse.parameterMappings())
-                    .extracting(RoutePageResponse.ParameterMappingResponse::position)
-                    .containsExactly(0, 1);
-            assertThat(routeResponse.parameterMappings())
-                    .extracting(RoutePageResponse.ParameterMappingResponse::requestName)
-                    .containsExactly("name", "age");
+            assertThat(routeResponse.parameterMappings()).extracting(
+                    RoutePageResponse.ParameterMappingResponse::position).containsExactly(0, 1);
+            assertThat(routeResponse.parameterMappings()).extracting(
+                    RoutePageResponse.ParameterMappingResponse::requestName).containsExactly("name", "age");
         });
         assertThatThrownBy(() -> response.routes().clear()).isInstanceOf(UnsupportedOperationException.class);
     }
@@ -76,8 +73,7 @@ class RoutePageResponseTests {
     @Test
     void shouldRejectMissingApplicationPage() {
         // When & Then
-        assertThatThrownBy(() -> RoutePageResponse.from(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> RoutePageResponse.from(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("page must not be null");
     }
 }

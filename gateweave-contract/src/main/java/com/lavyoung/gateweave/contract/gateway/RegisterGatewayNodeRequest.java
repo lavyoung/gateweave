@@ -17,8 +17,7 @@ import java.util.Objects;
  * @version 1.0.0
  * @date 2026/11/02
  */
-public record RegisterGatewayNodeRequest(
-        String nodeId, String gatewayGroupId, String nodeName, URI advertisedAddress) {
+public record RegisterGatewayNodeRequest(String nodeId, String gatewayGroupId, String nodeName, URI advertisedAddress) {
 
     /**
      * 校验跨进程请求的必需字段是否存在。

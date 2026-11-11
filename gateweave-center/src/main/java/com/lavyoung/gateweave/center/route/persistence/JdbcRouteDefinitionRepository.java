@@ -75,8 +75,8 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
      * @param attributesReader 路由属性 JSON 读取器
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public JdbcRouteDefinitionRepository(
-            NamedParameterJdbcTemplate jdbcTemplate, RouteAttributesJsonReader attributesReader) {
+    public JdbcRouteDefinitionRepository(NamedParameterJdbcTemplate jdbcTemplate,
+            RouteAttributesJsonReader attributesReader) {
         this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
         this.attributesReader = Objects.requireNonNull(attributesReader, "attributesReader must not be null");
     }
@@ -101,10 +101,9 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
         if (limit <= 0) {
             throw new IllegalArgumentException("limit must be greater than zero");
         }
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("gatewayGroupId", gatewayGroupId)
-                .addValue("offset", offset)
-                .addValue("limit", limit);
+        MapSqlParameterSource parameters =
+                new MapSqlParameterSource().addValue("gatewayGroupId", gatewayGroupId).addValue("offset", offset)
+                        .addValue("limit", limit);
         List<RouteRow> routeRows = this.jdbcTemplate.query(FIND_PAGE_SQL, parameters, this::mapRouteRow);
         if (routeRows.isEmpty()) {
             return List.of();
@@ -128,8 +127,8 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
 
         this.jdbcTemplate.query(FIND_PARAMETERS_SQL, Map.of("routeIds", routeIds), resultSet -> {
             String routeId = resultSet.getString("route_id");
-            RouteParameterMapping parameterMapping = new RouteParameterMapping(
-                    resultSet.getInt("parameter_index"), resultSet.getString("parameter_name"));
+            RouteParameterMapping parameterMapping = new RouteParameterMapping(resultSet.getInt("parameter_index"),
+                    resultSet.getString("parameter_name"));
             mappingsByRouteId.computeIfAbsent(routeId, ignored -> new ArrayList<>()).add(parameterMapping);
         });
 
@@ -177,8 +176,7 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
     private record RouteRow(String routeId, String gatewayGroupId, String path, String method,
                             String serviceOperationId, RouteAuthenticationRequirement authenticationRequirement,
                             long invocationTimeoutMillis, Map<String, String> targetAttributes,
-                            Map<String, String> attributes,
-                            RouteStatus status, long revision) {
+                            Map<String, String> attributes, RouteStatus status, long revision) {
 
         /**
          * 将数据库记录和参数映射组装为完整路由聚合。
@@ -187,10 +185,10 @@ public class JdbcRouteDefinitionRepository implements RouteDefinitionRepository 
          * @return 完整路由定义
          */
         private RouteDefinition toDomain(List<RouteParameterMapping> parameterMappings) {
-            return new RouteDefinition(
-                    this.routeId, this.gatewayGroupId, this.path, this.method, this.serviceOperationId,
-                    this.authenticationRequirement, Duration.ofMillis(this.invocationTimeoutMillis),
-                    this.targetAttributes, this.attributes, this.status, this.revision, parameterMappings);
+            return new RouteDefinition(this.routeId, this.gatewayGroupId, this.path, this.method,
+                    this.serviceOperationId, this.authenticationRequirement,
+                    Duration.ofMillis(this.invocationTimeoutMillis), this.targetAttributes, this.attributes,
+                    this.status, this.revision, parameterMappings);
         }
     }
 }

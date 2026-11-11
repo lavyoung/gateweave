@@ -57,8 +57,7 @@ class GatewayNodeRegistrationControllerTests {
     private final GatewayNodeLeaseProperties leaseProperties;
 
     @Autowired
-    GatewayNodeRegistrationControllerTests(
-            MockMvc mockMvc, RegisterGatewayNodeUseCase registerGatewayNodeUseCase,
+    GatewayNodeRegistrationControllerTests(MockMvc mockMvc, RegisterGatewayNodeUseCase registerGatewayNodeUseCase,
             LocalizedResultFactory resultFactory, GatewayNodeLeaseProperties leaseProperties) {
         this.mockMvc = mockMvc;
         this.registerGatewayNodeUseCase = registerGatewayNodeUseCase;
@@ -80,17 +79,15 @@ class GatewayNodeRegistrationControllerTests {
     @Test
     void shouldReturnCreatedWhenNodeIsRegistered() throws Exception {
         // Given
-        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class)))
-                .thenReturn(result(GatewayNodeRegistrationOutcome.REGISTERED));
+        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class))).thenReturn(
+                result(GatewayNodeRegistrationOutcome.REGISTERED));
 
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON)
                         .content(validRequestBody()))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.nodeId").value("node-1"))
                 .andExpect(jsonPath("$.data.leaseId").value(LEASE_ID.toString()))
                 .andExpect(jsonPath("$.data.heartbeatInterval").value("PT10S"))
@@ -108,15 +105,13 @@ class GatewayNodeRegistrationControllerTests {
     @Test
     void shouldReturnOkWhenNodeIsRefreshed() throws Exception {
         // Given
-        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class)))
-                .thenReturn(result(GatewayNodeRegistrationOutcome.REFRESHED));
+        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class))).thenReturn(
+                result(GatewayNodeRegistrationOutcome.REFRESHED));
 
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON)
                         .content(validRequestBody()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.nodeId").value("node-1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.nodeId").value("node-1"))
                 .andExpect(jsonPath("$.data.leaseId").value(LEASE_ID.toString()));
     }
 
@@ -133,15 +128,12 @@ class GatewayNodeRegistrationControllerTests {
                 """;
 
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .header(RequestIdFilter.REQUEST_ID_HEADER, "request-validation")
-                        .content(requestBody))
+                        .header(RequestIdFilter.REQUEST_ID_HEADER, "request-validation").content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-validation"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("COMMON-0001"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("COMMON-0001"))
                 .andExpect(jsonPath("$.message").value("Request parameters are invalid"))
                 .andExpect(jsonPath("$.data.path").value("/api/v1/gateway-nodes"))
                 .andExpect(jsonPath("$.data.requestId").value("request-validation"));
@@ -162,11 +154,8 @@ class GatewayNodeRegistrationControllerTests {
                 """;
 
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("COMMON-0002"));
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON).content(requestBody))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("COMMON-0002"));
 
         verify(this.registerGatewayNodeUseCase, never()).register(any(GatewayNodeRegistration.class));
     }
@@ -174,12 +163,10 @@ class GatewayNodeRegistrationControllerTests {
     @Test
     void shouldRejectAddressThatViolatesDomainRules() throws Exception {
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .content(requestBody("default", "ftp://127.0.0.1:8080")))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en").content(requestBody("default", "ftp://127.0.0" +
+                                ".1:8080")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value("COMMON-0001"))
                 .andExpect(jsonPath("$.message").value("Request parameters are invalid"));
 
@@ -189,19 +176,17 @@ class GatewayNodeRegistrationControllerTests {
     @Test
     void shouldReturnLocalizedBusinessFailureWhenGatewayGroupDoesNotExist() throws Exception {
         // Given
-        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class)))
-                .thenThrow(new GatewayGroupNotFoundException("missing-group"));
+        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class))).thenThrow(
+                new GatewayGroupNotFoundException("missing-group"));
 
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                         .header(RequestIdFilter.REQUEST_ID_HEADER, "request-group-missing")
                         .content(requestBody("missing-group", "http://127.0.0.1:8080")))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-group-missing"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("GATEWAY-0001"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("GATEWAY-0001"))
                 .andExpect(jsonPath("$.message").value("Gateway group missing-group does not exist"))
                 .andExpect(jsonPath("$.data.path").value("/api/v1/gateway-nodes"))
                 .andExpect(jsonPath("$.data.requestId").value("request-group-missing"));
@@ -211,19 +196,17 @@ class GatewayNodeRegistrationControllerTests {
     void shouldReturnLocalizedBusinessFailureWhenAdvertisedAddressIsOccupied() throws Exception {
         // Given
         URI address = URI.create("http://127.0.0.1:8080");
-        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class)))
-                .thenThrow(new GatewayNodeAddressConflictException(address));
+        when(this.registerGatewayNodeUseCase.register(any(GatewayNodeRegistration.class))).thenThrow(
+                new GatewayNodeAddressConflictException(address));
 
         // When & Then
-        this.mockMvc.perform(post("/api/v1/gateway-nodes")
-                        .contentType(MediaType.APPLICATION_JSON)
+        this.mockMvc.perform(post("/api/v1/gateway-nodes").contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN")
                         .header(RequestIdFilter.REQUEST_ID_HEADER, "request-address-conflict")
                         .content(requestBody("default", address.toASCIIString())))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-address-conflict"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("GATEWAY-0002"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("GATEWAY-0002"))
                 .andExpect(jsonPath("$.message").value("网关节点地址 http://127.0.0.1:8080 已被占用"))
                 .andExpect(jsonPath("$.data.path").value("/api/v1/gateway-nodes"))
                 .andExpect(jsonPath("$.data.requestId").value("request-address-conflict"));
@@ -232,29 +215,24 @@ class GatewayNodeRegistrationControllerTests {
     @Test
     void shouldRejectMissingDependencies() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeRegistrationController(
-                null, this.resultFactory, this.leaseProperties))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayNodeRegistrationController(null, this.resultFactory,
+                this.leaseProperties)).isInstanceOf(NullPointerException.class)
                 .hasMessage("registerGatewayNodeUseCase must not be null");
-        assertThatThrownBy(() -> new GatewayNodeRegistrationController(
-                this.registerGatewayNodeUseCase, null, this.leaseProperties))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayNodeRegistrationController(this.registerGatewayNodeUseCase, null,
+                this.leaseProperties)).isInstanceOf(NullPointerException.class)
                 .hasMessage("resultFactory must not be null");
-        assertThatThrownBy(() -> new GatewayNodeRegistrationController(
-                this.registerGatewayNodeUseCase, this.resultFactory, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseProperties must not be null");
+        assertThatThrownBy(
+                () -> new GatewayNodeRegistrationController(this.registerGatewayNodeUseCase, this.resultFactory,
+                        null)).isInstanceOf(NullPointerException.class).hasMessage("leaseProperties must not be null");
     }
 
     private static GatewayNodeRegistrationResult result(GatewayNodeRegistrationOutcome outcome) {
-        GatewayNode node = new GatewayNode(
-                registration(), GatewayNodeStatus.ONLINE, LEASE_ID, HEARTBEAT_AT, 0);
+        GatewayNode node = new GatewayNode(registration(), GatewayNodeStatus.ONLINE, LEASE_ID, HEARTBEAT_AT, 0);
         return new GatewayNodeRegistrationResult(node, outcome);
     }
 
     private static GatewayNodeRegistration registration() {
-        return new GatewayNodeRegistration(
-                "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:8080"));
+        return new GatewayNodeRegistration("node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:8080"));
     }
 
     private static String validRequestBody() {

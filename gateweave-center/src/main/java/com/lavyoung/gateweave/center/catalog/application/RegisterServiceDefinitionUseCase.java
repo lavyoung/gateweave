@@ -22,7 +22,7 @@ public interface RegisterServiceDefinitionUseCase {
      * @param serviceDefinition 完整服务定义
      * @return 首次创建时返回 CREATED，重复注册相同定义时返回 UNCHANGED
      * @throws NullPointerException serviceDefinition 为 null 时抛出
-     * @throws BusinessException 服务定义冲突或持久化失败时抛出
+     * @throws BusinessException    服务定义冲突或持久化失败时抛出
      */
     CatalogRegistrationOutcome register(ServiceDefinition serviceDefinition);
 }

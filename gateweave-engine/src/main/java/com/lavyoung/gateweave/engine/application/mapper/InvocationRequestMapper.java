@@ -50,8 +50,7 @@ public final class InvocationRequestMapper {
         InvocationTarget target = route.target();
         GenericInvocationArguments invocationArguments = this.argumentsResolver.resolve(command, target.parameters());
         Map<String, String> headers = command.headers().map().entrySet().stream()
-                .collect(Collectors.toUnmodifiableMap(
-                        Map.Entry::getKey, entry -> String.join(", ", entry.getValue())));
+                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> String.join(", ", entry.getValue())));
 
         return new InvocationRequest(command.requestId(), route.routeId(), target.protocol(), target.service(),
                 target.operation(), invocationArguments, target.timeout(), headers, target.attributes(),

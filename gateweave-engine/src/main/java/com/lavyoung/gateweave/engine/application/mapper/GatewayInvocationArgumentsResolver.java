@@ -71,8 +71,7 @@ public final class GatewayInvocationArgumentsResolver {
      * @return 按目标方法顺序排列的参数类型和参数值
      * @throws IllegalArgumentException 缺少参数或标量参数包含多个值时抛出
      */
-    private GenericInvocationArguments resolveGet(
-            GatewayRequestCommand command, List<InvocationParameter> parameters) {
+    private GenericInvocationArguments resolveGet(GatewayRequestCommand command, List<InvocationParameter> parameters) {
 
         return resolveNamedParameters(command.queryParameters().values(), parameters, "query");
     }
@@ -87,8 +86,8 @@ public final class GatewayInvocationArgumentsResolver {
      * @return 按目标方法顺序排列的参数类型和参数值
      * @throws IllegalArgumentException Content-Type 缺失、非法、不受支持或参数绑定失败时抛出
      */
-    private GenericInvocationArguments resolvePost(
-            GatewayRequestCommand command, List<InvocationParameter> parameters) {
+    private GenericInvocationArguments resolvePost(GatewayRequestCommand command,
+            List<InvocationParameter> parameters) {
 
         List<String> parameterTypes = parameters.stream().map(InvocationParameter::typeName).toList();
         if (parameterTypes.isEmpty()) {
@@ -102,21 +101,20 @@ public final class GatewayInvocationArgumentsResolver {
         try {
             contentType = MediaType.parseMediaType(contentTypeValue);
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException(
-                    "invalid POST request Content-Type: %s".formatted(contentTypeValue), exception);
+            throw new IllegalArgumentException("invalid POST request Content-Type: %s".formatted(contentTypeValue),
+                    exception);
         }
 
         if (MediaType.APPLICATION_JSON.isCompatibleWith(contentType)) {
             return resolveJsonPost(command, parameters, parameterTypes);
         }
-        if (MediaType.APPLICATION_FORM_URLENCODED.isCompatibleWith(contentType)
-                || MediaType.MULTIPART_FORM_DATA.isCompatibleWith(contentType)) {
+        if (MediaType.APPLICATION_FORM_URLENCODED.isCompatibleWith(contentType) ||
+                MediaType.MULTIPART_FORM_DATA.isCompatibleWith(contentType)) {
 
             return resolveNamedParameters(command.formParameters().values(), parameters, "form");
         }
 
-        throw new IllegalArgumentException(
-                "unsupported POST request Content-Type: %s".formatted(contentTypeValue));
+        throw new IllegalArgumentException("unsupported POST request Content-Type: %s".formatted(contentTypeValue));
     }
 
     /**
@@ -172,8 +170,7 @@ public final class GatewayInvocationArgumentsResolver {
         for (InvocationParameter parameter : parameters) {
             List<String> parameterValues = valuesByName.get(parameter.name());
             if (parameterValues == null) {
-                throw new IllegalArgumentException(
-                        "missing %s parameter: %s".formatted(source, parameter.name()));
+                throw new IllegalArgumentException("missing %s parameter: %s".formatted(source, parameter.name()));
             }
 
             parameterTypes.add(parameter.typeName());
@@ -220,8 +217,8 @@ public final class GatewayInvocationArgumentsResolver {
      */
     private boolean isMultiValueType(String typeName) {
         try {
-            Class<?> parameterType = Class.forName(
-                    typeName, false, GatewayInvocationArgumentsResolver.class.getClassLoader());
+            Class<?> parameterType =
+                    Class.forName(typeName, false, GatewayInvocationArgumentsResolver.class.getClassLoader());
             return parameterType.isArray() || Collection.class.isAssignableFrom(parameterType);
         } catch (ClassNotFoundException exception) {
             return false;

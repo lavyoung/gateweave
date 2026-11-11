@@ -32,10 +32,8 @@ class RouteAttributesJsonReaderTests {
         Map<String, String> attributes = this.reader.read(json, "route-1", "target_attributes");
 
         // Then
-        assertThat(attributes).containsOnly(
-                Map.entry("version", "1.0.0"), Map.entry("group", "production"));
-        assertThatThrownBy(() -> attributes.put("timeout", "3000"))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(attributes).containsOnly(Map.entry("version", "1.0.0"), Map.entry("group", "production"));
+        assertThatThrownBy(() -> attributes.put("timeout", "3000")).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
@@ -44,9 +42,9 @@ class RouteAttributesJsonReaderTests {
         String json = "not-json";
 
         // When & Then
-        assertThatThrownBy(() -> this.reader.read(json, "route-1", "target_attributes"))
-                .isInstanceOf(DataRetrievalFailureException.class)
-                .hasMessage("Unable to read target_attributes for route route-1")
+        assertThatThrownBy(() -> this.reader.read(json, "route-1", "target_attributes")).isInstanceOf(
+                        DataRetrievalFailureException.class).hasMessage("Unable to read target_attributes for route " +
+                        "route-1")
                 .hasCauseInstanceOf(JsonProcessingException.class);
     }
 
@@ -56,17 +54,16 @@ class RouteAttributesJsonReaderTests {
         String json = "null";
 
         // When & Then
-        assertThatThrownBy(() -> this.reader.read(json, "route-1", "route_attributes"))
-                .isInstanceOf(DataRetrievalFailureException.class)
-                .hasMessage("Unable to read route_attributes for route route-1")
+        assertThatThrownBy(() -> this.reader.read(json, "route-1", "route_attributes")).isInstanceOf(
+                        DataRetrievalFailureException.class).hasMessage("Unable to read route_attributes for route " +
+                        "route-1")
                 .hasCauseInstanceOf(NullPointerException.class);
     }
 
     @Test
     void shouldRejectMissingObjectMapper() {
         // When & Then
-        assertThatThrownBy(() -> new RouteAttributesJsonReader(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new RouteAttributesJsonReader(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("objectMapper must not be null");
     }
 }

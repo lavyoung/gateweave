@@ -161,8 +161,8 @@ class NettyGatewayRequestHandlerTests {
     @Test
     void shouldCloseOnlyCurrentConnectionWhenPipelineExceptionIsUnhandled() {
         // Given
-        HandleGatewayRequestUseCase useCase = command ->
-                CompletableFuture.completedFuture(GatewayResponse.text(200, "must-not-be-called"));
+        HandleGatewayRequestUseCase useCase =
+                command -> CompletableFuture.completedFuture(GatewayResponse.text(200, "must-not-be-called"));
         var channel = new EmbeddedChannel(new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, RESPONSE_MAPPER));
 
         // When
@@ -180,8 +180,8 @@ class NettyGatewayRequestHandlerTests {
     @Test
     void shouldReturnBadRequestAndCloseConnectionWhenUriIsInvalid() {
         // Given
-        HandleGatewayRequestUseCase useCase = command ->
-                CompletableFuture.completedFuture(GatewayResponse.text(200, "must-not-be-called"));
+        HandleGatewayRequestUseCase useCase =
+                command -> CompletableFuture.completedFuture(GatewayResponse.text(200, "must-not-be-called"));
         var channel = new EmbeddedChannel(new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, RESPONSE_MAPPER));
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/invalid path");
 
@@ -235,14 +235,11 @@ class NettyGatewayRequestHandlerTests {
         HandleGatewayRequestUseCase useCase = command -> CompletableFuture.completedFuture(applicationResponse);
 
         // When & Then
-        assertThatThrownBy(() -> new NettyGatewayRequestHandler(null, REQUEST_MAPPER, RESPONSE_MAPPER))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("useCase must not be null");
-        assertThatThrownBy(() -> new NettyGatewayRequestHandler(useCase, null, RESPONSE_MAPPER))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("requestMapper must not be null");
-        assertThatThrownBy(() -> new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("responseMapper must not be null");
+        assertThatThrownBy(() -> new NettyGatewayRequestHandler(null, REQUEST_MAPPER, RESPONSE_MAPPER)).isInstanceOf(
+                NullPointerException.class).hasMessage("useCase must not be null");
+        assertThatThrownBy(() -> new NettyGatewayRequestHandler(useCase, null, RESPONSE_MAPPER)).isInstanceOf(
+                NullPointerException.class).hasMessage("requestMapper must not be null");
+        assertThatThrownBy(() -> new NettyGatewayRequestHandler(useCase, REQUEST_MAPPER, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("responseMapper must not be null");
     }
 }

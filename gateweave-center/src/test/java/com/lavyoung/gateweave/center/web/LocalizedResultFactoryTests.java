@@ -41,8 +41,8 @@ class LocalizedResultFactoryTests {
         ErrorDetails details = new ErrorDetails("/gateway-groups/test/nodes", "request-1");
 
         // When
-        Result<ErrorDetails> result = this.resultFactory.failure(
-                GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, details, "test");
+        Result<ErrorDetails> result =
+                this.resultFactory.failure(GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, details, "test");
 
         // Then
         assertThat(result.code()).isEqualTo("GATEWAY-0001");
@@ -70,16 +70,16 @@ class LocalizedResultFactoryTests {
         request.setAttribute(RequestIdFilter.REQUEST_ID_ATTRIBUTE, "request-group-missing");
 
         // When
-        ResponseEntity<Result<ErrorDetails>> response = this.resultFactory.failureResponse(
-                HttpStatus.NOT_FOUND, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, request, "missing-group");
+        ResponseEntity<Result<ErrorDetails>> response =
+                this.resultFactory.failureResponse(HttpStatus.NOT_FOUND, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND,
+                        request, "missing-group");
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull().satisfies(result -> {
             assertThat(result.code()).isEqualTo("GATEWAY-0001");
             assertThat(result.message()).isEqualTo("Gateway group missing-group does not exist");
-            assertThat(result.data()).isEqualTo(
-                    new ErrorDetails("/api/v1/gateway-nodes", "request-group-missing"));
+            assertThat(result.data()).isEqualTo(new ErrorDetails("/api/v1/gateway-nodes", "request-group-missing"));
         });
     }
 
@@ -89,13 +89,10 @@ class LocalizedResultFactoryTests {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/gateway-nodes");
 
         // When & Then
-        assertThatThrownBy(() -> this.resultFactory.failureResponse(
-                null, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, request))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("status must not be null");
-        assertThatThrownBy(() -> this.resultFactory.failureResponse(
-                HttpStatus.NOT_FOUND, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.resultFactory.failureResponse(null, GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND,
+                request)).isInstanceOf(NullPointerException.class).hasMessage("status must not be null");
+        assertThatThrownBy(() -> this.resultFactory.failureResponse(HttpStatus.NOT_FOUND,
+                GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
     }
 
@@ -124,11 +121,8 @@ class LocalizedResultFactoryTests {
     }
 
     private static List<ResponseCode> responseCodes() {
-        return Stream.concat(
-                        Stream.concat(
-                                Arrays.stream(CommonResponseCode.values()).map(ResponseCode.class::cast),
-                                Arrays.stream(GatewayResponseCode.values()).map(ResponseCode.class::cast)),
-                        Arrays.stream(CatalogResponseCode.values()).map(ResponseCode.class::cast))
-                .toList();
+        return Stream.concat(Stream.concat(Arrays.stream(CommonResponseCode.values()).map(ResponseCode.class::cast),
+                        Arrays.stream(GatewayResponseCode.values()).map(ResponseCode.class::cast)),
+                Arrays.stream(CatalogResponseCode.values()).map(ResponseCode.class::cast)).toList();
     }
 }

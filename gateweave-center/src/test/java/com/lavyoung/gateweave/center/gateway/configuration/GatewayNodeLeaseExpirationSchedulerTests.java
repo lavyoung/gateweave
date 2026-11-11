@@ -38,11 +38,10 @@ class GatewayNodeLeaseExpirationSchedulerTests {
         // Given
         ExpireGatewayNodeLeasesUseCase useCase = mock(ExpireGatewayNodeLeasesUseCase.class);
         TaskScheduler taskScheduler = mock(TaskScheduler.class);
-        @SuppressWarnings("unchecked")
-        ScheduledFuture<Object> scheduledFuture = mock(ScheduledFuture.class);
+        @SuppressWarnings("unchecked") ScheduledFuture<Object> scheduledFuture = mock(ScheduledFuture.class);
         when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
-        doReturn(scheduledFuture).when(taskScheduler).scheduleWithFixedDelay(
-                any(Runnable.class), eq(CURRENT_TIME.plus(SCAN_INTERVAL)), eq(SCAN_INTERVAL));
+        doReturn(scheduledFuture).when(taskScheduler)
+                .scheduleWithFixedDelay(any(Runnable.class), eq(CURRENT_TIME.plus(SCAN_INTERVAL)), eq(SCAN_INTERVAL));
         when(scheduledFuture.isCancelled()).thenReturn(false);
         when(scheduledFuture.isDone()).thenReturn(false);
         GatewayNodeLeaseExpirationScheduler scheduler =
@@ -53,8 +52,8 @@ class GatewayNodeLeaseExpirationSchedulerTests {
 
         // Then
         ArgumentCaptor<Runnable> taskCaptor = ArgumentCaptor.forClass(Runnable.class);
-        verify(taskScheduler).scheduleWithFixedDelay(
-                taskCaptor.capture(), eq(CURRENT_TIME.plus(SCAN_INTERVAL)), eq(SCAN_INTERVAL));
+        verify(taskScheduler).scheduleWithFixedDelay(taskCaptor.capture(), eq(CURRENT_TIME.plus(SCAN_INTERVAL)),
+                eq(SCAN_INTERVAL));
         assertThat(scheduler.isRunning()).isTrue();
         taskCaptor.getValue().run();
         verify(useCase).expire();
@@ -65,11 +64,10 @@ class GatewayNodeLeaseExpirationSchedulerTests {
         // Given
         ExpireGatewayNodeLeasesUseCase useCase = mock(ExpireGatewayNodeLeasesUseCase.class);
         TaskScheduler taskScheduler = mock(TaskScheduler.class);
-        @SuppressWarnings("unchecked")
-        ScheduledFuture<Object> scheduledFuture = mock(ScheduledFuture.class);
+        @SuppressWarnings("unchecked") ScheduledFuture<Object> scheduledFuture = mock(ScheduledFuture.class);
         when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
-        doReturn(scheduledFuture).when(taskScheduler).scheduleWithFixedDelay(
-                any(Runnable.class), any(Instant.class), eq(SCAN_INTERVAL));
+        doReturn(scheduledFuture).when(taskScheduler)
+                .scheduleWithFixedDelay(any(Runnable.class), any(Instant.class), eq(SCAN_INTERVAL));
         when(scheduledFuture.isCancelled()).thenReturn(false);
         when(scheduledFuture.isDone()).thenReturn(false);
         GatewayNodeLeaseExpirationScheduler scheduler =
@@ -82,8 +80,8 @@ class GatewayNodeLeaseExpirationSchedulerTests {
         scheduler.stop();
 
         // Then
-        verify(taskScheduler, times(1)).scheduleWithFixedDelay(
-                any(Runnable.class), eq(CURRENT_TIME.plus(SCAN_INTERVAL)), eq(SCAN_INTERVAL));
+        verify(taskScheduler, times(1)).scheduleWithFixedDelay(any(Runnable.class),
+                eq(CURRENT_TIME.plus(SCAN_INTERVAL)), eq(SCAN_INTERVAL));
         verify(scheduledFuture, times(1)).cancel(false);
         assertThat(scheduler.isRunning()).isFalse();
         verifyNoInteractions(useCase);
@@ -105,8 +103,8 @@ class GatewayNodeLeaseExpirationSchedulerTests {
         taskScheduler.setPoolSize(1);
         taskScheduler.setErrorHandler(TaskUtils.LOG_AND_SUPPRESS_ERROR_HANDLER);
         taskScheduler.initialize();
-        GatewayNodeLeaseExpirationScheduler scheduler = new GatewayNodeLeaseExpirationScheduler(
-                useCase, taskScheduler, Duration.ofMillis(10));
+        GatewayNodeLeaseExpirationScheduler scheduler =
+                new GatewayNodeLeaseExpirationScheduler(useCase, taskScheduler, Duration.ofMillis(10));
 
         try {
             // When
@@ -128,17 +126,15 @@ class GatewayNodeLeaseExpirationSchedulerTests {
         TaskScheduler taskScheduler = mock(TaskScheduler.class);
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLeaseExpirationScheduler(null, taskScheduler, SCAN_INTERVAL))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("expireGatewayNodeLeasesUseCase must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLeaseExpirationScheduler(useCase, null, SCAN_INTERVAL))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("taskScheduler must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLeaseExpirationScheduler(useCase, taskScheduler, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("scanInterval must not be null");
-        assertThat(new GatewayNodeLeaseExpirationScheduler(useCase, taskScheduler, SCAN_INTERVAL).getPhase())
-                .isEqualTo(Integer.MAX_VALUE - 100);
+        assertThatThrownBy(
+                () -> new GatewayNodeLeaseExpirationScheduler(null, taskScheduler, SCAN_INTERVAL)).isInstanceOf(
+                NullPointerException.class).hasMessage("expireGatewayNodeLeasesUseCase must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLeaseExpirationScheduler(useCase, null, SCAN_INTERVAL)).isInstanceOf(
+                NullPointerException.class).hasMessage("taskScheduler must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLeaseExpirationScheduler(useCase, taskScheduler, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("scanInterval must not be null");
+        assertThat(new GatewayNodeLeaseExpirationScheduler(useCase, taskScheduler, SCAN_INTERVAL).getPhase()).isEqualTo(
+                Integer.MAX_VALUE - 100);
         verifyNoInteractions(useCase, taskScheduler);
     }
 }

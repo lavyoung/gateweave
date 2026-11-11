@@ -22,11 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @version 1.0.0
  * @date 2026/10/30
  */
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:gateweave-route-endpoint;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.username=sa",
-        "spring.datasource.password="
-})
+@SpringBootTest(
+        properties = {"spring.datasource.url=jdbc:h2:mem:gateweave-route-endpoint;MODE=MySQL;DB_CLOSE_DELAY=-1",
+                "spring.datasource.username=sa", "spring.datasource.password="})
 @AutoConfigureMockMvc
 @Transactional
 class RouteQueryEndpointIntegrationTests {
@@ -82,17 +80,13 @@ class RouteQueryEndpointIntegrationTests {
         this.insertRouteParameter("route-two", 1, "userAge");
 
         // When & Then
-        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes")
-                        .queryParam("pageNumber", "2")
-                        .queryParam("pageSize", "1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.pageNumber").value(2))
-                .andExpect(jsonPath("$.data.pageSize").value(1))
-                .andExpect(jsonPath("$.data.totalElements").value(2))
-                .andExpect(jsonPath("$.data.totalPages").value(2))
+        this.mockMvc.perform(
+                        get("/api/v1/gateway-groups/default/routes").queryParam("pageNumber", "2").queryParam(
+                                "pageSize", "1"))
+                .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.pageNumber").value(2)).andExpect(jsonPath("$.data.pageSize").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(2)).andExpect(jsonPath("$.data.totalPages").value(2))
                 .andExpect(jsonPath("$.data.routes.length()").value(1))
                 .andExpect(jsonPath("$.data.routes[0].routeId").value("route-two"))
                 .andExpect(jsonPath("$.data.routes[0].path").value("/activities/two"))
@@ -113,17 +107,14 @@ class RouteQueryEndpointIntegrationTests {
     void shouldPreviewConfigurationCandidatesThroughCompleteApplicationChain() throws Exception {
         // Given
         this.insertServiceCatalog();
-        this.insertRoute("route-query", "/activities/query", "{\"version\":\"1.0.0\"}",
-                "{\"source\":\"center\"}");
+        this.insertRoute("route-query", "/activities/query", "{\"version\":\"1.0.0\"}", "{\"source\":\"center\"}");
         this.insertRouteParameter("route-query", 0, "userName");
         this.insertRouteParameter("route-query", 1, "userAge");
 
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes/configuration-candidates"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].routeId").value("route-query"))
                 .andExpect(jsonPath("$.data[0].serviceId").value("activity-service"))
                 .andExpect(jsonPath("$.data[0].target.protocol").value("dubbo"))
@@ -141,10 +132,10 @@ class RouteQueryEndpointIntegrationTests {
      * 写入路由外键依赖的服务、操作和参数元数据。
      */
     private void insertServiceCatalog() {
-        this.jdbcTemplate.update(
-                INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0", "ACTIVE");
-        this.jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service",
-                "cn.example.ActivityService", "query", "ACTIVE");
+        this.jdbcTemplate.update(INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0",
+                "ACTIVE");
+        this.jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service", "cn.example.ActivityService",
+                "query", "ACTIVE");
         this.jdbcTemplate.update(INSERT_OPERATION_PARAMETER, "activity-query", 0, "name", "java.lang.String");
         this.jdbcTemplate.update(INSERT_OPERATION_PARAMETER, "activity-query", 1, "age", "java.lang.Integer");
     }
@@ -152,21 +143,21 @@ class RouteQueryEndpointIntegrationTests {
     /**
      * 写入一条路由。
      *
-     * @param routeId         路由标识
-     * @param path            HTTP 路径
+     * @param routeId          路由标识
+     * @param path             HTTP 路径
      * @param targetAttributes 目标调用扩展属性 JSON
-     * @param routeAttributes 路由扩展属性 JSON
+     * @param routeAttributes  路由扩展属性 JSON
      */
     private void insertRoute(String routeId, String path, String targetAttributes, String routeAttributes) {
-        this.jdbcTemplate.update(INSERT_ROUTE, routeId, "default", path, "GET", "activity-query", "REQUIRED",
-                3000L, targetAttributes, routeAttributes, "ENABLED", 2L);
+        this.jdbcTemplate.update(INSERT_ROUTE, routeId, "default", path, "GET", "activity-query", "REQUIRED", 3000L,
+                targetAttributes, routeAttributes, "ENABLED", 2L);
     }
 
     /**
      * 写入一条路由参数映射。
      *
-     * @param routeId    路由标识
-     * @param position   目标服务参数位置
+     * @param routeId     路由标识
+     * @param position    目标服务参数位置
      * @param requestName HTTP 请求参数名
      */
     private void insertRouteParameter(String routeId, int position, String requestName) {

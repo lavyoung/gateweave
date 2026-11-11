@@ -27,8 +27,7 @@ class InvocationRequestMapperTests {
     void shouldMapSessionToInvocationRequest() {
         // Given
         HttpHeaders headers = HttpHeaders.of(
-                Map.of("Content-Type", List.of("application/json"),
-                        "x-request-source", List.of("mobile", "trusted")),
+                Map.of("Content-Type", List.of("application/json"), "x-request-source", List.of("mobile", "trusted")),
                 (name, value) -> true);
         byte[] body = "\"GateWeave\"".getBytes(StandardCharsets.UTF_8);
         var command = new GatewayRequestCommand("request-1", "POST", URI.create("/sayHi"), headers,
@@ -36,9 +35,8 @@ class InvocationRequestMapperTests {
         var target = new InvocationTarget("DUBBO", "cn.example.GreetingService", "sayHi",
                 List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
                 Map.of("version", "1.0.0"));
-        var route = new GatewayRoute(
-                "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
-                target, Map.of("priority", "10"));
+        var route = new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service",
+                RouteAuthenticationPolicy.ANONYMOUS, target, Map.of("priority", "10"));
         var session = new GatewaySession(command, route);
         var mapper = mapper();
 
@@ -79,12 +77,11 @@ class InvocationRequestMapperTests {
     @Test
     void shouldMapFormParametersToInvocationArguments() {
         // Given
-        HttpHeaders headers = HttpHeaders.of(
-                Map.of("Content-Type", List.of("application/x-www-form-urlencoded")), (name, value) -> true);
+        HttpHeaders headers = HttpHeaders.of(Map.of("Content-Type", List.of("application/x-www-form-urlencoded")),
+                (name, value) -> true);
         byte[] body = "name=GateWeave".getBytes(StandardCharsets.UTF_8);
         var command = new GatewayRequestCommand("request-1", "POST", URI.create("/sayHi"), headers,
-                new HttpParameterValues(Map.of()), new HttpParameterValues(Map.of("name", List.of("GateWeave"))),
-                body);
+                new HttpParameterValues(Map.of()), new HttpParameterValues(Map.of("name", List.of("GateWeave"))), body);
         var target = new InvocationTarget("dubbo", "cn.example.GreetingService", "sayHi",
                 List.of(new InvocationParameter("name", String.class.getName())), Duration.ofSeconds(3), Map.of());
         var route = new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service",
@@ -106,25 +103,22 @@ class InvocationRequestMapperTests {
         var mapper = mapper();
 
         // When & Then
-        assertThatThrownBy(() -> mapper.map(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> mapper.map(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("session must not be null");
-        assertThatThrownBy(() -> new InvocationRequestMapper(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new InvocationRequestMapper(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("argumentsResolver must not be null");
     }
 
     private static GatewaySession session(byte[] body) {
-        HttpHeaders headers = HttpHeaders.of(Map.of("Content-Type", List.of("application/json")),
-                (name, value) -> true);
+        HttpHeaders headers =
+                HttpHeaders.of(Map.of("Content-Type", List.of("application/json")), (name, value) -> true);
         var command = new GatewayRequestCommand("request-1", "POST", URI.create("/sayHi"), headers,
                 new HttpParameterValues(Map.of()), body);
         var target = new InvocationTarget("dubbo", "cn.example.GreetingService", "sayHi",
                 List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
                 Map.of("version", "1.0.0"));
-        var route = new GatewayRoute(
-                "route-say-hi", "/sayHi", "POST", "greeting-service", RouteAuthenticationPolicy.ANONYMOUS,
-                target, Map.of("priority", "10"));
+        var route = new GatewayRoute("route-say-hi", "/sayHi", "POST", "greeting-service",
+                RouteAuthenticationPolicy.ANONYMOUS, target, Map.of("priority", "10"));
         return new GatewaySession(command, route);
     }
 

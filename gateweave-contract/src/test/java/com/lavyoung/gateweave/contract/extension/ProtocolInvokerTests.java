@@ -30,8 +30,7 @@ class ProtocolInvokerTests {
         ProtocolInvoker invoker = statelessInvoker();
 
         // When & Then
-        assertThatThrownBy(() -> invoker.prepare(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.prepare(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("target must not be null");
     }
 
@@ -50,7 +49,7 @@ class ProtocolInvokerTests {
     }
 
     private static InvocationTargetConfiguration target() {
-        return new InvocationTargetConfiguration(
-                "stateless", "service", "operation", List.of(), Duration.ofSeconds(1), Map.of());
+        return new InvocationTargetConfiguration("stateless", "service", "operation", List.of(), Duration.ofSeconds(1),
+                Map.of());
     }
 }

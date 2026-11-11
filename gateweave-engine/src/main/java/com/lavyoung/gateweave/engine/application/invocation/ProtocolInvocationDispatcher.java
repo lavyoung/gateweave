@@ -86,8 +86,8 @@ public final class ProtocolInvocationDispatcher {
         Objects.requireNonNull(request, "request must not be null");
         ProtocolInvoker invoker = this.invokers.get(request.protocol());
         if (invoker == null) {
-            IllegalStateException failure = new IllegalStateException("No protocol invoker registered for: "
-                    + request.protocol());
+            IllegalStateException failure =
+                    new IllegalStateException("No protocol invoker registered for: " + request.protocol());
             return CompletableFuture.failedFuture(failure);
         }
         try {

@@ -26,9 +26,9 @@ import com.lavyoung.gateweave.contract.extension.ProtocolInvoker;
 public final class HttpProtocolInvoker implements ProtocolInvoker {
 
     private static final String PROTOCOL = "http";
-    private static final Set<String> NON_FORWARDABLE_HEADERS = Set.of(
-            "connection", "content-length", "expect", "host", "keep-alive", "proxy-authenticate",
-            "proxy-authorization", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade");
+    private static final Set<String> NON_FORWARDABLE_HEADERS =
+            Set.of("connection", "content-length", "expect", "host", "keep-alive", "proxy-authenticate",
+                    "proxy-authorization", "proxy-connection", "te", "trailer", "transfer-encoding", "upgrade");
     private final HttpClient httpClient;
 
     /**
@@ -59,8 +59,8 @@ public final class HttpProtocolInvoker implements ProtocolInvoker {
         });
 
         byte[] payload = request.payload();
-        HttpRequest.BodyPublisher bodyPublisher = payload.length == 0
-                ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofByteArray(payload);
+        HttpRequest.BodyPublisher bodyPublisher = payload.length == 0 ? HttpRequest.BodyPublishers.noBody() :
+                HttpRequest.BodyPublishers.ofByteArray(payload);
         HttpRequest httpRequest = requestBuilder.method(options.method(), bodyPublisher).build();
         return this.httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
                 .thenApply(HttpResponse::body);

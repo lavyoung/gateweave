@@ -31,13 +31,9 @@ import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddress
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(
-        classes = GateWeaveCenterApplication.class,
-        properties = {
-                "spring.datasource.url=jdbc:h2:mem:gateway-node-repository;MODE=MySQL;DB_CLOSE_DELAY=-1",
-                "spring.datasource.username=sa",
-                "spring.datasource.password="
-        })
+@SpringBootTest(classes = GateWeaveCenterApplication.class,
+        properties = {"spring.datasource.url=jdbc:h2:mem:gateway-node-repository;MODE=MySQL;DB_CLOSE_DELAY=-1",
+                "spring.datasource.username=sa", "spring.datasource.password="})
 class JdbcGatewayNodeRepositoryTests {
 
     private static final Instant FIRST_HEARTBEAT = Instant.parse("2026-10-31T12:00:00Z");
@@ -83,8 +79,7 @@ class JdbcGatewayNodeRepositoryTests {
                     status = 'OFFLINE'
                 WHERE node_id = 'node-1'
                 """);
-        GatewayNode refreshedNode = node(
-                "node-1", "New Name", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
+        GatewayNode refreshedNode = node("node-1", "New Name", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
 
         // When
         GatewayNodeRegistrationResult result = this.repository.registerOrRefresh(refreshedNode);
@@ -92,8 +87,7 @@ class JdbcGatewayNodeRepositoryTests {
         // Then
         assertThat(result.outcome()).isEqualTo(GatewayNodeRegistrationOutcome.REFRESHED);
         assertThat(result.node().registration().nodeName()).isEqualTo("New Name");
-        assertThat(result.node().registration().advertisedAddress())
-                .isEqualTo(URI.create("http://127.0.0.1:8082"));
+        assertThat(result.node().registration().advertisedAddress()).isEqualTo(URI.create("http://127.0.0.1:8082"));
         assertThat(result.node().status()).isEqualTo(GatewayNodeStatus.ONLINE);
         assertThat(result.node().leaseId()).isEqualTo(refreshedNode.leaseId()).isNotEqualTo(firstNode.leaseId());
         assertThat(result.node().lastHeartbeatAt()).isEqualTo(SECOND_HEARTBEAT);
@@ -105,29 +99,27 @@ class JdbcGatewayNodeRepositoryTests {
     void shouldRejectAddressOwnedByAnotherNode() {
         // Given
         GatewayNode firstNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
-        GatewayNode conflictingNode = node(
-                "node-2", "Gateway Node 2", "http://127.0.0.1:8081", SECOND_HEARTBEAT);
+        GatewayNode conflictingNode = node("node-2", "Gateway Node 2", "http://127.0.0.1:8081", SECOND_HEARTBEAT);
         this.repository.registerOrRefresh(firstNode);
 
         // When & Then
-        assertThatThrownBy(() -> this.repository.registerOrRefresh(conflictingNode))
-                .isInstanceOfSatisfying(GatewayNodeAddressConflictException.class,
-                        exception -> assertThat(exception.advertisedAddress())
-                                .isEqualTo(URI.create("http://127.0.0.1:8081")));
+        assertThatThrownBy(() -> this.repository.registerOrRefresh(conflictingNode)).isInstanceOfSatisfying(
+                GatewayNodeAddressConflictException.class,
+                exception -> assertThat(exception.advertisedAddress()).isEqualTo(URI.create("http://127.0.0.1:8081")));
         assertThat(totalNodeCount()).isEqualTo(1);
     }
 
     @Test
     void shouldRejectNodeAssignedToMissingGatewayGroup() {
         // Given
-        GatewayNodeRegistration registration = new GatewayNodeRegistration(
-                "node-1", "missing-group", "Gateway Node 1", URI.create("http://127.0.0.1:8081"));
+        GatewayNodeRegistration registration = new GatewayNodeRegistration("node-1", "missing-group", "Gateway Node 1",
+                URI.create("http://127.0.0.1:8081"));
         GatewayNode node = GatewayNode.registered(registration, FIRST_HEARTBEAT);
 
         // When & Then
-        assertThatThrownBy(() -> this.repository.registerOrRefresh(node))
-                .isInstanceOfSatisfying(GatewayGroupNotFoundException.class,
-                        exception -> assertThat(exception.gatewayGroupId()).isEqualTo("missing-group"));
+        assertThatThrownBy(() -> this.repository.registerOrRefresh(node)).isInstanceOfSatisfying(
+                GatewayGroupNotFoundException.class,
+                exception -> assertThat(exception.gatewayGroupId()).isEqualTo("missing-group"));
         assertThat(totalNodeCount()).isZero();
     }
 
@@ -151,8 +143,7 @@ class JdbcGatewayNodeRepositoryTests {
 
             // Then
             assertThat(List.of(firstOutcome, secondOutcome)).containsExactlyInAnyOrder(
-                    GatewayNodeRegistrationOutcome.REGISTERED,
-                    GatewayNodeRegistrationOutcome.REFRESHED);
+                    GatewayNodeRegistrationOutcome.REGISTERED, GatewayNodeRegistrationOutcome.REFRESHED);
             assertThat(nodeCount("node-1")).isEqualTo(1);
         } finally {
             start.countDown();
@@ -165,8 +156,7 @@ class JdbcGatewayNodeRepositoryTests {
         // Given
         GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
         this.repository.registerOrRefresh(node);
-        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(
-                "node-1", node.leaseId(), SECOND_HEARTBEAT, 7);
+        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat("node-1", node.leaseId(), SECOND_HEARTBEAT, 7);
 
         // When
         boolean renewed = this.repository.renewLease(heartbeat);
@@ -186,8 +176,8 @@ class JdbcGatewayNodeRepositoryTests {
         this.repository.registerOrRefresh(firstNode);
         GatewayNode replacement = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", SECOND_HEARTBEAT);
         this.repository.registerOrRefresh(replacement);
-        GatewayNodeHeartbeat staleHeartbeat = new GatewayNodeHeartbeat(
-                "node-1", firstNode.leaseId(), THIRD_HEARTBEAT, 7);
+        GatewayNodeHeartbeat staleHeartbeat =
+                new GatewayNodeHeartbeat("node-1", firstNode.leaseId(), THIRD_HEARTBEAT, 7);
 
         // When
         boolean renewed = this.repository.renewLease(staleHeartbeat);
@@ -206,8 +196,7 @@ class JdbcGatewayNodeRepositoryTests {
         GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
         this.repository.registerOrRefresh(node);
         this.jdbcTemplate.update("UPDATE gw_gateway_node SET status = 'OFFLINE' WHERE node_id = 'node-1'");
-        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(
-                "node-1", node.leaseId(), SECOND_HEARTBEAT, 7);
+        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat("node-1", node.leaseId(), SECOND_HEARTBEAT, 7);
 
         // When
         boolean renewed = this.repository.renewLease(heartbeat);
@@ -227,8 +216,8 @@ class JdbcGatewayNodeRepositoryTests {
         this.repository.registerOrRefresh(node);
         assertThat(this.repository.renewLease(
                 new GatewayNodeHeartbeat("node-1", node.leaseId(), SECOND_HEARTBEAT, 7))).isTrue();
-        GatewayNodeHeartbeat regressedHeartbeat = new GatewayNodeHeartbeat(
-                "node-1", node.leaseId(), THIRD_HEARTBEAT, 6);
+        GatewayNodeHeartbeat regressedHeartbeat =
+                new GatewayNodeHeartbeat("node-1", node.leaseId(), THIRD_HEARTBEAT, 6);
 
         // When
         boolean renewed = this.repository.renewLease(regressedHeartbeat);
@@ -243,8 +232,9 @@ class JdbcGatewayNodeRepositoryTests {
     @Test
     void shouldReturnFalseWhenHeartbeatNodeDoesNotExist() {
         // Given
-        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(
-                "missing-node", UUID.fromString("00000000-0000-0000-0000-000000000001"), FIRST_HEARTBEAT, 0);
+        GatewayNodeHeartbeat heartbeat =
+                new GatewayNodeHeartbeat("missing-node", UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                        FIRST_HEARTBEAT, 0);
 
         // When
         boolean renewed = this.repository.renewLease(heartbeat);
@@ -257,8 +247,7 @@ class JdbcGatewayNodeRepositoryTests {
     @Test
     void shouldRejectMissingHeartbeat() {
         // When & Then
-        assertThatThrownBy(() -> this.repository.renewLease(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.repository.renewLease(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("heartbeat must not be null");
     }
 
@@ -299,27 +288,20 @@ class JdbcGatewayNodeRepositoryTests {
     @Test
     void shouldRejectMissingLeaseReleaseIdentity() {
         // When & Then
-        assertThatThrownBy(() -> this.repository.releaseLease(null, UUID.randomUUID()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> this.repository.releaseLease("node-1", null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.repository.releaseLease(null, UUID.randomUUID())).isInstanceOf(
+                NullPointerException.class).hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> this.repository.releaseLease("node-1", null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("leaseId must not be null");
     }
 
     @Test
     void shouldMarkOnlyExpiredOnlineLeasesOffline() {
         // Given
-        GatewayNode expiredNode = node(
-                "node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
-        GatewayNode boundaryNode = node(
-                "node-2", "Gateway Node 2", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
-        GatewayNode activeNode = node(
-                "node-3", "Gateway Node 3", "http://127.0.0.1:8083", THIRD_HEARTBEAT);
-        GatewayNode offlineNode = node(
-                "node-4", "Gateway Node 4", "http://127.0.0.1:8084", FIRST_HEARTBEAT);
-        List.of(expiredNode, boundaryNode, activeNode, offlineNode)
-                .forEach(this.repository::registerOrRefresh);
+        GatewayNode expiredNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        GatewayNode boundaryNode = node("node-2", "Gateway Node 2", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
+        GatewayNode activeNode = node("node-3", "Gateway Node 3", "http://127.0.0.1:8083", THIRD_HEARTBEAT);
+        GatewayNode offlineNode = node("node-4", "Gateway Node 4", "http://127.0.0.1:8084", FIRST_HEARTBEAT);
+        List.of(expiredNode, boundaryNode, activeNode, offlineNode).forEach(this.repository::registerOrRefresh);
         this.jdbcTemplate.update("UPDATE gw_gateway_node SET status = 'OFFLINE' WHERE node_id = 'node-4'");
 
         // When
@@ -350,13 +332,12 @@ class JdbcGatewayNodeRepositoryTests {
     @Test
     void shouldRejectMissingLeaseExpirationDeadline() {
         // When & Then
-        assertThatThrownBy(() -> this.repository.markExpiredLeasesOffline(null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("heartbeatDeadline must not be null");
+        assertThatThrownBy(() -> this.repository.markExpiredLeasesOffline(null)).isInstanceOf(
+                NullPointerException.class).hasMessage("heartbeatDeadline must not be null");
     }
 
-    private CompletableFuture<GatewayNodeRegistrationResult> registerAsync(
-            GatewayNode node, ExecutorService executor, CountDownLatch ready, CountDownLatch start) {
+    private CompletableFuture<GatewayNodeRegistrationResult> registerAsync(GatewayNode node, ExecutorService executor,
+            CountDownLatch ready, CountDownLatch start) {
         return CompletableFuture.supplyAsync(() -> {
             ready.countDown();
             awaitStart(start);
@@ -376,8 +357,8 @@ class JdbcGatewayNodeRepositoryTests {
     }
 
     private int nodeCount(String nodeId) {
-        return this.jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM gw_gateway_node WHERE node_id = ?", Integer.class, nodeId);
+        return this.jdbcTemplate.queryForObject("SELECT COUNT(*) FROM gw_gateway_node WHERE node_id = ?", Integer.class,
+                nodeId);
     }
 
     private int totalNodeCount() {
@@ -393,8 +374,8 @@ class JdbcGatewayNodeRepositoryTests {
     }
 
     private static GatewayNode node(String nodeId, String nodeName, String address, Instant heartbeatAt) {
-        GatewayNodeRegistration registration = new GatewayNodeRegistration(
-                nodeId, "default", nodeName, URI.create(address));
+        GatewayNodeRegistration registration =
+                new GatewayNodeRegistration(nodeId, "default", nodeName, URI.create(address));
         return GatewayNode.registered(registration, heartbeatAt);
     }
 }

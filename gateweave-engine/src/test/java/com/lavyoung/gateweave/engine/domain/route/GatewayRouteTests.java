@@ -16,10 +16,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayRouteTests {
 
-    private static final InvocationTarget DUBBO_TARGET = new InvocationTarget(
-            "dubbo", "cn.example.ActivityBooth", "sayHi",
-            List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
-            Map.of("version", "1.0.0"));
+    private static final InvocationTarget DUBBO_TARGET =
+            new InvocationTarget("dubbo", "cn.example.ActivityBooth", "sayHi",
+                    List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
+                    Map.of("version", "1.0.0"));
 
     @Test
     void shouldMatchMethodIgnoringCaseAndPathIgnoringQuery() {
@@ -56,8 +56,8 @@ class GatewayRouteTests {
         // Then
         assertThat(route.authenticationPolicy()).isEqualTo(RouteAuthenticationPolicy.ANONYMOUS);
         assertThat(route.attributes()).containsExactlyEntriesOf(Map.of("filter", "logging"));
-        assertThatThrownBy(() -> route.attributes().put("rate-limit", "10"))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> route.attributes().put("rate-limit", "10")).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 
     @Test
@@ -66,20 +66,16 @@ class GatewayRouteTests {
         var route = validRoute("GET", Map.of());
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayRoute(
-                "route-say-hi", "sayHi", "GET", "activity-service", RouteAuthenticationPolicy.ANONYMOUS,
-                DUBBO_TARGET, Map.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("path must start with '/'");
-        assertThatThrownBy(() -> new GatewayRoute(
-                "route-say-hi", "/sayHi", "GET", "activity-service", null, DUBBO_TARGET, Map.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayRoute("route-say-hi", "sayHi", "GET", "activity-service",
+                RouteAuthenticationPolicy.ANONYMOUS, DUBBO_TARGET, Map.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("path must start with '/'");
+        assertThatThrownBy(
+                () -> new GatewayRoute("route-say-hi", "/sayHi", "GET", "activity-service", null, DUBBO_TARGET,
+                        Map.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("authenticationPolicy must not be null");
-        assertThatThrownBy(() -> route.matches(null, URI.create("/sayHi")))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> route.matches(null, URI.create("/sayHi"))).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestMethod must not be null");
-        assertThatThrownBy(() -> route.matches("GET", null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> route.matches("GET", null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestUri must not be null");
     }
 

@@ -50,10 +50,10 @@ public class RouteQueryController {
      */
     public RouteQueryController(QueryRoutePageUseCase queryRoutePageUseCase,
             GatewayRouteConfigurationQuery gatewayRouteConfigurationQuery, LocalizedResultFactory resultFactory) {
-        this.queryRoutePageUseCase = Objects.requireNonNull(
-                queryRoutePageUseCase, "queryRoutePageUseCase must not be null");
-        this.gatewayRouteConfigurationQuery = Objects.requireNonNull(
-                gatewayRouteConfigurationQuery, "gatewayRouteConfigurationQuery must not be null");
+        this.queryRoutePageUseCase =
+                Objects.requireNonNull(queryRoutePageUseCase, "queryRoutePageUseCase must not be null");
+        this.gatewayRouteConfigurationQuery = Objects.requireNonNull(gatewayRouteConfigurationQuery,
+                "gatewayRouteConfigurationQuery must not be null");
         this.resultFactory = Objects.requireNonNull(resultFactory, "resultFactory must not be null");
     }
 
@@ -66,8 +66,7 @@ public class RouteQueryController {
      * @return 路由分页响应
      */
     @GetMapping
-    public Result<RoutePageResponse> query(
-            @PathVariable("gatewayGroupId") @NotBlank String gatewayGroupId,
+    public Result<RoutePageResponse> query(@PathVariable("gatewayGroupId") @NotBlank String gatewayGroupId,
             @RequestParam(name = "pageNumber", defaultValue = "1") @Min(1) int pageNumber,
             @RequestParam(name = "pageSize", defaultValue = "20") @Min(1) @Max(100) int pageSize) {
         RoutePageQuery query = new RoutePageQuery(gatewayGroupId, pageNumber, pageSize);

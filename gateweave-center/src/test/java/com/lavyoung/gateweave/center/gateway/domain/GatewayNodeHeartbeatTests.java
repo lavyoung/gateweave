@@ -37,30 +37,25 @@ class GatewayNodeHeartbeatTests {
     @Test
     void shouldRejectBlankNodeId() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeHeartbeat(" ", LEASE_ID, RECEIVED_AT, 0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("nodeId must not be blank");
+        assertThatThrownBy(() -> new GatewayNodeHeartbeat(" ", LEASE_ID, RECEIVED_AT, 0)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("nodeId must not be blank");
     }
 
     @Test
     void shouldRejectNegativeConfigurationVersion() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeHeartbeat("node-1", LEASE_ID, RECEIVED_AT, -1))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("currentConfigVersion must not be negative");
+        assertThatThrownBy(() -> new GatewayNodeHeartbeat("node-1", LEASE_ID, RECEIVED_AT, -1)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("currentConfigVersion must not be negative");
     }
 
     @Test
     void shouldRejectMissingRequiredFields() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeHeartbeat(null, LEASE_ID, RECEIVED_AT, 0))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> new GatewayNodeHeartbeat("node-1", null, RECEIVED_AT, 0))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseId must not be null");
-        assertThatThrownBy(() -> new GatewayNodeHeartbeat("node-1", LEASE_ID, null, 0))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("receivedAt must not be null");
+        assertThatThrownBy(() -> new GatewayNodeHeartbeat(null, LEASE_ID, RECEIVED_AT, 0)).isInstanceOf(
+                NullPointerException.class).hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> new GatewayNodeHeartbeat("node-1", null, RECEIVED_AT, 0)).isInstanceOf(
+                NullPointerException.class).hasMessage("leaseId must not be null");
+        assertThatThrownBy(() -> new GatewayNodeHeartbeat("node-1", LEASE_ID, null, 0)).isInstanceOf(
+                NullPointerException.class).hasMessage("receivedAt must not be null");
     }
 }

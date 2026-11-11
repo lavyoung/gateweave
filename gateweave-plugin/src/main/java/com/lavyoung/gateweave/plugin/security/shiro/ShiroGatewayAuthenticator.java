@@ -42,9 +42,7 @@ public class ShiroGatewayAuthenticator implements GatewayAuthenticator {
     @Override
     public Optional<AuthenticatedPrincipal> authenticate(String token) {
         Objects.requireNonNull(token, "token must not be null");
-        Subject subject = new Subject.Builder(this.securityManager)
-                .sessionCreationEnabled(false)
-                .buildSubject();
+        Subject subject = new Subject.Builder(this.securityManager).sessionCreationEnabled(false).buildSubject();
         try {
             subject.login(new BearerToken(token));
             Object principal = subject.getPrincipal();

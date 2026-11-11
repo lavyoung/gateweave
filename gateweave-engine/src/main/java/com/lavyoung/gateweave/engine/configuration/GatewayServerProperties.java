@@ -17,8 +17,8 @@ import java.util.Objects;
  * @since 1.0
  */
 @ConfigurationProperties(prefix = "gateweave.server")
-public record GatewayServerProperties(String host, int port, int maxContentLength, int bossThreads,
-        int workerThreads, int connectionBacklog) {
+public record GatewayServerProperties(String host, int port, int maxContentLength, int bossThreads, int workerThreads,
+                                      int connectionBacklog) {
     /**
      * 校验服务器启动所需的全部参数。
      *

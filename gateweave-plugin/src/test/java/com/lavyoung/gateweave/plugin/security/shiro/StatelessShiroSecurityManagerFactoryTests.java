@@ -36,8 +36,7 @@ class StatelessShiroSecurityManagerFactoryTests {
     @Test
     void shouldRejectNullRealm() {
         // When & Then
-        assertThatThrownBy(() -> StatelessShiroSecurityManagerFactory.create(null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("realm must not be null");
+        assertThatThrownBy(() -> StatelessShiroSecurityManagerFactory.create(null)).isInstanceOf(
+                NullPointerException.class).hasMessage("realm must not be null");
     }
 }

@@ -22,8 +22,8 @@ import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
  * @version 1.0.0
  * @date 2026/10/30
  */
-public record RoutePageResponse(
-        List<RouteResponse> routes, int pageNumber, int pageSize, long totalElements, long totalPages) {
+public record RoutePageResponse(List<RouteResponse> routes, int pageNumber, int pageSize, long totalElements,
+                                long totalPages) {
 
     /**
      * 建立响应集合的不可变快照。
@@ -45,8 +45,8 @@ public record RoutePageResponse(
         Objects.requireNonNull(page, "page must not be null");
 
         List<RouteResponse> routes = page.routes().stream().map(RouteResponse::from).toList();
-        return new RoutePageResponse(
-                routes, page.pageNumber(), page.pageSize(), page.totalElements(), page.totalPages());
+        return new RoutePageResponse(routes, page.pageNumber(), page.pageSize(), page.totalElements(),
+                page.totalPages());
     }
 
     /**
@@ -65,20 +65,17 @@ public record RoutePageResponse(
      * @param revision                  修订号
      * @param parameterMappings         请求参数映射
      */
-    public record RouteResponse(
-            String routeId, String gatewayGroupId, String path, String method, String serviceOperationId,
-            String authenticationRequirement, long invocationTimeoutMillis,
-            Map<String, String> targetAttributes, Map<String, String> attributes,
-            String status, long revision, List<ParameterMappingResponse> parameterMappings) {
+    public record RouteResponse(String routeId, String gatewayGroupId, String path, String method,
+                                String serviceOperationId, String authenticationRequirement,
+                                long invocationTimeoutMillis, Map<String, String> targetAttributes,
+                                Map<String, String> attributes, String status, long revision,
+                                List<ParameterMappingResponse> parameterMappings) {
 
         private static RouteResponse from(RouteDefinition route) {
-            List<ParameterMappingResponse> mappings = route.parameterMappings()
-                    .stream()
-                    .map(ParameterMappingResponse::from)
-                    .toList();
+            List<ParameterMappingResponse> mappings =
+                    route.parameterMappings().stream().map(ParameterMappingResponse::from).toList();
 
-            return new RouteResponse(
-                    route.routeId(), route.gatewayGroupId(), route.path(), route.method(),
+            return new RouteResponse(route.routeId(), route.gatewayGroupId(), route.path(), route.method(),
                     route.serviceOperationId(), route.authenticationRequirement().name(),
                     route.invocationTimeout().toMillis(), route.targetAttributes(), route.attributes(),
                     route.status().name(), route.revision(), mappings);

@@ -38,8 +38,8 @@ public class DefaultRouteQueryService implements QueryRoutePageUseCase {
         if (count == 0) {
             return new RoutePage(List.of(), query.pageNumber(), query.pageSize(), 0);
         }
-        List<RouteDefinition> routes = this.routeRepository.findPageByGatewayGroupId(
-                query.gatewayGroupId(), query.offset(), query.pageSize());
+        List<RouteDefinition> routes =
+                this.routeRepository.findPageByGatewayGroupId(query.gatewayGroupId(), query.offset(), query.pageSize());
         return new RoutePage(routes, query.pageNumber(), query.pageSize(), count);
     }
 }

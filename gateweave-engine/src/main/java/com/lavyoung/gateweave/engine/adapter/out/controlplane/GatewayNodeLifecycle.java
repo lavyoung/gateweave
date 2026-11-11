@@ -32,13 +32,11 @@ public final class GatewayNodeLifecycle implements SmartLifecycle {
      * @param properties                控制面连接和节点身份配置
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public GatewayNodeLifecycle(
-            GatewayNodeLeaseManager leaseManager,
-            GatewayConfigurationSynchronizer configurationSynchronizer,
-            GatewayControlPlaneProperties properties) {
+    public GatewayNodeLifecycle(GatewayNodeLeaseManager leaseManager,
+            GatewayConfigurationSynchronizer configurationSynchronizer, GatewayControlPlaneProperties properties) {
         this.leaseManager = Objects.requireNonNull(leaseManager, "leaseManager must not be null");
-        this.configurationSynchronizer = Objects.requireNonNull(
-                configurationSynchronizer, "configurationSynchronizer must not be null");
+        this.configurationSynchronizer =
+                Objects.requireNonNull(configurationSynchronizer, "configurationSynchronizer must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
     }
 
@@ -53,9 +51,9 @@ public final class GatewayNodeLifecycle implements SmartLifecycle {
         if (this.running) {
             return;
         }
-        RegisterGatewayNodeRequest request = new RegisterGatewayNodeRequest(
-                this.properties.nodeId(), this.properties.gatewayGroupId(), this.properties.nodeName(),
-                this.properties.advertisedAddress());
+        RegisterGatewayNodeRequest request =
+                new RegisterGatewayNodeRequest(this.properties.nodeId(), this.properties.gatewayGroupId(),
+                        this.properties.nodeName(), this.properties.advertisedAddress());
         this.leaseManager.start(request);
         try {
             this.configurationSynchronizer.synchronize(this.properties.gatewayGroupId());

@@ -104,8 +104,8 @@ public final class NettyGatewayRequestHandler extends SimpleChannelInboundHandle
      * @param requestId       请求追踪标识
      * @param failure         应用处理异常
      */
-    private void handleApplicationFailure(ChannelHandlerContext context, HttpVersion protocolVersion,
-            boolean keepAlive, String requestId, Throwable failure) {
+    private void handleApplicationFailure(ChannelHandlerContext context, HttpVersion protocolVersion, boolean keepAlive,
+            String requestId, Throwable failure) {
         LOGGER.error("Gateway request processing failed, requestId={}", requestId, failure);
         writeResponse(context, protocolVersion, keepAlive, INTERNAL_ERROR_RESPONSE);
     }

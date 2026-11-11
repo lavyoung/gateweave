@@ -37,8 +37,8 @@ class DefaultGatewayConfigurationPublicationServiceTests {
         DefaultGatewayConfigurationPublicationService service =
                 new DefaultGatewayConfigurationPublicationService(query, repository, FIXED_CLOCK);
         List<RouteConfiguration> routes = List.of(route());
-        GatewayConfigurationSnapshot expectedSnapshot = new GatewayConfigurationSnapshot(
-                "default", 1, PUBLISHED_AT, "sha256:configuration", routes);
+        GatewayConfigurationSnapshot expectedSnapshot =
+                new GatewayConfigurationSnapshot("default", 1, PUBLISHED_AT, "sha256:configuration", routes);
         when(query.findCandidates("default")).thenReturn(routes);
         when(repository.publish("default", routes, PUBLISHED_AT)).thenReturn(expectedSnapshot);
 
@@ -59,8 +59,8 @@ class DefaultGatewayConfigurationPublicationServiceTests {
         DefaultGatewayConfigurationPublicationService service =
                 new DefaultGatewayConfigurationPublicationService(query, repository, FIXED_CLOCK);
         List<RouteConfiguration> routes = List.of();
-        GatewayConfigurationSnapshot expectedSnapshot = new GatewayConfigurationSnapshot(
-                "default", 1, PUBLISHED_AT, "sha256:empty", routes);
+        GatewayConfigurationSnapshot expectedSnapshot =
+                new GatewayConfigurationSnapshot("default", 1, PUBLISHED_AT, "sha256:empty", routes);
         when(query.findCandidates("default")).thenReturn(routes);
         when(repository.publish("default", routes, PUBLISHED_AT)).thenReturn(expectedSnapshot);
 
@@ -94,15 +94,15 @@ class DefaultGatewayConfigurationPublicationServiceTests {
         ConfigurationReleaseRepository repository = mock(ConfigurationReleaseRepository.class);
 
         // When & Then
-        assertThatThrownBy(() -> new DefaultGatewayConfigurationPublicationService(null, repository, FIXED_CLOCK))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("routeConfigurationQuery must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayConfigurationPublicationService(query, null, FIXED_CLOCK))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("configurationReleaseRepository must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayConfigurationPublicationService(query, repository, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("clock must not be null");
+        assertThatThrownBy(
+                () -> new DefaultGatewayConfigurationPublicationService(null, repository, FIXED_CLOCK)).isInstanceOf(
+                NullPointerException.class).hasMessage("routeConfigurationQuery must not be null");
+        assertThatThrownBy(
+                () -> new DefaultGatewayConfigurationPublicationService(query, null, FIXED_CLOCK)).isInstanceOf(
+                NullPointerException.class).hasMessage("configurationReleaseRepository must not be null");
+        assertThatThrownBy(
+                () -> new DefaultGatewayConfigurationPublicationService(query, repository, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("clock must not be null");
     }
 
     @Test
@@ -114,22 +114,19 @@ class DefaultGatewayConfigurationPublicationServiceTests {
                 new DefaultGatewayConfigurationPublicationService(query, repository, FIXED_CLOCK);
 
         // When & Then
-        assertThatThrownBy(() -> service.publish(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.publish(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("gatewayGroupId must not be null");
-        assertThatThrownBy(() -> service.publish(" "))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> service.publish(" ")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("gatewayGroupId must not be blank");
         verifyNoInteractions(query, repository);
     }
 
     private static RouteConfiguration route() {
-        InvocationTargetConfiguration target = new InvocationTargetConfiguration(
-                "dubbo", "cn.example.ActivityBooth", "sayHi",
-                List.of(new InvocationParameterConfiguration("name", "java.lang.String")), Duration.ofSeconds(3),
-                Map.of("version", "1.0.0"));
-        return new RouteConfiguration(
-                "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
-                target, Map.of());
+        InvocationTargetConfiguration target =
+                new InvocationTargetConfiguration("dubbo", "cn.example.ActivityBooth", "sayHi",
+                        List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
+                        Duration.ofSeconds(3), Map.of("version", "1.0.0"));
+        return new RouteConfiguration("route-say-hi", "/sayHi", "GET", "activity-service",
+                RouteAuthenticationMode.REQUIRED, target, Map.of());
     }
 }

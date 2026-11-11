@@ -52,8 +52,7 @@ class GatewaySessionAuthenticationServiceTests {
         var service = service(authenticator);
         var session = session(RouteAuthenticationPolicy.REQUIRED,
                 headers(Map.of("Authorization", List.of("Bearer " + TOKEN))));
-        given(authenticator.authenticate(TOKEN))
-                .willReturn(Optional.of(new AuthenticatedPrincipal("user-10001")));
+        given(authenticator.authenticate(TOKEN)).willReturn(Optional.of(new AuthenticatedPrincipal("user-10001")));
 
         // When
         boolean authenticated = service.authenticate(session);
@@ -103,8 +102,7 @@ class GatewaySessionAuthenticationServiceTests {
         given(authenticator.authenticate(TOKEN)).willThrow(new IllegalStateException("authentication unavailable"));
 
         // When & Then
-        assertThatThrownBy(() -> service.authenticate(session))
-                .isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> service.authenticate(session)).isInstanceOf(IllegalStateException.class)
                 .hasMessage("authentication unavailable");
     }
 
@@ -116,14 +114,11 @@ class GatewaySessionAuthenticationServiceTests {
         var service = new GatewaySessionAuthenticationService(tokenResolver, authenticator);
 
         // When & Then
-        assertThatThrownBy(() -> new GatewaySessionAuthenticationService(null, authenticator))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("tokenResolver must not be null");
-        assertThatThrownBy(() -> new GatewaySessionAuthenticationService(tokenResolver, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("authenticator must not be null");
-        assertThatThrownBy(() -> service.authenticate(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewaySessionAuthenticationService(null, authenticator)).isInstanceOf(
+                NullPointerException.class).hasMessage("tokenResolver must not be null");
+        assertThatThrownBy(() -> new GatewaySessionAuthenticationService(tokenResolver, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("authenticator must not be null");
+        assertThatThrownBy(() -> service.authenticate(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("session must not be null");
     }
 
@@ -134,10 +129,10 @@ class GatewaySessionAuthenticationServiceTests {
     private static GatewaySession session(RouteAuthenticationPolicy policy, HttpHeaders headers) {
         var command = new GatewayRequestCommand("request-1", "GET", URI.create("/sayHi"), headers,
                 new HttpParameterValues(Map.of()), new byte[0]);
-        var target = new InvocationTarget(
-                "dubbo", "cn.example.ActivityBooth", "sayHi", List.of(), Duration.ofSeconds(3), Map.of());
-        var route = new GatewayRoute(
-                "route-say-hi", "/sayHi", "GET", "activity-service", policy, target, Map.of());
+        var target =
+                new InvocationTarget("dubbo", "cn.example.ActivityBooth", "sayHi", List.of(), Duration.ofSeconds(3),
+                        Map.of());
+        var route = new GatewayRoute("route-say-hi", "/sayHi", "GET", "activity-service", policy, target, Map.of());
         return new GatewaySession(command, route);
     }
 

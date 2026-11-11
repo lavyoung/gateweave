@@ -85,8 +85,8 @@ class GatewayEngineConfigurationTests {
         var invocationDispatcher = mock(ProtocolInvocationDispatcher.class);
 
         // When
-        var routeTable = configuration.gatewayRouteTable(
-                properties, new GatewayRouteConfigurationMapper(), invocationDispatcher);
+        var routeTable = configuration.gatewayRouteTable(properties, new GatewayRouteConfigurationMapper(),
+                invocationDispatcher);
 
         // Then
         assertThat(routeTable.match("GET", URI.create("/local"))).isPresent();
@@ -98,14 +98,13 @@ class GatewayEngineConfigurationTests {
         // Given
         var configuration = new GatewayEngineConfiguration();
         var target = target();
-        var properties = new GatewayRouteProperties(List.of(
-                route("route-valid", "/valid", target), route("route-invalid", "invalid", target)));
+        var properties = new GatewayRouteProperties(
+                List.of(route("route-valid", "/valid", target), route("route-invalid", "invalid", target)));
         var invocationDispatcher = mock(ProtocolInvocationDispatcher.class);
 
         // When & Then
-        assertThatThrownBy(() -> configuration.gatewayRouteTable(
-                properties, new GatewayRouteConfigurationMapper(), invocationDispatcher))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> configuration.gatewayRouteTable(properties, new GatewayRouteConfigurationMapper(),
+                invocationDispatcher)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("path must start with '/'");
         verifyNoInteractions(invocationDispatcher);
     }
@@ -180,12 +179,13 @@ class GatewayEngineConfigurationTests {
         var referenceCache = mock(SimpleReferenceCache.class);
         var authenticationService = mock(GatewaySessionAuthenticationService.class);
 
-        try (var occupiedGatewayPort = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
-                var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+        try (var occupiedGatewayPort = new ServerSocket(0, 50,
+                InetAddress.getLoopbackAddress()); var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             int gatewayPort = occupiedGatewayPort.getLocalPort();
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            var contextRunner = createStartupFailureContextRunner(
-                    controlPlaneServer.getAddress().getPort(), gatewayPort, authenticationService);
+            var contextRunner =
+                    createStartupFailureContextRunner(controlPlaneServer.getAddress().getPort(), gatewayPort,
+                            authenticationService);
 
             // When & Then
             contextRunner.run(context -> {
@@ -208,12 +208,13 @@ class GatewayEngineConfigurationTests {
         var referenceCache = mock(SimpleReferenceCache.class);
         var authenticationService = mock(GatewaySessionAuthenticationService.class);
 
-        try (var occupiedGatewayPort = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
-                var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
+        try (var occupiedGatewayPort = new ServerSocket(0, 50,
+                InetAddress.getLoopbackAddress()); var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             int gatewayPort = occupiedGatewayPort.getLocalPort();
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            var contextRunner = createStartupFailureContextRunner(
-                    controlPlaneServer.getAddress().getPort(), gatewayPort, authenticationService);
+            var contextRunner =
+                    createStartupFailureContextRunner(controlPlaneServer.getAddress().getPort(), gatewayPort,
+                            authenticationService);
 
             // When & Then
             contextRunner.run(context -> {
@@ -238,8 +239,7 @@ class GatewayEngineConfigurationTests {
         var genericService = mock(GenericService.class);
         when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
         when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
-                aryEq(new Object[]{"gateweave"})))
-                .thenReturn(CompletableFuture.completedFuture("hi gateweave"));
+                aryEq(new Object[]{"gateweave"}))).thenReturn(CompletableFuture.completedFuture("hi gateweave"));
 
         var serverReference = new AtomicReference<NettyGatewayServer>();
         var nodeLifecycleReference = new AtomicReference<GatewayNodeLifecycle>();
@@ -249,36 +249,27 @@ class GatewayEngineConfigurationTests {
         var controlPlaneSchedulerReference = new AtomicReference<ThreadPoolTaskScheduler>();
         var authenticationService = mock(GatewaySessionAuthenticationService.class);
         when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(true);
-        var contextRunner = new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
-                        HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
+        var contextRunner = new ApplicationContextRunner().withConfiguration(
+                        AutoConfigurations.of(JacksonAutoConfiguration.class,
+                                HttpMessageConvertersAutoConfiguration.class,
+                                RestClientAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
-                .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
-                .withPropertyValues(
-                        "gateweave.control-plane.base-uri=http://127.0.0.1:"
-                                + controlPlaneServer.getAddress().getPort(),
-                        "gateweave.control-plane.node-id=node-1",
+                .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService).withPropertyValues(
+                        "gateweave.control-plane.base-uri=http://127.0.0.1:" +
+                                controlPlaneServer.getAddress().getPort(), "gateweave.control-plane.node-id=node-1",
                         "gateweave.control-plane.gateway-group-id=default",
                         "gateweave.control-plane.node-name=Gateway Node 1",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + port,
-                        "gateweave.control-plane.request-timeout=3s",
-                        "gateweave.control-plane.refresh-interval=PT1H",
-                        "gateweave.server.host=127.0.0.1",
-                        "gateweave.server.port=" + port,
-                        "gateweave.server.max-content-length=1048576",
-                        "gateweave.server.boss-threads=2",
-                        "gateweave.server.worker-threads=3",
-                        "gateweave.server.connection-backlog=512",
+                        "gateweave.control-plane.request-timeout=3s", "gateweave.control-plane.refresh-interval=PT1H",
+                        "gateweave.server.host=127.0.0.1", "gateweave.server.port=" + port,
+                        "gateweave.server.max-content-length=1048576", "gateweave.server.boss-threads=2",
+                        "gateweave.server.worker-threads=3", "gateweave.server.connection-backlog=512",
                         "gateweave.rpc.application-name=gateweave",
                         "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
-                        "gateweave.rpc.discovery-mode=INTERFACE",
-                        "gateweave.http.connect-timeout=2s",
-                        "gateweave.http.core-threads=2",
-                        "gateweave.http.maximum-threads=8",
-                        "gateweave.http.queue-capacity=256",
-                        "gateweave.http.keep-alive=30s",
-                        "gateweave.routing.routes[0].route-id=route-say-hi",
-                        "gateweave.routing.routes[0].path=/sayHi",
+                        "gateweave.rpc.discovery-mode=INTERFACE", "gateweave.http.connect-timeout=2s",
+                        "gateweave.http.core-threads=2", "gateweave.http.maximum-threads=8",
+                        "gateweave.http.queue-capacity=256", "gateweave.http.keep-alive=30s",
+                        "gateweave.routing.routes[0].route-id=route-say-hi", "gateweave.routing.routes[0].path=/sayHi",
                         "gateweave.routing.routes[0].method=GET",
                         "gateweave.routing.routes[0].service-id=activity-service",
                         "gateweave.routing.routes[0].authentication-mode=ANONYMOUS",
@@ -348,8 +339,8 @@ class GatewayEngineConfigurationTests {
                 assertThat(httpExecutor.getCorePoolSize()).isEqualTo(2);
                 assertThat(httpExecutor.getMaximumPoolSize()).isEqualTo(8);
                 assertThat(httpExecutor.getQueue().remainingCapacity()).isEqualTo(256);
-                assertThat(httpExecutor.getRejectedExecutionHandler())
-                        .isInstanceOf(ThreadPoolExecutor.AbortPolicy.class);
+                assertThat(httpExecutor.getRejectedExecutionHandler()).isInstanceOf(
+                        ThreadPoolExecutor.AbortPolicy.class);
                 assertThat(controlPlaneScheduler.getPoolSize()).isEqualTo(2);
                 assertThat(controlPlaneScheduler.getThreadNamePrefix()).isEqualTo("gateweave-control-plane-");
                 assertThat(gatewayHttpClient.connectTimeout()).contains(Duration.ofSeconds(2));
@@ -361,17 +352,16 @@ class GatewayEngineConfigurationTests {
                 assertThat(controlPlaneProperties.nodeId()).isEqualTo("node-1");
                 assertThat(controlPlaneProperties.gatewayGroupId()).isEqualTo("default");
                 assertThat(controlPlaneProperties.nodeName()).isEqualTo("Gateway Node 1");
-                assertThat(controlPlaneProperties.advertisedAddress())
-                        .isEqualTo(URI.create("http://127.0.0.1:" + port));
+                assertThat(controlPlaneProperties.advertisedAddress()).isEqualTo(
+                        URI.create("http://127.0.0.1:" + port));
                 assertThat(controlPlaneProperties.requestTimeout()).isEqualTo(Duration.ofSeconds(3));
                 assertThat(controlPlaneProperties.refreshInterval()).isEqualTo(Duration.ofHours(1));
 
-                var request = HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + port + "/sayHi?name=gateweave"))
-                        .GET()
-                        .build();
-                var response = HttpClient.newHttpClient().send(request,
-                        HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                var request =
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/sayHi?name=gateweave")).GET()
+                                .build();
+                var response = HttpClient.newHttpClient()
+                        .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 assertThat(response.statusCode()).isEqualTo(200);
                 assertThat(response.body()).isEqualTo("hi gateweave");
@@ -407,40 +397,32 @@ class GatewayEngineConfigurationTests {
     /**
      * 创建用于验证控制面初始化失败的最小 Spring 上下文。
      *
-     * @param controlPlanePort 控制面测试服务器端口
-     * @param gatewayPort      网关监听端口
+     * @param controlPlanePort      控制面测试服务器端口
+     * @param gatewayPort           网关监听端口
      * @param authenticationService 会话鉴权服务
      * @return 配置完成但尚未运行的上下文执行器
      */
-    private static ApplicationContextRunner createStartupFailureContextRunner(
-            int controlPlanePort, int gatewayPort, GatewaySessionAuthenticationService authenticationService) {
-        return new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
-                        HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
+    private static ApplicationContextRunner createStartupFailureContextRunner(int controlPlanePort, int gatewayPort,
+            GatewaySessionAuthenticationService authenticationService) {
+        return new ApplicationContextRunner().withConfiguration(
+                        AutoConfigurations.of(JacksonAutoConfiguration.class,
+                                HttpMessageConvertersAutoConfiguration.class,
+                                RestClientAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
-                .withPropertyValues(
-                        "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
-                        "gateweave.control-plane.node-id=node-1",
-                        "gateweave.control-plane.gateway-group-id=default",
+                .withPropertyValues("gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
+                        "gateweave.control-plane.node-id=node-1", "gateweave.control-plane.gateway-group-id=default",
                         "gateweave.control-plane.node-name=Gateway Node 1",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
-                        "gateweave.control-plane.request-timeout=1s",
-                        "gateweave.control-plane.refresh-interval=PT1H",
-                        "gateweave.server.host=127.0.0.1",
-                        "gateweave.server.port=" + gatewayPort,
-                        "gateweave.server.max-content-length=1048576",
-                        "gateweave.server.boss-threads=1",
-                        "gateweave.server.worker-threads=1",
-                        "gateweave.server.connection-backlog=128",
+                        "gateweave.control-plane.request-timeout=1s", "gateweave.control-plane.refresh-interval=PT1H",
+                        "gateweave.server.host=127.0.0.1", "gateweave.server.port=" + gatewayPort,
+                        "gateweave.server.max-content-length=1048576", "gateweave.server.boss-threads=1",
+                        "gateweave.server.worker-threads=1", "gateweave.server.connection-backlog=128",
                         "gateweave.rpc.application-name=gateweave",
                         "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
-                        "gateweave.rpc.discovery-mode=INTERFACE",
-                        "gateweave.http.connect-timeout=1s",
-                        "gateweave.http.core-threads=1",
-                        "gateweave.http.maximum-threads=1",
-                        "gateweave.http.queue-capacity=16",
-                        "gateweave.http.keep-alive=30s");
+                        "gateweave.rpc.discovery-mode=INTERFACE", "gateweave.http.connect-timeout=1s",
+                        "gateweave.http.core-threads=1", "gateweave.http.maximum-threads=1",
+                        "gateweave.http.queue-capacity=16", "gateweave.http.keep-alive=30s");
     }
 
     private static InvocationTargetConfiguration target() {
@@ -448,8 +430,7 @@ class GatewayEngineConfigurationTests {
                 Duration.ofSeconds(3), Map.of("version", "1.0.0"));
     }
 
-    private static RouteConfiguration route(
-            String routeId, String path, InvocationTargetConfiguration target) {
+    private static RouteConfiguration route(String routeId, String path, InvocationTargetConfiguration target) {
         return new RouteConfiguration(routeId, path, "GET", "activity-service", RouteAuthenticationMode.ANONYMOUS,
                 target, Map.of());
     }

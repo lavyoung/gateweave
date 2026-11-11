@@ -32,8 +32,9 @@ class GlobalExceptionHandlerTests {
         request.setAttribute(RequestIdFilter.REQUEST_ID_ATTRIBUTE, "request-500");
 
         // When
-        ResponseEntity<Result<ErrorDetails>> response = handler.handleUnexpectedException(
-                new IllegalStateException("database password must stay private"), request);
+        ResponseEntity<Result<ErrorDetails>> response =
+                handler.handleUnexpectedException(new IllegalStateException("database password must stay private"),
+                        request);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);

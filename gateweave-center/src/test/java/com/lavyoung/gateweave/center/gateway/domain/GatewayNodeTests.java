@@ -42,23 +42,21 @@ class GatewayNodeTests {
     @Test
     void shouldRejectMissingLease() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNode(
-                registration(), GatewayNodeStatus.ONLINE, null, REGISTERED_AT, 0))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseId must not be null");
+        assertThatThrownBy(
+                () -> new GatewayNode(registration(), GatewayNodeStatus.ONLINE, null, REGISTERED_AT, 0)).isInstanceOf(
+                NullPointerException.class).hasMessage("leaseId must not be null");
     }
 
     @Test
     void shouldRejectNegativeConfigurationVersion() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNode(
-                registration(), GatewayNodeStatus.ONLINE, UUID.randomUUID(), REGISTERED_AT, -1))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new GatewayNode(registration(), GatewayNodeStatus.ONLINE, UUID.randomUUID(), REGISTERED_AT,
+                        -1)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("currentConfigVersion must not be negative");
     }
 
     private static GatewayNodeRegistration registration() {
-        return new GatewayNodeRegistration(
-                "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
+        return new GatewayNodeRegistration("node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
     }
 }

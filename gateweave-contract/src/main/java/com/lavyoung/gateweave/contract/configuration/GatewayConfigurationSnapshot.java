@@ -20,8 +20,8 @@ import java.util.Objects;
  * @version 1.0.0
  * @date 2026/11/02
  */
-public record GatewayConfigurationSnapshot(String gatewayGroupId, long version, Instant publishedAt,
-                                           String checksum, List<RouteConfiguration> routes) {
+public record GatewayConfigurationSnapshot(String gatewayGroupId, long version, Instant publishedAt, String checksum,
+                                           List<RouteConfiguration> routes) {
     /**
      * 校验快照基础属性并复制路由集合。
      *

@@ -66,8 +66,9 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@EnableConfigurationProperties({GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class,
-        GatewayHttpProperties.class, GatewayControlPlaneProperties.class})
+@EnableConfigurationProperties(
+        {GatewayServerProperties.class, GatewayRouteProperties.class, GatewayRpcProperties.class,
+                GatewayHttpProperties.class, GatewayControlPlaneProperties.class})
 public class GatewayEngineConfiguration {
 
     /**
@@ -80,8 +81,8 @@ public class GatewayEngineConfiguration {
      */
     @Bean(destroyMethod = "close")
     public GenericReferenceRegistry genericReferenceRegistry(GatewayRpcProperties rpcProperties) {
-        return new GenericReferenceRegistry(
-                rpcProperties.applicationName(), rpcProperties.registryAddress(), rpcProperties.discoveryMode());
+        return new GenericReferenceRegistry(rpcProperties.applicationName(), rpcProperties.registryAddress(),
+                rpcProperties.discoveryMode());
     }
 
     /**
@@ -108,8 +109,8 @@ public class GatewayEngineConfiguration {
     public ThreadPoolExecutor gatewayHttpExecutor(GatewayHttpProperties properties) {
         return new ThreadPoolExecutor(properties.coreThreads(), properties.maximumThreads(),
                 properties.keepAlive().toMillis(), TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(properties.queueCapacity()),
-                new CustomizableThreadFactory("gateweave-http-"), new ThreadPoolExecutor.AbortPolicy());
+                new ArrayBlockingQueue<>(properties.queueCapacity()), new CustomizableThreadFactory("gateweave-http-"),
+                new ThreadPoolExecutor.AbortPolicy());
     }
 
     /**
@@ -124,13 +125,9 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public HttpClient gatewayHttpClient(@Qualifier("gatewayHttpExecutor") ThreadPoolExecutor executor,
-                                        GatewayHttpProperties properties) {
-        return HttpClient.newBuilder()
-                .connectTimeout(properties.connectTimeout())
-                .executor(executor)
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .version(HttpClient.Version.HTTP_1_1)
-                .build();
+            GatewayHttpProperties properties) {
+        return HttpClient.newBuilder().connectTimeout(properties.connectTimeout()).executor(executor)
+                .followRedirects(HttpClient.Redirect.NEVER).version(HttpClient.Version.HTTP_1_1).build();
     }
 
     /**
@@ -201,11 +198,10 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public HandleGatewayRequestUseCase gatewayRequestUseCase(GatewaySessionFactory sessionFactory,
-                                                             GatewaySessionAuthenticationService authenticationService,
-                                                             InvocationRequestMapper requestMapper,
-                                                             ProtocolInvocationDispatcher invocationDispatcher) {
-        return new DefaultGatewayRequestService(
-                sessionFactory, requestMapper, invocationDispatcher, authenticationService);
+            GatewaySessionAuthenticationService authenticationService, InvocationRequestMapper requestMapper,
+            ProtocolInvocationDispatcher invocationDispatcher) {
+        return new DefaultGatewayRequestService(sessionFactory, requestMapper, invocationDispatcher,
+                authenticationService);
     }
 
     /**
@@ -233,9 +229,8 @@ public class GatewayEngineConfiguration {
      * @throws RuntimeException         协议运行时资源准备失败时抛出
      */
     @Bean
-    public GatewayRouteTable gatewayRouteTable(
-            GatewayRouteProperties properties, GatewayRouteConfigurationMapper mapper,
-            ProtocolInvocationDispatcher invocationDispatcher) {
+    public GatewayRouteTable gatewayRouteTable(GatewayRouteProperties properties,
+            GatewayRouteConfigurationMapper mapper, ProtocolInvocationDispatcher invocationDispatcher) {
         List<GatewayRoute> routes = properties.routes().stream().map(mapper::toDomain).toList();
         properties.routes().forEach(route -> invocationDispatcher.prepare(route.target()));
         return new GatewayRouteTable(routes);
@@ -295,9 +290,9 @@ public class GatewayEngineConfiguration {
      * @return Channel Pipeline 初始化器
      */
     @Bean
-    public GatewayChannelInitializer gatewayChannelInitializer(
-            GatewayServerProperties properties, HandleGatewayRequestUseCase useCase,
-            NettyGatewayRequestMapper requestMapper, NettyGatewayResponseMapper responseMapper) {
+    public GatewayChannelInitializer gatewayChannelInitializer(GatewayServerProperties properties,
+            HandleGatewayRequestUseCase useCase, NettyGatewayRequestMapper requestMapper,
+            NettyGatewayResponseMapper responseMapper) {
         return new GatewayChannelInitializer(properties.maxContentLength(),
                 () -> new NettyGatewayRequestHandler(useCase, requestMapper, responseMapper));
     }
@@ -312,16 +307,12 @@ public class GatewayEngineConfiguration {
      * @return 配置完成的 ServerBootstrap
      */
     @Bean
-    public ServerBootstrap gatewayServerBootstrap(
-            @Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
+    public ServerBootstrap gatewayServerBootstrap(@Qualifier("gatewayBossGroup") EventLoopGroup bossGroup,
             @Qualifier("gatewayWorkerGroup") EventLoopGroup workerGroup, GatewayChannelInitializer initializer,
             GatewayServerProperties properties) {
-        return new ServerBootstrap()
-                .group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel.class)
+        return new ServerBootstrap().group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, properties.connectionBacklog())
-                .childOption(ChannelOption.TCP_NODELAY, true)
-                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.TCP_NODELAY, true).childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childHandler(initializer);
     }
 
@@ -350,17 +341,15 @@ public class GatewayEngineConfiguration {
      * @return 控制面 HTTP 代理
      */
     @Bean
-    public ControlPlaneHttpApi controlPlaneHttpApi(
-            RestClient.Builder restClientBuilder, HttpClient gatewayHttpClient,
+    public ControlPlaneHttpApi controlPlaneHttpApi(RestClient.Builder restClientBuilder, HttpClient gatewayHttpClient,
             GatewayControlPlaneProperties controlPlaneProperties) {
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(gatewayHttpClient);
         requestFactory.setReadTimeout(controlPlaneProperties.requestTimeout());
-        RestClient restClient = restClientBuilder.baseUrl(controlPlaneProperties.baseUri().toString())
-                .requestFactory(requestFactory)
-                .defaultStatusHandler(status -> status.isError(), (request, response) -> {
-                    // 由控制面适配器同时判断 HTTP 状态和统一响应码。
-                })
-                .build();
+        RestClient restClient =
+                restClientBuilder.baseUrl(controlPlaneProperties.baseUri().toString()).requestFactory(requestFactory)
+                        .defaultStatusHandler(status -> status.isError(), (request, response) -> {
+                            // 由控制面适配器同时判断 HTTP 状态和统一响应码。
+                        }).build();
         HttpServiceProxyFactory proxyFactory =
                 HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build();
         return proxyFactory.createClient(ControlPlaneHttpApi.class);
@@ -402,9 +391,8 @@ public class GatewayEngineConfiguration {
      * @return 网关节点租约管理器
      */
     @Bean
-    public GatewayNodeLeaseManager gatewayNodeLeaseManager(
-            GatewayControlPlaneClient controlPlaneClient, GatewayRouteTable routeTable,
-            @Qualifier("gatewayControlPlaneTaskScheduler") TaskScheduler taskScheduler) {
+    public GatewayNodeLeaseManager gatewayNodeLeaseManager(GatewayControlPlaneClient controlPlaneClient,
+            GatewayRouteTable routeTable, @Qualifier("gatewayControlPlaneTaskScheduler") TaskScheduler taskScheduler) {
         return new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
     }
 
@@ -417,8 +405,7 @@ public class GatewayEngineConfiguration {
      * @return 网关节点生命周期组件
      */
     @Bean
-    public GatewayNodeLifecycle gatewayNodeLifecycle(
-            GatewayNodeLeaseManager leaseManager,
+    public GatewayNodeLifecycle gatewayNodeLifecycle(GatewayNodeLeaseManager leaseManager,
             GatewayConfigurationSynchronizer configurationSynchronizer,
             GatewayControlPlaneProperties controlPlaneProperties) {
         return new GatewayNodeLifecycle(leaseManager, configurationSynchronizer, controlPlaneProperties);

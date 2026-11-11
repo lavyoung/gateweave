@@ -53,7 +53,6 @@ public record GatewayNode(GatewayNodeRegistration registration, GatewayNodeStatu
      * @throws NullPointerException registration 或 registeredAt 为 null 时抛出
      */
     public static GatewayNode registered(GatewayNodeRegistration registration, Instant registeredAt) {
-        return new GatewayNode(
-                registration, GatewayNodeStatus.ONLINE, UUID.randomUUID(), registeredAt, 0);
+        return new GatewayNode(registration, GatewayNodeStatus.ONLINE, UUID.randomUUID(), registeredAt, 0);
     }
 }

@@ -46,8 +46,7 @@ public final class GatewaySessionAuthenticationService {
         if (RouteAuthenticationPolicy.ANONYMOUS.equals(session.route().authenticationPolicy())) {
             return true;
         }
-        return this.tokenResolver.resolve(session.command().headers())
-                .flatMap(this.authenticator::authenticate)
+        return this.tokenResolver.resolve(session.command().headers()).flatMap(this.authenticator::authenticate)
                 .isPresent();
     }
 }

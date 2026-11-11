@@ -38,8 +38,8 @@ public class RequestIdFilter extends OncePerRequestFilter {
      * {@inheritDoc}
      */
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         String requestId = this.resolveRequestId(request.getHeader(REQUEST_ID_HEADER));
         request.setAttribute(REQUEST_ID_ATTRIBUTE, requestId);
         response.setHeader(REQUEST_ID_HEADER, requestId);

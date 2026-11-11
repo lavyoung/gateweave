@@ -40,13 +40,13 @@ public final class GatewayConfigurationSynchronizer {
     public GatewayConfigurationSynchronizer(GatewayControlPlaneClient controlPlaneClient,
             GatewayRouteConfigurationMapper routeMapper, ProtocolInvocationDispatcher invocationDispatcher,
             GatewayRouteTable routeTable) {
-        this.controlPlaneClient = Objects.requireNonNull(
-                controlPlaneClient, "controlPlaneClient must not be null");
+        this.controlPlaneClient = Objects.requireNonNull(controlPlaneClient, "controlPlaneClient must not be null");
         this.routeMapper = Objects.requireNonNull(routeMapper, "routeMapper must not be null");
-        this.invocationDispatcher = Objects.requireNonNull(
-                invocationDispatcher, "invocationDispatcher must not be null");
+        this.invocationDispatcher =
+                Objects.requireNonNull(invocationDispatcher, "invocationDispatcher must not be null");
         this.routeTable = Objects.requireNonNull(routeTable, "routeTable must not be null");
     }
+
     /**
      * 查询并应用指定网关分组最后发布的配置快照。
      *

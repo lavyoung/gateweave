@@ -25,8 +25,7 @@ class JwtTokenVerifierTests {
     void shouldReturnAuthenticatedPrincipalForValidToken() {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
-        String token = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT,
-                Instant.now().plusSeconds(300), null);
+        String token = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT, Instant.now().plusSeconds(300), null);
 
         // When
         var principal = verifier.authenticate(token);
@@ -39,8 +38,7 @@ class JwtTokenVerifierTests {
     void shouldAllowConfiguredClockSkew() {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ofSeconds(5));
-        String token = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT,
-                Instant.now().minusSeconds(1), null);
+        String token = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT, Instant.now().minusSeconds(1), null);
 
         // When & Then
         assertThat(verifier.authenticate(token)).isPresent();
@@ -51,11 +49,10 @@ class JwtTokenVerifierTests {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
         SecretKey wrongKey = Jwts.SIG.HS256.key().build();
-        String validToken = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT,
-                Instant.now().plusSeconds(300), null);
+        String validToken =
+                signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT, Instant.now().plusSeconds(300), null);
         String tamperedToken = tamperSignature(validToken);
-        String wrongKeyToken = signedToken(wrongKey, ISSUER, AUDIENCE, SUBJECT,
-                Instant.now().plusSeconds(300), null);
+        String wrongKeyToken = signedToken(wrongKey, ISSUER, AUDIENCE, SUBJECT, Instant.now().plusSeconds(300), null);
 
         // When & Then
         assertThat(verifier.authenticate(tamperedToken)).isEmpty();
@@ -66,10 +63,10 @@ class JwtTokenVerifierTests {
     void shouldRejectExpiredOrNotYetValidToken() {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
-        String expiredToken = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT,
-                Instant.now().minusSeconds(30), null);
-        String futureToken = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT,
-                Instant.now().plusSeconds(300), Instant.now().plusSeconds(30));
+        String expiredToken =
+                signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT, Instant.now().minusSeconds(30), null);
+        String futureToken = signedToken(VERIFICATION_KEY, ISSUER, AUDIENCE, SUBJECT, Instant.now().plusSeconds(300),
+                Instant.now().plusSeconds(30));
 
         // When & Then
         assertThat(verifier.authenticate(expiredToken)).isEmpty();
@@ -80,13 +77,11 @@ class JwtTokenVerifierTests {
     void shouldRejectMissingExpirationOrSubject() {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
-        String missingExpiration = baseBuilder(ISSUER, AUDIENCE, SUBJECT)
-                .signWith(VERIFICATION_KEY, Jwts.SIG.HS256)
-                .compact();
-        String missingSubject = baseBuilder(ISSUER, AUDIENCE, null)
-                .expiration(Date.from(Instant.now().plusSeconds(300)))
-                .signWith(VERIFICATION_KEY, Jwts.SIG.HS256)
-                .compact();
+        String missingExpiration =
+                baseBuilder(ISSUER, AUDIENCE, SUBJECT).signWith(VERIFICATION_KEY, Jwts.SIG.HS256).compact();
+        String missingSubject =
+                baseBuilder(ISSUER, AUDIENCE, null).expiration(Date.from(Instant.now().plusSeconds(300)))
+                        .signWith(VERIFICATION_KEY, Jwts.SIG.HS256).compact();
 
         // When & Then
         assertThat(verifier.authenticate(missingExpiration)).isEmpty();
@@ -97,10 +92,10 @@ class JwtTokenVerifierTests {
     void shouldRejectWrongIssuerOrAudience() {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
-        String wrongIssuer = signedToken(VERIFICATION_KEY, "other-issuer", AUDIENCE, SUBJECT,
-                Instant.now().plusSeconds(300), null);
-        String wrongAudience = signedToken(VERIFICATION_KEY, ISSUER, "other-audience", SUBJECT,
-                Instant.now().plusSeconds(300), null);
+        String wrongIssuer =
+                signedToken(VERIFICATION_KEY, "other-issuer", AUDIENCE, SUBJECT, Instant.now().plusSeconds(300), null);
+        String wrongAudience =
+                signedToken(VERIFICATION_KEY, ISSUER, "other-audience", SUBJECT, Instant.now().plusSeconds(300), null);
 
         // When & Then
         assertThat(verifier.authenticate(wrongIssuer)).isEmpty();
@@ -112,13 +107,10 @@ class JwtTokenVerifierTests {
         // Given
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
         SecretKey hs384Key = Jwts.SIG.HS384.key().build();
-        String hs384Token = baseBuilder(ISSUER, AUDIENCE, SUBJECT)
-                .expiration(Date.from(Instant.now().plusSeconds(300)))
-                .signWith(hs384Key, Jwts.SIG.HS384)
-                .compact();
-        String unsecuredToken = baseBuilder(ISSUER, AUDIENCE, SUBJECT)
-                .expiration(Date.from(Instant.now().plusSeconds(300)))
-                .compact();
+        String hs384Token = baseBuilder(ISSUER, AUDIENCE, SUBJECT).expiration(Date.from(Instant.now().plusSeconds(300)))
+                .signWith(hs384Key, Jwts.SIG.HS384).compact();
+        String unsecuredToken =
+                baseBuilder(ISSUER, AUDIENCE, SUBJECT).expiration(Date.from(Instant.now().plusSeconds(300))).compact();
 
         // When & Then
         assertThat(verifier.authenticate(hs384Token)).isEmpty();
@@ -142,22 +134,20 @@ class JwtTokenVerifierTests {
         JwtTokenVerifier verifier = verifier(Duration.ZERO);
 
         // When & Then
-        assertThatThrownBy(() -> new JwtTokenVerifier(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new JwtTokenVerifier(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("policy must not be null");
-        assertThatThrownBy(() -> verifier.authenticate(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> verifier.authenticate(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("token must not be null");
     }
 
     private static JwtTokenVerifier verifier(Duration clockSkew) {
-        JwtVerificationPolicy policy = new JwtVerificationPolicy(
-                VERIFICATION_KEY, ISSUER, AUDIENCE, clockSkew, MAXIMUM_TOKEN_LENGTH);
+        JwtVerificationPolicy policy =
+                new JwtVerificationPolicy(VERIFICATION_KEY, ISSUER, AUDIENCE, clockSkew, MAXIMUM_TOKEN_LENGTH);
         return new JwtTokenVerifier(policy);
     }
 
-    private static String signedToken(SecretKey key, String issuer, String audience, String subject,
-            Instant expiration, Instant notBefore) {
+    private static String signedToken(SecretKey key, String issuer, String audience, String subject, Instant expiration,
+            Instant notBefore) {
 
         JwtBuilder builder = baseBuilder(issuer, audience, subject).expiration(Date.from(expiration));
         if (notBefore != null) {

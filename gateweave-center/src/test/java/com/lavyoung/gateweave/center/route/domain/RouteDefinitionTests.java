@@ -24,8 +24,8 @@ class RouteDefinitionTests {
         List<RouteParameterMapping> mappings = new ArrayList<>(List.of(NAME_MAPPING));
 
         // When
-        RouteDefinition route = route("/sayHi", "get", Duration.ofSeconds(3), 2L,
-                targetAttributes, attributes, mappings);
+        RouteDefinition route =
+                route("/sayHi", "get", Duration.ofSeconds(3), 2L, targetAttributes, attributes, mappings);
         targetAttributes.put("group", "test");
         attributes.put("trace", "enabled");
         mappings.add(AGE_MAPPING);
@@ -36,17 +36,16 @@ class RouteDefinitionTests {
         assertThat(route.attributes()).containsExactly(Map.entry("source", "center"));
         assertThat(route.parameterMappings()).containsExactly(NAME_MAPPING);
         assertThat(route.revision()).isEqualTo(2L);
-        assertThatThrownBy(() -> route.targetAttributes().put("group", "test"))
-                .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> route.parameterMappings().add(AGE_MAPPING))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> route.targetAttributes().put("group", "test")).isInstanceOf(
+                UnsupportedOperationException.class);
+        assertThatThrownBy(() -> route.parameterMappings().add(AGE_MAPPING)).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 
     @Test
     void shouldAllowRouteWithoutParameterMappings() {
         // When
-        RouteDefinition route = route("/health", "GET", Duration.ofSeconds(1), 0L,
-                Map.of(), Map.of(), List.of());
+        RouteDefinition route = route("/health", "GET", Duration.ofSeconds(1), 0L, Map.of(), Map.of(), List.of());
 
         // Then
         assertThat(route.parameterMappings()).isEmpty();
@@ -56,116 +55,88 @@ class RouteDefinitionTests {
     void shouldRejectMissingReferences() {
         // When & Then
         assertThatThrownBy(() -> new RouteDefinition(null, "default", "/sayHi", "GET", "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("routeId must not be null");
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(NullPointerException.class).hasMessage("routeId must not be null");
         assertThatThrownBy(() -> new RouteDefinition("route-say-hi", null, "/sayHi", "GET", "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("gatewayGroupId must not be null");
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(NullPointerException.class).hasMessage("gatewayGroupId must not be null");
         assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", null, "GET", "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("path must not be null");
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(NullPointerException.class).hasMessage("path must not be null");
         assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", null, "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("method must not be null");
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(NullPointerException.class).hasMessage("method must not be null");
         assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", null,
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("serviceOperationId must not be null");
     }
 
     @Test
     void shouldRejectMissingPoliciesAndCollections() {
         // When & Then
-        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET",
-                "activity-say-hi", null, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("authenticationRequirement must not be null");
-        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET",
-                "activity-say-hi", RouteAuthenticationRequirement.REQUIRED, null, Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("invocationTimeout must not be null");
-        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET",
-                "activity-say-hi", RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), null, Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("targetAttributes must not be null");
-        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET",
-                "activity-say-hi", RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), null,
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("attributes must not be null");
-        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET",
-                "activity-say-hi", RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                null, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("status must not be null");
-        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET",
-                "activity-say-hi", RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("parameterMappings must not be null");
+        assertThatThrownBy(
+                () -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", "activity-say-hi", null,
+                        Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED, 0L, List.of())).isInstanceOf(
+                NullPointerException.class).hasMessage("authenticationRequirement must not be null");
+        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", "activity-say-hi",
+                RouteAuthenticationRequirement.REQUIRED, null, Map.of(), Map.of(), RouteStatus.ENABLED, 0L,
+                List.of())).isInstanceOf(NullPointerException.class).hasMessage("invocationTimeout must not be null");
+        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", "activity-say-hi",
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), null, Map.of(), RouteStatus.ENABLED, 0L,
+                List.of())).isInstanceOf(NullPointerException.class).hasMessage("targetAttributes must not be null");
+        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", "activity-say-hi",
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), null, RouteStatus.ENABLED, 0L,
+                List.of())).isInstanceOf(NullPointerException.class).hasMessage("attributes must not be null");
+        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", "activity-say-hi",
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), null, 0L,
+                List.of())).isInstanceOf(NullPointerException.class).hasMessage("status must not be null");
+        assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", "activity-say-hi",
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, null)).isInstanceOf(NullPointerException.class).hasMessage("parameterMappings must not be null");
     }
 
     @Test
     void shouldRejectBlankRequiredValues() {
         // When & Then
-        assertThatThrownBy(() -> route("/sayHi", " ", Duration.ofSeconds(3), 0L,
-                Map.of(), Map.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("method must not be blank");
+        assertThatThrownBy(
+                () -> route("/sayHi", " ", Duration.ofSeconds(3), 0L, Map.of(), Map.of(), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("method must not be blank");
         assertThatThrownBy(() -> new RouteDefinition(" ", "default", "/sayHi", "GET", "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("routeId must not be blank");
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(IllegalArgumentException.class).hasMessage("routeId must not be blank");
         assertThatThrownBy(() -> new RouteDefinition("route-say-hi", " ", "/sayHi", "GET", "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("gatewayGroupId must not be blank");
         assertThatThrownBy(() -> new RouteDefinition("route-say-hi", "default", "/sayHi", "GET", " ",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("serviceOperationId must not be blank");
     }
 
     @Test
     void shouldRejectInvalidPath() {
         // When & Then
-        assertThatThrownBy(() -> route(" ", "GET", Duration.ofSeconds(3), 0L, Map.of(), Map.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("path must not be blank");
-        assertThatThrownBy(() -> route("sayHi", "GET", Duration.ofSeconds(3), 0L, Map.of(), Map.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("path must start with '/'");
+        assertThatThrownBy(
+                () -> route(" ", "GET", Duration.ofSeconds(3), 0L, Map.of(), Map.of(), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("path must not be blank");
+        assertThatThrownBy(
+                () -> route("sayHi", "GET", Duration.ofSeconds(3), 0L, Map.of(), Map.of(), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("path must start with '/'");
     }
 
     @Test
     void shouldRejectInvalidTimeoutAndRevision() {
         // When & Then
-        assertThatThrownBy(() -> route("/sayHi", "GET", Duration.ZERO, 0L, Map.of(), Map.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invocationTimeout must be greater than zero");
-        assertThatThrownBy(() -> route(
-                "/sayHi", "GET", Duration.ofSeconds(-1), 0L, Map.of(), Map.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invocationTimeout must be greater than zero");
-        assertThatThrownBy(() -> route(
-                "/sayHi", "GET", Duration.ofSeconds(3), -1L, Map.of(), Map.of(), List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("revision must not be negative");
+        assertThatThrownBy(() -> route("/sayHi", "GET", Duration.ZERO, 0L, Map.of(), Map.of(), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("invocationTimeout must be greater than zero");
+        assertThatThrownBy(
+                () -> route("/sayHi", "GET", Duration.ofSeconds(-1), 0L, Map.of(), Map.of(), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("invocationTimeout must be greater than zero");
+        assertThatThrownBy(
+                () -> route("/sayHi", "GET", Duration.ofSeconds(3), -1L, Map.of(), Map.of(), List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("revision must not be negative");
     }
 
     @Test
@@ -174,9 +145,8 @@ class RouteDefinitionTests {
         RouteParameterMapping secondMapping = new RouteParameterMapping(2, "age");
 
         // When & Then
-        assertThatThrownBy(() -> route("/sayHi", "GET", Duration.ofSeconds(3), 0L,
-                Map.of(), Map.of(), List.of(NAME_MAPPING, secondMapping)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> route("/sayHi", "GET", Duration.ofSeconds(3), 0L, Map.of(), Map.of(),
+                List.of(NAME_MAPPING, secondMapping))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("parameter positions must be continuous from zero");
     }
 
@@ -186,9 +156,8 @@ class RouteDefinitionTests {
         RouteParameterMapping duplicatedName = new RouteParameterMapping(1, "name");
 
         // When & Then
-        assertThatThrownBy(() -> route("/sayHi", "GET", Duration.ofSeconds(3), 0L,
-                Map.of(), Map.of(), List.of(NAME_MAPPING, duplicatedName)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> route("/sayHi", "GET", Duration.ofSeconds(3), 0L, Map.of(), Map.of(),
+                List.of(NAME_MAPPING, duplicatedName))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("request parameter names must not be duplicated");
     }
 
@@ -196,7 +165,7 @@ class RouteDefinitionTests {
             Map<String, String> targetAttributes, Map<String, String> attributes,
             List<RouteParameterMapping> mappings) {
         return new RouteDefinition("route-say-hi", "default", path, method, "activity-say-hi",
-                RouteAuthenticationRequirement.REQUIRED, timeout, targetAttributes, attributes,
-                RouteStatus.ENABLED, revision, mappings);
+                RouteAuthenticationRequirement.REQUIRED, timeout, targetAttributes, attributes, RouteStatus.ENABLED,
+                revision, mappings);
     }
 }

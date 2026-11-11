@@ -21,19 +21,16 @@ class HttpInvocationOptionsTests {
     @Test
     void shouldRejectMissingAttributesOrMethod() {
         // When & Then
-        assertThatThrownBy(() -> HttpInvocationOptions.from(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> HttpInvocationOptions.from(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("attributes must not be null");
-        assertThatThrownBy(() -> HttpInvocationOptions.from(Map.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> HttpInvocationOptions.from(Map.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("method must not be null");
     }
 
     @Test
     void shouldRejectBlankMethod() {
         // When & Then
-        assertThatThrownBy(() -> HttpInvocationOptions.from(Map.of("method", " ")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("method must not be blank");
+        assertThatThrownBy(() -> HttpInvocationOptions.from(Map.of("method", " "))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("method must not be blank");
     }
 }

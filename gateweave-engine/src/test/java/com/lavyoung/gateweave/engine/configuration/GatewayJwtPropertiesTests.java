@@ -24,8 +24,8 @@ class GatewayJwtPropertiesTests {
     void shouldBindApplicationYamlWithExternalVerificationKey() throws IOException {
         // Given
         var environment = new StandardEnvironment();
-        environment.getPropertySources().addFirst(new MapPropertySource(
-                "jwt-test", Map.of("GATEWEAVE_JWT_VERIFICATION_KEY_BASE64", VERIFICATION_KEY_BASE64)));
+        environment.getPropertySources().addFirst(new MapPropertySource("jwt-test",
+                Map.of("GATEWEAVE_JWT_VERIFICATION_KEY_BASE64", VERIFICATION_KEY_BASE64)));
         var applicationYaml = new ClassPathResource("application.yml");
         var propertySources = new YamlPropertySourceLoader().load("application", applicationYaml);
         propertySources.forEach(environment.getPropertySources()::addLast);
@@ -35,15 +35,15 @@ class GatewayJwtPropertiesTests {
                 .orElseThrow(() -> new AssertionError("gateweave.security.jwt properties must be present"));
 
         // Then
-        assertThat(properties).isEqualTo(new GatewayJwtProperties(
-                ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ofSeconds(30), 4096));
+        assertThat(properties).isEqualTo(
+                new GatewayJwtProperties(ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ofSeconds(30), 4096));
     }
 
     @Test
     void shouldCreateValidJwtProperties() {
         // When
-        var properties = new GatewayJwtProperties(
-                ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ofSeconds(30), 4096);
+        var properties =
+                new GatewayJwtProperties(ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ofSeconds(30), 4096);
 
         // Then
         assertThat(properties.issuer()).isEqualTo(ISSUER);
@@ -56,57 +56,45 @@ class GatewayJwtPropertiesTests {
     @Test
     void shouldRejectMissingValues() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                null, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO, 4096))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("issuer must not be null");
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                ISSUER, null, VERIFICATION_KEY_BASE64, Duration.ZERO, 4096))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("audience must not be null");
-        assertThatThrownBy(() -> new GatewayJwtProperties(ISSUER, AUDIENCE, null, Duration.ZERO, 4096))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("verificationKeyBase64 must not be null");
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, null, 4096))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("clockSkew must not be null");
+        assertThatThrownBy(() -> new GatewayJwtProperties(null, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO,
+                4096)).isInstanceOf(NullPointerException.class).hasMessage("issuer must not be null");
+        assertThatThrownBy(() -> new GatewayJwtProperties(ISSUER, null, VERIFICATION_KEY_BASE64, Duration.ZERO,
+                4096)).isInstanceOf(NullPointerException.class).hasMessage("audience must not be null");
+        assertThatThrownBy(() -> new GatewayJwtProperties(ISSUER, AUDIENCE, null, Duration.ZERO, 4096)).isInstanceOf(
+                NullPointerException.class).hasMessage("verificationKeyBase64 must not be null");
+        assertThatThrownBy(
+                () -> new GatewayJwtProperties(ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, null, 4096)).isInstanceOf(
+                NullPointerException.class).hasMessage("clockSkew must not be null");
     }
 
     @Test
     void shouldRejectBlankValues() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                " ", AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO, 4096))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("issuer must not be blank");
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                ISSUER, " ", VERIFICATION_KEY_BASE64, Duration.ZERO, 4096))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("audience must not be blank");
-        assertThatThrownBy(() -> new GatewayJwtProperties(ISSUER, AUDIENCE, " ", Duration.ZERO, 4096))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("verificationKeyBase64 must not be blank");
+        assertThatThrownBy(() -> new GatewayJwtProperties(" ", AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO,
+                4096)).isInstanceOf(IllegalArgumentException.class).hasMessage("issuer must not be blank");
+        assertThatThrownBy(
+                () -> new GatewayJwtProperties(ISSUER, " ", VERIFICATION_KEY_BASE64, Duration.ZERO, 4096)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("audience must not be blank");
+        assertThatThrownBy(() -> new GatewayJwtProperties(ISSUER, AUDIENCE, " ", Duration.ZERO, 4096)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("verificationKeyBase64 must not be blank");
     }
 
     @Test
     void shouldRejectInvalidClockSkewOrTokenLength() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ofMillis(-1), 4096))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new GatewayJwtProperties(ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ofMillis(-1),
+                        4096)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("clockSkew must not be negative");
-        assertThatThrownBy(() -> new GatewayJwtProperties(
-                ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO, 0))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new GatewayJwtProperties(ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO,
+                0)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("maximumTokenLength must be greater than zero");
     }
 
     @Test
     void shouldHideVerificationKeyFromStringRepresentation() {
         // Given
-        var properties = new GatewayJwtProperties(
-                ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO, 4096);
+        var properties = new GatewayJwtProperties(ISSUER, AUDIENCE, VERIFICATION_KEY_BASE64, Duration.ZERO, 4096);
 
         // When
         String description = properties.toString();

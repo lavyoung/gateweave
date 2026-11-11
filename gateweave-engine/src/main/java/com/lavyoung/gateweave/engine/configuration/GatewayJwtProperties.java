@@ -21,8 +21,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @date 2026/10/29
  */
 @ConfigurationProperties(prefix = "gateweave.security.jwt")
-public record GatewayJwtProperties(
-        String issuer, String audience, String verificationKeyBase64, Duration clockSkew, int maximumTokenLength) {
+public record GatewayJwtProperties(String issuer, String audience, String verificationKeyBase64, Duration clockSkew,
+                                   int maximumTokenLength) {
 
     /**
      * 校验 JWT 安全配置。
@@ -60,7 +60,7 @@ public record GatewayJwtProperties(
      */
     @Override
     public String toString() {
-        return "GatewayJwtProperties[issuer=%s, audience=%s, verificationKeyBase64=PROTECTED]"
-                .formatted(this.issuer, this.audience);
+        return "GatewayJwtProperties[issuer=%s, audience=%s, verificationKeyBase64=PROTECTED]".formatted(this.issuer,
+                this.audience);
     }
 }

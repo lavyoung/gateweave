@@ -60,8 +60,8 @@ class DefaultGatewayNodeLeaseServiceTests {
         when(repository.renewLease(any(GatewayNodeHeartbeat.class))).thenReturn(false);
 
         // When & Then
-        assertThatThrownBy(() -> service.renew("node-1", LEASE_ID, 7))
-                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+        assertThatThrownBy(() -> service.renew("node-1", LEASE_ID, 7)).isInstanceOfSatisfying(BusinessException.class,
+                exception -> {
                     assertThat(exception.responseCode()).isSameAs(GatewayResponseCode.GATEWAY_NODE_LEASE_REJECTED);
                     assertThat(exception.arguments()).containsExactly("node-1");
                 });
@@ -73,15 +73,12 @@ class DefaultGatewayNodeLeaseServiceTests {
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
 
         // When & Then
-        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(null, FIXED_CLOCK, LEASE_TIMEOUT))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("gatewayNodeRepository must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, null, LEASE_TIMEOUT))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("clock must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseTimeout must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(null, FIXED_CLOCK, LEASE_TIMEOUT)).isInstanceOf(
+                NullPointerException.class).hasMessage("gatewayNodeRepository must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, null, LEASE_TIMEOUT)).isInstanceOf(
+                NullPointerException.class).hasMessage("clock must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("leaseTimeout must not be null");
         verifyNoInteractions(repository);
     }
 
@@ -93,17 +90,13 @@ class DefaultGatewayNodeLeaseServiceTests {
                 new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
 
         // When & Then
-        assertThatThrownBy(() -> service.renew(null, LEASE_ID, 0))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.renew(null, LEASE_ID, 0)).isInstanceOf(NullPointerException.class)
                 .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> service.renew("  ", LEASE_ID, 0))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> service.renew("  ", LEASE_ID, 0)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("nodeId must not be blank");
-        assertThatThrownBy(() -> service.renew("node-1", null, 0))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.renew("node-1", null, 0)).isInstanceOf(NullPointerException.class)
                 .hasMessage("leaseId must not be null");
-        assertThatThrownBy(() -> service.renew("node-1", LEASE_ID, -1))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> service.renew("node-1", LEASE_ID, -1)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("currentConfigVersion must not be negative");
         verifyNoInteractions(repository);
     }
@@ -146,14 +139,11 @@ class DefaultGatewayNodeLeaseServiceTests {
                 new DefaultGatewayNodeLeaseService(repository, FIXED_CLOCK, LEASE_TIMEOUT);
 
         // When & Then
-        assertThatThrownBy(() -> service.release(null, LEASE_ID))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.release(null, LEASE_ID)).isInstanceOf(NullPointerException.class)
                 .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> service.release("  ", LEASE_ID))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> service.release("  ", LEASE_ID)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("nodeId must not be blank");
-        assertThatThrownBy(() -> service.release("node-1", null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.release("node-1", null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("leaseId must not be null");
         verifyNoInteractions(repository);
     }

@@ -11,12 +11,12 @@ class RouteAuthenticationRequirementTests {
     @Test
     void shouldExposeStablePersistenceValues() {
         // When & Then
-        assertThat(RouteAuthenticationRequirement.values()).containsExactly(
-                RouteAuthenticationRequirement.ANONYMOUS, RouteAuthenticationRequirement.REQUIRED);
-        assertThat(RouteAuthenticationRequirement.valueOf("ANONYMOUS"))
-                .isEqualTo(RouteAuthenticationRequirement.ANONYMOUS);
-        assertThat(RouteAuthenticationRequirement.valueOf("REQUIRED"))
-                .isEqualTo(RouteAuthenticationRequirement.REQUIRED);
+        assertThat(RouteAuthenticationRequirement.values()).containsExactly(RouteAuthenticationRequirement.ANONYMOUS,
+                RouteAuthenticationRequirement.REQUIRED);
+        assertThat(RouteAuthenticationRequirement.valueOf("ANONYMOUS")).isEqualTo(
+                RouteAuthenticationRequirement.ANONYMOUS);
+        assertThat(RouteAuthenticationRequirement.valueOf("REQUIRED")).isEqualTo(
+                RouteAuthenticationRequirement.REQUIRED);
     }
 
     @Test

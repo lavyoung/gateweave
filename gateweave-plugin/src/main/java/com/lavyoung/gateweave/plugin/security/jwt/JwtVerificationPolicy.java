@@ -13,10 +13,10 @@ import io.jsonwebtoken.security.Keys;
  * <p>该策略由运行进程的装配层根据外部配置创建，JWT 验证器只消费已经完成
  * 类型转换和基础校验的配置，不自行读取环境变量或配置文件。</p>
  *
- * @param verificationKey   JWT 签名验证密钥
- * @param issuer            允许的 Token 发行方
- * @param audience          当前网关对应的 Token 受众
- * @param clockSkew         验证时间声明时允许的时钟偏差
+ * @param verificationKey    JWT 签名验证密钥
+ * @param issuer             允许的 Token 发行方
+ * @param audience           当前网关对应的 Token 受众
+ * @param clockSkew          验证时间声明时允许的时钟偏差
  * @param maximumTokenLength 允许接收的紧凑 JWT 最大字符数
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @version 1.0.0
@@ -35,13 +35,12 @@ public record JwtVerificationPolicy(SecretKey verificationKey, String issuer, St
      * @param audience             当前网关对应的 Token 受众
      * @param clockSkew            验证时间声明时允许的时钟偏差
      * @param maximumTokenLength   允许接收的紧凑 JWT 最大字符数
-     * @throws NullPointerException verificationKeyBytes 为 null 时抛出
+     * @throws NullPointerException                      verificationKeyBytes 为 null 时抛出
      * @throws io.jsonwebtoken.security.WeakKeyException 密钥不足 256 位时抛出
      */
     public JwtVerificationPolicy(byte[] verificationKeyBytes, String issuer, String audience, Duration clockSkew,
-                                 int maximumTokenLength) {
-        this(Keys.hmacShaKeyFor(Objects.requireNonNull(
-                        verificationKeyBytes, "verificationKeyBytes must not be null")),
+            int maximumTokenLength) {
+        this(Keys.hmacShaKeyFor(Objects.requireNonNull(verificationKeyBytes, "verificationKeyBytes must not be null")),
                 issuer, audience, clockSkew, maximumTokenLength);
     }
 

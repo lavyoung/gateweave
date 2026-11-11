@@ -64,9 +64,7 @@ public final class GenericReferenceRegistry implements AutoCloseable {
         applicationConfig.setQosEnable(false);
         applicationConfig.setRegisterMode(this.discoveryMode.registerMode());
         RegistryConfig registryConfig = new RegistryConfig(registryAddress);
-        this.dubboBootstrap = DubboBootstrap.newInstance()
-                .application(applicationConfig)
-                .registry(registryConfig);
+        this.dubboBootstrap = DubboBootstrap.newInstance().application(applicationConfig).registry(registryConfig);
     }
 
     /**
@@ -84,10 +82,10 @@ public final class GenericReferenceRegistry implements AutoCloseable {
     public void addGenericReference(String interfaceName, String methodName, String version) {
         GenericReferenceKey key = new GenericReferenceKey(interfaceName, methodName, version);
         DubboServiceReferenceKey serviceReferenceKey = new DubboServiceReferenceKey(interfaceName, version);
-        DubboServiceReference serviceReference = this.knownServiceReferences.computeIfAbsent(
-                serviceReferenceKey, this::createServiceReference);
-        this.knownGenericReferences.computeIfAbsent(key, kk ->
-                arguments -> invoke(serviceReference.genericService(), key.methodName(), arguments));
+        DubboServiceReference serviceReference =
+                this.knownServiceReferences.computeIfAbsent(serviceReferenceKey, this::createServiceReference);
+        this.knownGenericReferences.computeIfAbsent(key,
+                kk -> arguments -> invoke(serviceReference.genericService(), key.methodName(), arguments));
     }
 
     /**
@@ -174,7 +172,7 @@ public final class GenericReferenceRegistry implements AutoCloseable {
      * @throws NullPointerException invocationArguments 为 null 时抛出
      */
     private CompletionStage<String> invoke(GenericService genericService, String methodName,
-                                           GenericInvocationArguments invocationArguments) {
+            GenericInvocationArguments invocationArguments) {
         Objects.requireNonNull(invocationArguments, "invocationArguments must not be null");
         String[] parameterTypes = invocationArguments.parameterTypes().toArray(String[]::new);
         Object[] arguments = invocationArguments.arguments().toArray();

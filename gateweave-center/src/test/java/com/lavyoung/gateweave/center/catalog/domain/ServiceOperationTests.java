@@ -21,22 +21,24 @@ class ServiceOperationTests {
         List<ServiceOperationParameter> source = new ArrayList<>(List.of(NAME_PARAMETER));
 
         // When
-        ServiceOperation operation = new ServiceOperation("activity-say-hi", "activity-service",
-                "cn.example.ActivityBooth", "sayHi", ServiceCatalogStatus.ACTIVE, 2L, source);
+        ServiceOperation operation =
+                new ServiceOperation("activity-say-hi", "activity-service", "cn.example.ActivityBooth", "sayHi",
+                        ServiceCatalogStatus.ACTIVE, 2L, source);
         source.add(AGE_PARAMETER);
 
         // Then
         assertThat(operation.parameters()).containsExactly(NAME_PARAMETER);
-        assertThatThrownBy(() -> operation.parameters().add(AGE_PARAMETER))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> operation.parameters().add(AGE_PARAMETER)).isInstanceOf(
+                UnsupportedOperationException.class);
         assertThat(operation.revision()).isEqualTo(2L);
     }
 
     @Test
     void shouldAllowOperationWithoutParameters() {
         // When
-        ServiceOperation operation = new ServiceOperation("activity-health", "activity-service",
-                "cn.example.ActivityBooth", "health", ServiceCatalogStatus.ACTIVE, 0L, List.of());
+        ServiceOperation operation =
+                new ServiceOperation("activity-health", "activity-service", "cn.example.ActivityBooth", "health",
+                        ServiceCatalogStatus.ACTIVE, 0L, List.of());
 
         // Then
         assertThat(operation.parameters()).isEmpty();
@@ -45,59 +47,54 @@ class ServiceOperationTests {
     @Test
     void shouldRejectMissingReferences() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperation(null, "service", "interface", "operation",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("operationId must not be null");
-        assertThatThrownBy(() -> new ServiceOperation("operation", null, "interface", "operation",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("serviceId must not be null");
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", null, "operation",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation(null, "service", "interface", "operation", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(NullPointerException.class).hasMessage("operationId must not be null");
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", null, "interface", "operation", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(NullPointerException.class).hasMessage("serviceId must not be null");
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", null, "operation", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("interfaceName must not be null");
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", null,
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", "interface", null, ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("operationName must not be null");
-        assertThatThrownBy(() -> new ServiceOperation(
-                "operation", "service", "interface", "operation", null, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("status must not be null");
-        assertThatThrownBy(() -> new ServiceOperation(
-                "operation", "service", "interface", "operation", ServiceCatalogStatus.ACTIVE, 0L, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", "operation", null, 0L,
+                List.of())).isInstanceOf(NullPointerException.class).hasMessage("status must not be null");
+        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", "operation",
+                ServiceCatalogStatus.ACTIVE, 0L, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("parameters must not be null");
     }
 
     @Test
     void shouldRejectBlankIdentifiersAndNames() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperation(" ", "service", "interface", "operation",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation(" ", "service", "interface", "operation", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("operationId must not be blank");
-        assertThatThrownBy(() -> new ServiceOperation("operation", " ", "interface", "operation",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", " ", "interface", "operation", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("serviceId must not be blank");
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", " ", "operation",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", " ", "operation", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("interfaceName must not be blank");
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", " ",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", "interface", " ", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("operationName must not be blank");
     }
 
     @Test
     void shouldRejectNegativeRevision() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", "invoke",
-                ServiceCatalogStatus.ACTIVE, -1L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", "interface", "invoke", ServiceCatalogStatus.ACTIVE,
+                        -1L, List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("revision must not be negative");
     }
 
@@ -107,9 +104,9 @@ class ServiceOperationTests {
         ServiceOperationParameter secondParameter = new ServiceOperationParameter(2, "age", "java.lang.Integer");
 
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", "invoke",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of(NAME_PARAMETER, secondParameter)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", "interface", "invoke", ServiceCatalogStatus.ACTIVE,
+                        0L, List.of(NAME_PARAMETER, secondParameter))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("parameter positions must be continuous from zero");
     }
 
@@ -119,16 +116,16 @@ class ServiceOperationTests {
         ServiceOperationParameter duplicatedName = new ServiceOperationParameter(1, "name", "java.lang.Integer");
 
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperation("operation", "service", "interface", "invoke",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of(NAME_PARAMETER, duplicatedName)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceOperation("operation", "service", "interface", "invoke", ServiceCatalogStatus.ACTIVE,
+                        0L, List.of(NAME_PARAMETER, duplicatedName))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("parameter names must not be duplicated");
     }
 
     @Test
     void shouldExposeStableServiceCatalogStatuses() {
         // When & Then
-        assertThat(ServiceCatalogStatus.values())
-                .containsExactly(ServiceCatalogStatus.ACTIVE, ServiceCatalogStatus.DISABLED);
+        assertThat(ServiceCatalogStatus.values()).containsExactly(ServiceCatalogStatus.ACTIVE,
+                ServiceCatalogStatus.DISABLED);
     }
 }

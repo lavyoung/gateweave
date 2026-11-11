@@ -111,31 +111,22 @@ class ShiroGatewayAuthenticatorTests {
         ShiroGatewayAuthenticator authenticator = new ShiroGatewayAuthenticator(securityManager);
 
         // When & Then
-        assertThatThrownBy(() -> new ShiroGatewayAuthenticator(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new ShiroGatewayAuthenticator(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("securityManager must not be null");
-        assertThatThrownBy(() -> authenticator.authenticate(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> authenticator.authenticate(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("token must not be null");
     }
 
     private ShiroGatewayAuthenticator authenticator() {
-        JwtVerificationPolicy policy = new JwtVerificationPolicy(
-                VERIFICATION_KEY, ISSUER, AUDIENCE, Duration.ZERO, 4096);
+        JwtVerificationPolicy policy =
+                new JwtVerificationPolicy(VERIFICATION_KEY, ISSUER, AUDIENCE, Duration.ZERO, 4096);
         JwtTokenVerifier verifier = new JwtTokenVerifier(policy);
         GatewayAuthenticationRealm realm = new GatewayAuthenticationRealm(verifier);
         return new ShiroGatewayAuthenticator(StatelessShiroSecurityManagerFactory.create(realm));
     }
 
     private String signedToken(SecretKey key, String subject) {
-        return Jwts.builder()
-                .issuer(ISSUER)
-                .audience()
-                .add(AUDIENCE)
-                .and()
-                .subject(subject)
-                .expiration(Date.from(Instant.now().plusSeconds(300)))
-                .signWith(key, Jwts.SIG.HS256)
-                .compact();
+        return Jwts.builder().issuer(ISSUER).audience().add(AUDIENCE).and().subject(subject)
+                .expiration(Date.from(Instant.now().plusSeconds(300))).signWith(key, Jwts.SIG.HS256).compact();
     }
 }

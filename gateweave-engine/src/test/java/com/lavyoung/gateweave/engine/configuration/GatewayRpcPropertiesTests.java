@@ -30,16 +30,16 @@ class GatewayRpcPropertiesTests {
                 .orElseThrow(() -> new AssertionError("gateweave.rpc properties must be present"));
 
         // Then
-        assertThat(properties).isEqualTo(new GatewayRpcProperties(
-                "gateweave-engine", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE));
+        assertThat(properties).isEqualTo(new GatewayRpcProperties("gateweave-engine", "zookeeper://127.0.0.1:2181",
+                DubboDiscoveryMode.INTERFACE));
     }
 
     @Test
     void shouldOverrideApplicationYamlWithEnvironmentVariable() throws IOException {
         // Given
         var environment = new StandardEnvironment();
-        var overrides = new MapPropertySource("rpcOverrides", Map.of(
-                "GATEWEAVE_RPC_REGISTRY_ADDRESS", "zookeeper://zookeeper:2181"));
+        var overrides = new MapPropertySource("rpcOverrides",
+                Map.of("GATEWEAVE_RPC_REGISTRY_ADDRESS", "zookeeper://zookeeper:2181"));
         environment.getPropertySources().addFirst(overrides);
         var applicationYaml = new ClassPathResource("application.yml");
         var propertySources = new YamlPropertySourceLoader().load("application", applicationYaml);
@@ -50,15 +50,15 @@ class GatewayRpcPropertiesTests {
                 .orElseThrow(() -> new AssertionError("gateweave.rpc properties must be present"));
 
         // Then
-        assertThat(properties).isEqualTo(new GatewayRpcProperties(
-                "gateweave-engine", "zookeeper://zookeeper:2181", DubboDiscoveryMode.INTERFACE));
+        assertThat(properties).isEqualTo(new GatewayRpcProperties("gateweave-engine", "zookeeper://zookeeper:2181",
+                DubboDiscoveryMode.INTERFACE));
     }
 
     @Test
     void shouldCreateRpcProperties() {
         // When
-        var properties = new GatewayRpcProperties(
-                "gateweave-engine", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE);
+        var properties = new GatewayRpcProperties("gateweave-engine", "zookeeper://127.0.0.1:2181",
+                DubboDiscoveryMode.INTERFACE);
 
         // Then
         assertThat(properties.applicationName()).isEqualTo("gateweave-engine");
@@ -69,27 +69,25 @@ class GatewayRpcPropertiesTests {
     @Test
     void shouldRejectMissingValues() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayRpcProperties(
-                null, "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayRpcProperties(null, "zookeeper://127.0.0.1:2181",
+                DubboDiscoveryMode.INTERFACE)).isInstanceOf(NullPointerException.class)
                 .hasMessage("applicationName must not be null");
-        assertThatThrownBy(() -> new GatewayRpcProperties("gateweave-engine", null, DubboDiscoveryMode.INTERFACE))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("registryAddress must not be null");
-        assertThatThrownBy(() -> new GatewayRpcProperties("gateweave-engine", "zookeeper://127.0.0.1:2181", null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("discoveryMode must not be null");
+        assertThatThrownBy(
+                () -> new GatewayRpcProperties("gateweave-engine", null, DubboDiscoveryMode.INTERFACE)).isInstanceOf(
+                NullPointerException.class).hasMessage("registryAddress must not be null");
+        assertThatThrownBy(
+                () -> new GatewayRpcProperties("gateweave-engine", "zookeeper://127.0.0.1:2181", null)).isInstanceOf(
+                NullPointerException.class).hasMessage("discoveryMode must not be null");
     }
 
     @Test
     void shouldRejectBlankValues() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayRpcProperties(
-                " ", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new GatewayRpcProperties(" ", "zookeeper://127.0.0.1:2181",
+                DubboDiscoveryMode.INTERFACE)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("applicationName must not be blank");
-        assertThatThrownBy(() -> new GatewayRpcProperties("gateweave-engine", " ", DubboDiscoveryMode.INTERFACE))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("registryAddress must not be blank");
+        assertThatThrownBy(
+                () -> new GatewayRpcProperties("gateweave-engine", " ", DubboDiscoveryMode.INTERFACE)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("registryAddress must not be blank");
     }
 }

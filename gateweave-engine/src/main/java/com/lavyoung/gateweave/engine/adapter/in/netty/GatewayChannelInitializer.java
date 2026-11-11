@@ -53,10 +53,9 @@ public final class GatewayChannelInitializer extends ChannelInitializer<Channel>
      */
     @Override
     protected void initChannel(Channel channel) {
-        ChannelInboundHandler requestHandler = Objects.requireNonNull(this.requestHandlerFactory.get(),
-                "requestHandlerFactory must not return null");
-        channel.pipeline()
-                .addLast("httpCodec", new HttpServerCodec())
+        ChannelInboundHandler requestHandler =
+                Objects.requireNonNull(this.requestHandlerFactory.get(), "requestHandlerFactory must not return null");
+        channel.pipeline().addLast("httpCodec", new HttpServerCodec())
                 .addLast("httpAggregator", new HttpObjectAggregator(this.maxContentLength))
                 .addLast("gatewayRequestHandler", requestHandler);
     }

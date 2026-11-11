@@ -42,18 +42,18 @@ public class DefaultGatewayNodeLeaseService implements RenewGatewayNodeLeaseUseC
      * @param leaseTimeout          控制面授予节点的租约超时时间
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public DefaultGatewayNodeLeaseService(
-            GatewayNodeRepository gatewayNodeRepository, Clock clock, Duration leaseTimeout) {
-        this.gatewayNodeRepository = Objects.requireNonNull(
-                gatewayNodeRepository, "gatewayNodeRepository must not be null");
+    public DefaultGatewayNodeLeaseService(GatewayNodeRepository gatewayNodeRepository, Clock clock,
+            Duration leaseTimeout) {
+        this.gatewayNodeRepository =
+                Objects.requireNonNull(gatewayNodeRepository, "gatewayNodeRepository must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
         this.leaseTimeout = Objects.requireNonNull(leaseTimeout, "leaseTimeout must not be null");
     }
 
     @Override
     public void renew(String nodeId, UUID leaseId, long currentConfigVersion) {
-        GatewayNodeHeartbeat heartbeat = new GatewayNodeHeartbeat(nodeId, leaseId,
-                this.clock.instant(), currentConfigVersion);
+        GatewayNodeHeartbeat heartbeat =
+                new GatewayNodeHeartbeat(nodeId, leaseId, this.clock.instant(), currentConfigVersion);
         if (!this.gatewayNodeRepository.renewLease(heartbeat)) {
             throw new BusinessException(GatewayResponseCode.GATEWAY_NODE_LEASE_REJECTED, heartbeat.nodeId());
         }

@@ -32,8 +32,8 @@ public class DefaultGatewayNodeRegistrationService implements RegisterGatewayNod
      * @throws NullPointerException gatewayNodeRepository 或 clock 为 null 时抛出
      */
     public DefaultGatewayNodeRegistrationService(GatewayNodeRepository gatewayNodeRepository, Clock clock) {
-        this.gatewayNodeRepository = Objects.requireNonNull(
-                gatewayNodeRepository, "gatewayNodeRepository must not be null");
+        this.gatewayNodeRepository =
+                Objects.requireNonNull(gatewayNodeRepository, "gatewayNodeRepository must not be null");
         this.clock = Objects.requireNonNull(clock, "clock must not be null");
     }
 

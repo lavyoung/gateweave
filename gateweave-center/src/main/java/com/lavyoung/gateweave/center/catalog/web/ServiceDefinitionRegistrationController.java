@@ -47,11 +47,10 @@ public class ServiceDefinitionRegistrationController {
      * @param resultFactory                    本地化统一响应工厂
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public ServiceDefinitionRegistrationController(
-            RegisterServiceDefinitionUseCase registerServiceDefinitionUseCase,
+    public ServiceDefinitionRegistrationController(RegisterServiceDefinitionUseCase registerServiceDefinitionUseCase,
             LocalizedResultFactory resultFactory) {
-        this.registerServiceDefinitionUseCase = Objects.requireNonNull(
-                registerServiceDefinitionUseCase, "registerServiceDefinitionUseCase must not be null");
+        this.registerServiceDefinitionUseCase = Objects.requireNonNull(registerServiceDefinitionUseCase,
+                "registerServiceDefinitionUseCase must not be null");
         this.resultFactory = Objects.requireNonNull(resultFactory, "resultFactory must not be null");
     }
 
@@ -84,18 +83,11 @@ public class ServiceDefinitionRegistrationController {
      * @throws IllegalArgumentException 操作归属或定义违反领域约束时抛出
      */
     private static ServiceDefinition toServiceDefinition(RegisterServiceDefinitionRequest request) {
-        List<ServiceOperation> operations = request.operations().stream()
-                .map(operation -> toServiceOperation(request.serviceId(), operation))
-                .toList();
-        return new ServiceDefinition(
-                request.serviceId(),
-                request.applicationName(),
-                request.protocol(),
-                request.namespace(),
-                request.version(),
-                ServiceCatalogStatus.ACTIVE,
-                0L,
-                operations);
+        List<ServiceOperation> operations =
+                request.operations().stream().map(operation -> toServiceOperation(request.serviceId(), operation))
+                        .toList();
+        return new ServiceDefinition(request.serviceId(), request.applicationName(), request.protocol(),
+                request.namespace(), request.version(), ServiceCatalogStatus.ACTIVE, 0L, operations);
     }
 
     /**
@@ -106,19 +98,13 @@ public class ServiceDefinitionRegistrationController {
      * @return 服务操作领域对象
      * @throws IllegalArgumentException 参数位置或名称违反领域约束时抛出
      */
-    private static ServiceOperation toServiceOperation(
-            String serviceId, RegisterServiceDefinitionRequest.ServiceOperationRequest request) {
-        List<ServiceOperationParameter> parameters = request.parameters().stream()
-                .map(ServiceDefinitionRegistrationController::toServiceOperationParameter)
-                .toList();
-        return new ServiceOperation(
-                request.operationId(),
-                serviceId,
-                request.interfaceName(),
-                request.operationName(),
-                ServiceCatalogStatus.ACTIVE,
-                0L,
-                parameters);
+    private static ServiceOperation toServiceOperation(String serviceId,
+            RegisterServiceDefinitionRequest.ServiceOperationRequest request) {
+        List<ServiceOperationParameter> parameters =
+                request.parameters().stream().map(ServiceDefinitionRegistrationController::toServiceOperationParameter)
+                        .toList();
+        return new ServiceOperation(request.operationId(), serviceId, request.interfaceName(), request.operationName(),
+                ServiceCatalogStatus.ACTIVE, 0L, parameters);
     }
 
     /**

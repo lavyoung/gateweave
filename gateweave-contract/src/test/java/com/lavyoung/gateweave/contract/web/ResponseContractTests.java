@@ -24,8 +24,8 @@ class ResponseContractTests {
         // When & Then
         assertThat(responseCodes).extracting(ResponseCode::code).doesNotHaveDuplicates();
         assertThat(responseCodes).extracting(ResponseCode::messageKey).doesNotHaveDuplicates();
-        assertThat(responseCodes).extracting(ResponseCode::defaultMessage).allSatisfy(message ->
-                assertThat(message).isNotBlank());
+        assertThat(responseCodes).extracting(ResponseCode::defaultMessage)
+                .allSatisfy(message -> assertThat(message).isNotBlank());
     }
 
     @Test
@@ -46,8 +46,9 @@ class ResponseContractTests {
         ErrorDetails details = new ErrorDetails("/gateways", "request-1");
 
         // When
-        Result<ErrorDetails> result = Result.failure(
-                GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, "Gateway group test does not exist", details);
+        Result<ErrorDetails> result =
+                Result.failure(GatewayResponseCode.GATEWAY_GROUP_NOT_FOUND, "Gateway group test does not exist",
+                        details);
 
         // Then
         assertThat(result.success()).isFalse();
@@ -62,47 +63,38 @@ class ResponseContractTests {
         ErrorDetails details = new ErrorDetails("/gateways", "request-1");
 
         // When & Then
-        assertThatThrownBy(() -> Result.failure(CommonResponseCode.SUCCESS, details))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("success status and code must be consistent");
+        assertThatThrownBy(() -> Result.failure(CommonResponseCode.SUCCESS, details)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("success status and code must be consistent");
     }
 
     @Test
     void shouldRejectMissingResultData() {
         // When & Then
-        assertThatThrownBy(() -> Result.success(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> Result.success(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("data must not be null");
     }
 
     @Test
     void shouldRejectBlankResultCodeAndMessage() {
         // When & Then
-        assertThatThrownBy(() -> new Result<>(false, " ", "failure", "details"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("code must not be blank");
-        assertThatThrownBy(() -> new Result<>(false, "COMMON-0001", " ", "details"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("message must not be blank");
+        assertThatThrownBy(() -> new Result<>(false, " ", "failure", "details")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("code must not be blank");
+        assertThatThrownBy(() -> new Result<>(false, "COMMON-0001", " ", "details")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("message must not be blank");
     }
 
     @Test
     void shouldRejectBlankErrorDetails() {
         // When & Then
-        assertThatThrownBy(() -> new ErrorDetails(" ", "request-1"))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new ErrorDetails(" ", "request-1")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("path must not be blank");
-        assertThatThrownBy(() -> new ErrorDetails("/gateways", " "))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new ErrorDetails("/gateways", " ")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("requestId must not be blank");
     }
 
     private static List<ResponseCode> responseCodes() {
-        return Stream.concat(
-                        Stream.concat(
-                                Arrays.stream(CommonResponseCode.values()).map(ResponseCode.class::cast),
-                                Arrays.stream(GatewayResponseCode.values()).map(ResponseCode.class::cast)),
-                        Arrays.stream(CatalogResponseCode.values()).map(ResponseCode.class::cast))
-                .toList();
+        return Stream.concat(Stream.concat(Arrays.stream(CommonResponseCode.values()).map(ResponseCode.class::cast),
+                        Arrays.stream(GatewayResponseCode.values()).map(ResponseCode.class::cast)),
+                Arrays.stream(CatalogResponseCode.values()).map(ResponseCode.class::cast)).toList();
     }
 }

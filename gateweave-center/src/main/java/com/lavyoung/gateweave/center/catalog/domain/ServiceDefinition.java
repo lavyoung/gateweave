@@ -55,8 +55,8 @@ public record ServiceDefinition(String serviceId, String applicationName, String
         }
 
         operations = List.copyOf(operations);
-        boolean containsForeignOperation = operations.stream()
-                .anyMatch(operation -> !serviceId.equals(operation.serviceId()));
+        boolean containsForeignOperation =
+                operations.stream().anyMatch(operation -> !serviceId.equals(operation.serviceId()));
         if (containsForeignOperation) {
             throw new IllegalArgumentException("operations must belong to the service");
         }
@@ -66,10 +66,9 @@ public record ServiceDefinition(String serviceId, String applicationName, String
             throw new IllegalArgumentException("operationIds must not be duplicated");
         }
 
-        long distinctDefinitions = operations.stream()
-                .map(operation -> Map.entry(operation.interfaceName(), operation.operationName()))
-                .distinct()
-                .count();
+        long distinctDefinitions =
+                operations.stream().map(operation -> Map.entry(operation.interfaceName(), operation.operationName()))
+                        .distinct().count();
         if (distinctDefinitions != operations.size()) {
             throw new IllegalArgumentException("operation definitions must not be duplicated");
         }

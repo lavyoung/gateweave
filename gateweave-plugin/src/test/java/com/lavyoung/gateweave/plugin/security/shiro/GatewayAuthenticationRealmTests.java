@@ -33,8 +33,8 @@ class GatewayAuthenticationRealmTests {
         AuthenticationInfo authenticationInfo = realm.getAuthenticationInfo(new BearerToken(TOKEN));
 
         // Then
-        assertThat(authenticationInfo.getPrincipals().getPrimaryPrincipal())
-                .isEqualTo(new AuthenticatedPrincipal(SUBJECT));
+        assertThat(authenticationInfo.getPrincipals().getPrimaryPrincipal()).isEqualTo(
+                new AuthenticatedPrincipal(SUBJECT));
         assertThat(authenticationInfo.getCredentials()).isNull();
         then(authenticator).should().authenticate(TOKEN);
     }
@@ -47,9 +47,8 @@ class GatewayAuthenticationRealmTests {
         given(authenticator.authenticate(TOKEN)).willReturn(Optional.empty());
 
         // When & Then
-        assertThatThrownBy(() -> realm.getAuthenticationInfo(new BearerToken(TOKEN)))
-                .isInstanceOf(IncorrectCredentialsException.class)
-                .hasMessage("bearer token is invalid")
+        assertThatThrownBy(() -> realm.getAuthenticationInfo(new BearerToken(TOKEN))).isInstanceOf(
+                        IncorrectCredentialsException.class).hasMessage("bearer token is invalid")
                 .hasMessageNotContaining(TOKEN);
         then(authenticator).should().authenticate(TOKEN);
     }
@@ -67,8 +66,7 @@ class GatewayAuthenticationRealmTests {
     @Test
     void shouldRejectNullAuthenticator() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayAuthenticationRealm(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayAuthenticationRealm(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("authenticator must not be null");
     }
 }

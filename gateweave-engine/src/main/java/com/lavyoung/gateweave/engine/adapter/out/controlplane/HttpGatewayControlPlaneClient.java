@@ -46,8 +46,8 @@ public final class HttpGatewayControlPlaneClient implements GatewayControlPlaneC
             Result<GatewayNodeLease> result = response.getBody();
             if (!response.getStatusCode().is2xxSuccessful() || result == null || !result.success()) {
                 String responseCode = result == null ? "missing-result" : result.code();
-                throw new IllegalStateException("Gateway node registration failed with status %d and code %s"
-                        .formatted(response.getStatusCode().value(), responseCode));
+                throw new IllegalStateException("Gateway node registration failed with status %d and code %s".formatted(
+                        response.getStatusCode().value(), responseCode));
             }
             return result.data();
         } catch (RestClientException exception) {
@@ -65,8 +65,8 @@ public final class HttpGatewayControlPlaneClient implements GatewayControlPlaneC
         try {
             ResponseEntity<Void> response = this.controlPlaneHttpApi.renewNodeLease(nodeId, heartbeatRequest);
             if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
-                throw new IllegalStateException("Gateway node lease renewal failed with status %d"
-                        .formatted(response.getStatusCode().value()));
+                throw new IllegalStateException(
+                        "Gateway node lease renewal failed with status %d".formatted(response.getStatusCode().value()));
             }
         } catch (RestClientException exception) {
             throw new IllegalStateException("Gateway node lease renewal request failed", exception);
@@ -83,8 +83,8 @@ public final class HttpGatewayControlPlaneClient implements GatewayControlPlaneC
         try {
             ResponseEntity<Void> response = this.controlPlaneHttpApi.releaseNodeLease(nodeId, leaseId);
             if (response.getStatusCode() != HttpStatus.NO_CONTENT) {
-                throw new IllegalStateException("Gateway node lease release failed with status %d"
-                        .formatted(response.getStatusCode().value()));
+                throw new IllegalStateException(
+                        "Gateway node lease release failed with status %d".formatted(response.getStatusCode().value()));
             }
         } catch (RestClientException exception) {
             throw new IllegalStateException("Gateway node lease release request failed", exception);
@@ -106,8 +106,9 @@ public final class HttpGatewayControlPlaneClient implements GatewayControlPlaneC
             Result<GatewayConfigurationSnapshot> result = response.getBody();
             if (response.getStatusCode() != HttpStatus.OK || result == null || !result.success()) {
                 String responseCode = result == null ? "missing-result" : result.code();
-                throw new IllegalStateException("Gateway configuration query failed with status %d and code %s"
-                        .formatted(response.getStatusCode().value(), responseCode));
+                throw new IllegalStateException(
+                        "Gateway configuration query failed with status %d and code %s".formatted(
+                                response.getStatusCode().value(), responseCode));
             }
             return Optional.of(result.data());
         } catch (RestClientException exception) {

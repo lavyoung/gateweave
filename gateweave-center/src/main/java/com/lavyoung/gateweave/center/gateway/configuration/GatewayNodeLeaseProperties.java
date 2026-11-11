@@ -20,9 +20,9 @@ import java.util.Objects;
  * @date 2026/11/07
  */
 @ConfigurationProperties(prefix = "gateweave.gateway-node.lease")
-public record GatewayNodeLeaseProperties(
-        @DefaultValue("10s") Duration heartbeatInterval, @DefaultValue("30s") Duration leaseTimeout,
-        @DefaultValue("5s") Duration expirationScanInterval) {
+public record GatewayNodeLeaseProperties(@DefaultValue("10s") Duration heartbeatInterval,
+                                         @DefaultValue("30s") Duration leaseTimeout,
+                                         @DefaultValue("5s") Duration expirationScanInterval) {
 
     /**
      * 校验租约配置的必要字段。

@@ -32,27 +32,19 @@ class GatewayClusterMigrationTests {
             assertThat(context).hasNotFailed();
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
             List<String> tableNames = jdbcTemplate.queryForList("""
-                            SELECT TABLE_NAME
-                            FROM INFORMATION_SCHEMA.TABLES
-                            WHERE TABLE_SCHEMA = 'PUBLIC'
-                            """, String.class)
-                    .stream()
-                    .map(String::toLowerCase)
-                    .toList();
+                    SELECT TABLE_NAME
+                    FROM INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_SCHEMA = 'PUBLIC'
+                    """, String.class).stream().map(String::toLowerCase).toList();
             List<String> indexNames = jdbcTemplate.queryForList("""
-                            SELECT INDEX_NAME
-                            FROM INFORMATION_SCHEMA.INDEXES
-                            WHERE TABLE_SCHEMA = 'PUBLIC'
-                            """, String.class)
-                    .stream()
-                    .map(String::toLowerCase)
-                    .toList();
+                    SELECT INDEX_NAME
+                    FROM INFORMATION_SCHEMA.INDEXES
+                    WHERE TABLE_SCHEMA = 'PUBLIC'
+                    """, String.class).stream().map(String::toLowerCase).toList();
 
             assertThat(tableNames).contains("gw_gateway_group", "gw_gateway_node");
-            assertThat(indexNames).contains(
-                    "idx_gw_gateway_group_environment_status",
-                    "idx_gw_gateway_node_group_status",
-                    "idx_gw_gateway_node_status_heartbeat");
+            assertThat(indexNames).contains("idx_gw_gateway_group_environment_status",
+                    "idx_gw_gateway_node_group_status", "idx_gw_gateway_node_status_heartbeat");
             assertThat(jdbcTemplate.queryForObject("""
                     SELECT group_name
                     FROM gw_gateway_group
@@ -71,8 +63,8 @@ class GatewayClusterMigrationTests {
             assertThat(context).hasNotFailed();
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
 
-            jdbcTemplate.update(INSERT_NODE, "gateway-node-1", "default", "Gateway Node 1",
-                    "http://127.0.0.1:7397", "ONLINE", LEASE_ID, 1L);
+            jdbcTemplate.update(INSERT_NODE, "gateway-node-1", "default", "Gateway Node 1", "http://127.0.0.1:7397",
+                    "ONLINE", LEASE_ID, 1L);
 
             assertThat(jdbcTemplate.queryForObject("""
                     SELECT current_config_version
@@ -84,34 +76,28 @@ class GatewayClusterMigrationTests {
                     FROM gw_gateway_node
                     WHERE node_id = 'gateway-node-1'
                     """, String.class)).isEqualTo(LEASE_ID);
-            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-1", "default",
-                    "Duplicated Node", "http://127.0.0.1:7398", "ONLINE",
-                    "00000000-0000-0000-0000-000000000002", 1L))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-2", "default",
-                    "Duplicated Address", "http://127.0.0.1:7397", "ONLINE",
-                    "00000000-0000-0000-0000-000000000003", 1L))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-3", "missing-group",
-                    "Missing Group", "http://127.0.0.1:7399", "ONLINE",
-                    "00000000-0000-0000-0000-000000000004", 1L))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-4", "default",
-                    "Invalid Version", "http://127.0.0.1:7400", "ONLINE",
-                    "00000000-0000-0000-0000-000000000005", -1L))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-5", "default",
-                    "Missing Lease", "http://127.0.0.1:7401", "ONLINE", null, 1L))
-                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-1", "default", "Duplicated Node",
+                    "http://127.0.0.1:7398", "ONLINE", "00000000-0000-0000-0000-000000000002", 1L)).isInstanceOf(
+                    DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-2", "default", "Duplicated Address",
+                    "http://127.0.0.1:7397", "ONLINE", "00000000-0000-0000-0000-000000000003", 1L)).isInstanceOf(
+                    DataIntegrityViolationException.class);
+            assertThatThrownBy(
+                    () -> jdbcTemplate.update(INSERT_NODE, "gateway-node-3", "missing-group", "Missing Group",
+                            "http://127.0.0.1:7399", "ONLINE", "00000000-0000-0000-0000-000000000004",
+                            1L)).isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-4", "default", "Invalid Version",
+                    "http://127.0.0.1:7400", "ONLINE", "00000000-0000-0000-0000-000000000005", -1L)).isInstanceOf(
+                    DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbcTemplate.update(INSERT_NODE, "gateway-node-5", "default", "Missing Lease",
+                    "http://127.0.0.1:7401", "ONLINE", null, 1L)).isInstanceOf(DataIntegrityViolationException.class);
         });
     }
 
     private static WebApplicationContextRunner contextRunner() {
-        return new WebApplicationContextRunner()
-                .withUserConfiguration(GateWeaveCenterApplication.class)
+        return new WebApplicationContextRunner().withUserConfiguration(GateWeaveCenterApplication.class)
                 .withPropertyValues(
                         "spring.datasource.url=jdbc:h2:mem:gateweave-center-gateway;MODE=MySQL;DB_CLOSE_DELAY=0",
-                        "spring.datasource.username=sa",
-                        "spring.datasource.password=");
+                        "spring.datasource.username=sa", "spring.datasource.password=");
     }
 }

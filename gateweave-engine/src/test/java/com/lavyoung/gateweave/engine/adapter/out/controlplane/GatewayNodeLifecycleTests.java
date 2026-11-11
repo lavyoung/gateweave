@@ -25,8 +25,8 @@ import static org.mockito.Mockito.when;
 
 class GatewayNodeLifecycleTests {
 
-    private static final RegisterGatewayNodeRequest REGISTRATION_REQUEST = new RegisterGatewayNodeRequest(
-            "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
+    private static final RegisterGatewayNodeRequest REGISTRATION_REQUEST =
+            new RegisterGatewayNodeRequest("node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
 
     @Test
     void shouldRegisterNodeSynchronizeConfigurationAndStartOnlyOnce() {
@@ -173,15 +173,12 @@ class GatewayNodeLifecycleTests {
         GatewayConfigurationSynchronizer synchronizer = mock(GatewayConfigurationSynchronizer.class);
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLifecycle(null, synchronizer, properties()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseManager must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLifecycle(leaseManager, null, properties()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("configurationSynchronizer must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLifecycle(leaseManager, synchronizer, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("properties must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLifecycle(null, synchronizer, properties())).isInstanceOf(
+                NullPointerException.class).hasMessage("leaseManager must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLifecycle(leaseManager, null, properties())).isInstanceOf(
+                NullPointerException.class).hasMessage("configurationSynchronizer must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLifecycle(leaseManager, synchronizer, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("properties must not be null");
     }
 
     private static GatewayControlPlaneProperties properties() {

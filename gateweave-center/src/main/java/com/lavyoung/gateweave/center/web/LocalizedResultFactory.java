@@ -61,8 +61,8 @@ public class LocalizedResultFactory {
      * @return 包含请求追踪信息的失败响应
      * @throws NullPointerException status、responseCode 或 request 为 null 时抛出
      */
-    public ResponseEntity<Result<ErrorDetails>> failureResponse(
-            HttpStatus status, ResponseCode responseCode, HttpServletRequest request, Object... arguments) {
+    public ResponseEntity<Result<ErrorDetails>> failureResponse(HttpStatus status, ResponseCode responseCode,
+            HttpServletRequest request, Object... arguments) {
         HttpStatus checkedStatus = Objects.requireNonNull(status, "status must not be null");
         HttpServletRequest checkedRequest = Objects.requireNonNull(request, "request must not be null");
         String requestId = RequestIdFilter.requestId(checkedRequest);
@@ -89,7 +89,7 @@ public class LocalizedResultFactory {
     private String resolve(ResponseCode responseCode, Object... arguments) {
         Locale locale = LocaleContextHolder.getLocale();
         Object[] safeArguments = arguments == null ? new Object[0] : arguments.clone();
-        return this.messageSource.getMessage(
-                responseCode.messageKey(), safeArguments, responseCode.defaultMessage(), locale);
+        return this.messageSource.getMessage(responseCode.messageKey(), safeArguments, responseCode.defaultMessage(),
+                locale);
     }
 }

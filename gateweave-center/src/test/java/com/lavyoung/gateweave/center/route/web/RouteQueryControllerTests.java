@@ -72,19 +72,15 @@ class RouteQueryControllerTests {
     void shouldQueryRoutesWithDefaultPagination() throws Exception {
         // Given
         RouteDefinition route = route();
-        when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class)))
-                .thenReturn(new RoutePage(List.of(route), 1, 20, 1));
+        when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class))).thenReturn(
+                new RoutePage(List.of(route), 1, 20, 1));
 
         // When & Then
-        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes"))
-                .andExpect(status().isOk())
+        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes")).andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.pageNumber").value(1))
-                .andExpect(jsonPath("$.data.pageSize").value(20))
-                .andExpect(jsonPath("$.data.totalElements").value(1))
-                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.pageNumber").value(1)).andExpect(jsonPath("$.data.pageSize").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1)).andExpect(jsonPath("$.data.totalPages").value(1))
                 .andExpect(jsonPath("$.data.routes[0].routeId").value("route-query"))
                 .andExpect(jsonPath("$.data.routes[0].invocationTimeoutMillis").value(2500))
                 .andExpect(jsonPath("$.data.routes[0].parameterMappings[0].requestName").value("name"));
@@ -97,19 +93,13 @@ class RouteQueryControllerTests {
     @Test
     void shouldQueryRoutesWithRequestedPagination() throws Exception {
         // Given
-        when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class)))
-                .thenReturn(new RoutePage(List.of(), 2, 5, 6));
+        when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class))).thenReturn(new RoutePage(List.of(), 2, 5, 6));
 
         // When & Then
-        this.mockMvc.perform(get("/api/v1/gateway-groups/test/routes")
-                        .param("pageNumber", "2")
-                        .param("pageSize", "5"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.routes").isEmpty())
-                .andExpect(jsonPath("$.data.pageNumber").value(2))
-                .andExpect(jsonPath("$.data.pageSize").value(5))
-                .andExpect(jsonPath("$.data.totalElements").value(6))
-                .andExpect(jsonPath("$.data.totalPages").value(2));
+        this.mockMvc.perform(get("/api/v1/gateway-groups/test/routes").param("pageNumber", "2").param("pageSize", "5"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.routes").isEmpty())
+                .andExpect(jsonPath("$.data.pageNumber").value(2)).andExpect(jsonPath("$.data.pageSize").value(5))
+                .andExpect(jsonPath("$.data.totalElements").value(6)).andExpect(jsonPath("$.data.totalPages").value(2));
 
         verify(this.queryRoutePageUseCase).query(new RoutePageQuery("test", 2, 5));
     }
@@ -117,14 +107,12 @@ class RouteQueryControllerTests {
     @Test
     void shouldRejectInvalidPaginationBeforeCallingUseCase() throws Exception {
         // When & Then
-        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes")
-                        .param("pageNumber", "0")
+        this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes").param("pageNumber", "0")
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                         .header(RequestIdFilter.REQUEST_ID_HEADER, "request-validation"))
                 .andExpect(status().isBadRequest())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-validation"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("COMMON-0001"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("COMMON-0001"))
                 .andExpect(jsonPath("$.message").value("Request parameters are invalid"))
                 .andExpect(jsonPath("$.data.path").value("/api/v1/gateway-groups/default/routes"))
                 .andExpect(jsonPath("$.data.requestId").value("request-validation"));
@@ -137,15 +125,12 @@ class RouteQueryControllerTests {
     @Test
     void shouldPreviewConfigurationCandidates() throws Exception {
         // Given
-        when(this.gatewayRouteConfigurationQuery.findCandidates("default"))
-                .thenReturn(List.of(routeConfiguration()));
+        when(this.gatewayRouteConfigurationQuery.findCandidates("default")).thenReturn(List.of(routeConfiguration()));
 
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes/configuration-candidates"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data[0].routeId").value("route-query"))
                 .andExpect(jsonPath("$.data[0].serviceId").value("activity-service"))
                 .andExpect(jsonPath("$.data[0].target.protocol").value("dubbo"))
@@ -159,34 +144,29 @@ class RouteQueryControllerTests {
     @Test
     void shouldRejectMissingUseCase() {
         // When & Then
-        assertThatThrownBy(() -> new RouteQueryController(
-                null, this.gatewayRouteConfigurationQuery, this.resultFactory))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new RouteQueryController(null, this.gatewayRouteConfigurationQuery,
+                this.resultFactory)).isInstanceOf(NullPointerException.class)
                 .hasMessage("queryRoutePageUseCase must not be null");
-        assertThatThrownBy(() -> new RouteQueryController(this.queryRoutePageUseCase, null, this.resultFactory))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("gatewayRouteConfigurationQuery must not be null");
-        assertThatThrownBy(() -> new RouteQueryController(
-                this.queryRoutePageUseCase, this.gatewayRouteConfigurationQuery, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("resultFactory must not be null");
+        assertThatThrownBy(
+                () -> new RouteQueryController(this.queryRoutePageUseCase, null, this.resultFactory)).isInstanceOf(
+                NullPointerException.class).hasMessage("gatewayRouteConfigurationQuery must not be null");
+        assertThatThrownBy(
+                () -> new RouteQueryController(this.queryRoutePageUseCase, this.gatewayRouteConfigurationQuery,
+                        null)).isInstanceOf(NullPointerException.class).hasMessage("resultFactory must not be null");
     }
 
     private static RouteDefinition route() {
-        return new RouteDefinition(
-                "route-query", "default", "/activities", "GET", "activity-query",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofMillis(2500),
-                Map.of("version", "1.0.0"), Map.of("source", "center"), RouteStatus.ENABLED, 3L,
-                List.of(new RouteParameterMapping(0, "name")));
+        return new RouteDefinition("route-query", "default", "/activities", "GET", "activity-query",
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofMillis(2500), Map.of("version", "1.0.0"),
+                Map.of("source", "center"), RouteStatus.ENABLED, 3L, List.of(new RouteParameterMapping(0, "name")));
     }
 
     private static RouteConfiguration routeConfiguration() {
-        InvocationTargetConfiguration target = new InvocationTargetConfiguration(
-                "dubbo", "cn.example.ActivityService", "query",
-                List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
-                Duration.ofMillis(2500), Map.of("version", "1.0.0"));
-        return new RouteConfiguration(
-                "route-query", "/activities", "GET", "activity-service",
+        InvocationTargetConfiguration target =
+                new InvocationTargetConfiguration("dubbo", "cn.example.ActivityService", "query",
+                        List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
+                        Duration.ofMillis(2500), Map.of("version", "1.0.0"));
+        return new RouteConfiguration("route-query", "/activities", "GET", "activity-service",
                 RouteAuthenticationMode.REQUIRED, target, Map.of("source", "center"));
     }
 }

@@ -44,11 +44,9 @@ class GatewayNodeRegistrationExceptionTests {
     @Test
     void shouldRejectMissingExceptionArguments() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayGroupNotFoundException(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayGroupNotFoundException(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("gatewayGroupId must not be null");
-        assertThatThrownBy(() -> new GatewayNodeAddressConflictException(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayNodeAddressConflictException(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("advertisedAddress must not be null");
     }
 }

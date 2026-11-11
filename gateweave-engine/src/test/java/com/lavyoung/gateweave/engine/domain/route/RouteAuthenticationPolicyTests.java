@@ -9,7 +9,7 @@ class RouteAuthenticationPolicyTests {
     @Test
     void shouldDefineAnonymousAndRequiredPolicies() {
         // When & Then
-        assertThat(RouteAuthenticationPolicy.values())
-                .containsExactly(RouteAuthenticationPolicy.ANONYMOUS, RouteAuthenticationPolicy.REQUIRED);
+        assertThat(RouteAuthenticationPolicy.values()).containsExactly(RouteAuthenticationPolicy.ANONYMOUS,
+                RouteAuthenticationPolicy.REQUIRED);
     }
 }

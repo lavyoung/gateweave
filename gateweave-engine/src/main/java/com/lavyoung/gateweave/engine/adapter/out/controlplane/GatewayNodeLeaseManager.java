@@ -40,11 +40,9 @@ public final class GatewayNodeLeaseManager {
      * @param taskScheduler      控制面统一任务调度器
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public GatewayNodeLeaseManager(
-            GatewayControlPlaneClient controlPlaneClient, GatewayRouteTable routeTable,
+    public GatewayNodeLeaseManager(GatewayControlPlaneClient controlPlaneClient, GatewayRouteTable routeTable,
             TaskScheduler taskScheduler) {
-        this.controlPlaneClient = Objects.requireNonNull(
-                controlPlaneClient, "controlPlaneClient must not be null");
+        this.controlPlaneClient = Objects.requireNonNull(controlPlaneClient, "controlPlaneClient must not be null");
         this.routeTable = Objects.requireNonNull(routeTable, "routeTable must not be null");
         this.taskScheduler = Objects.requireNonNull(taskScheduler, "taskScheduler must not be null");
     }
@@ -64,8 +62,9 @@ public final class GatewayNodeLeaseManager {
         GatewayNodeLease lease = this.controlPlaneClient.registerNode(request);
         try {
             Instant firstHeartbeatAt = this.taskScheduler.getClock().instant().plus(lease.heartbeatInterval());
-            ScheduledFuture<?> scheduledFuture = this.taskScheduler.scheduleWithFixedDelay(
-                    () -> this.renewLease(lease), firstHeartbeatAt, lease.heartbeatInterval());
+            ScheduledFuture<?> scheduledFuture =
+                    this.taskScheduler.scheduleWithFixedDelay(() -> this.renewLease(lease), firstHeartbeatAt,
+                            lease.heartbeatInterval());
             this.activeLease = lease;
             this.heartbeatTask = scheduledFuture;
         } catch (RuntimeException exception) {
@@ -98,8 +97,8 @@ public final class GatewayNodeLeaseManager {
         try {
             this.controlPlaneClient.releaseNodeLease(lease.nodeId(), lease.leaseId());
         } catch (RuntimeException exception) {
-            LOGGER.warn("Gateway node lease release failed during shutdown nodeId={} leaseId={}",
-                    lease.nodeId(), lease.leaseId(), exception);
+            LOGGER.warn("Gateway node lease release failed during shutdown nodeId={} leaseId={}", lease.nodeId(),
+                    lease.leaseId(), exception);
         }
     }
 

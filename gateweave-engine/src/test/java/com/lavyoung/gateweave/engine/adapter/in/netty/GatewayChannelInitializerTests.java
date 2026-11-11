@@ -33,8 +33,8 @@ class GatewayChannelInitializerTests {
             initializer.initChannel(channel);
 
             // Then
-            assertThat(channel.pipeline().names())
-                    .containsSubsequence("httpCodec", "httpAggregator", "gatewayRequestHandler");
+            assertThat(channel.pipeline().names()).containsSubsequence("httpCodec", "httpAggregator",
+                    "gatewayRequestHandler");
             assertThat(channel.pipeline().get("httpCodec")).isInstanceOf(HttpServerCodec.class);
             assertThat(channel.pipeline().get("httpAggregator")).isInstanceOf(HttpObjectAggregator.class);
             assertThat(channel.pipeline().get("gatewayRequestHandler")).isSameAs(requestHandler);
@@ -63,10 +63,8 @@ class GatewayChannelInitializerTests {
             // Then
             assertThat(createdHandlers).hasSize(2);
             assertThat(createdHandlers.get(0)).isNotSameAs(createdHandlers.get(1));
-            assertThat(firstChannel.pipeline().get("gatewayRequestHandler"))
-                    .isSameAs(createdHandlers.get(0));
-            assertThat(secondChannel.pipeline().get("gatewayRequestHandler"))
-                    .isSameAs(createdHandlers.get(1));
+            assertThat(firstChannel.pipeline().get("gatewayRequestHandler")).isSameAs(createdHandlers.get(0));
+            assertThat(secondChannel.pipeline().get("gatewayRequestHandler")).isSameAs(createdHandlers.get(1));
         } finally {
             firstChannel.finishAndReleaseAll();
             secondChannel.finishAndReleaseAll();
@@ -91,8 +89,7 @@ class GatewayChannelInitializerTests {
 
             // Then
             assertThat(response).isInstanceOf(FullHttpResponse.class);
-            assertThat(((FullHttpResponse) response).status())
-                    .isEqualTo(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE);
+            assertThat(((FullHttpResponse) response).status()).isEqualTo(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE);
         } finally {
             ReferenceCountUtil.release(response);
             channel.finishAndReleaseAll();
@@ -102,13 +99,10 @@ class GatewayChannelInitializerTests {
     @Test
     void shouldRejectInvalidConfiguration() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayChannelInitializer(
-                0, ChannelInboundHandlerAdapter::new))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("maxContentLength must be greater than zero");
+        assertThatThrownBy(() -> new GatewayChannelInitializer(0, ChannelInboundHandlerAdapter::new)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("maxContentLength must be greater than zero");
 
-        assertThatThrownBy(() -> new GatewayChannelInitializer(1024, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayChannelInitializer(1024, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestHandlerFactory must not be null");
     }
 
@@ -120,8 +114,7 @@ class GatewayChannelInitializerTests {
         // When & Then
         var channel = new EmbeddedChannel();
         try {
-            assertThatThrownBy(() -> initializer.initChannel(channel))
-                    .isInstanceOf(NullPointerException.class)
+            assertThatThrownBy(() -> initializer.initChannel(channel)).isInstanceOf(NullPointerException.class)
                     .hasMessage("requestHandlerFactory must not return null");
         } finally {
             channel.finishAndReleaseAll();

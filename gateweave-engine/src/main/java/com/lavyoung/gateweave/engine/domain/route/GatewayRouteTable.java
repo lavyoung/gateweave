@@ -45,8 +45,8 @@ public final class GatewayRouteTable {
     public Optional<GatewayRoute> match(String requestMethod, URI requestUri) {
         Objects.requireNonNull(requestMethod, "requestMethod must not be null");
         Objects.requireNonNull(requestUri, "requestUri must not be null");
-        return this.snapshot.get().routes.stream()
-                .filter(route -> route.matches(requestMethod, requestUri)).findFirst();
+        return this.snapshot.get().routes.stream().filter(route -> route.matches(requestMethod, requestUri))
+                .findFirst();
     }
 
 

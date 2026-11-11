@@ -37,13 +37,11 @@ class ControlPlaneHttpApiTests {
         server.start();
 
         try {
-            RestClient restClient = RestClient.builder()
-                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort())
-                    .build();
-            ControlPlaneHttpApi httpApi = HttpServiceProxyFactory
-                    .builderFor(RestClientAdapter.create(restClient))
-                    .build()
-                    .createClient(ControlPlaneHttpApi.class);
+            RestClient restClient =
+                    RestClient.builder().baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build();
+            ControlPlaneHttpApi httpApi =
+                    HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build()
+                            .createClient(ControlPlaneHttpApi.class);
 
             // When
             ResponseEntity<Void> response =
@@ -77,13 +75,11 @@ class ControlPlaneHttpApiTests {
         server.start();
 
         try {
-            RestClient restClient = RestClient.builder()
-                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort())
-                    .build();
-            ControlPlaneHttpApi httpApi = HttpServiceProxyFactory
-                    .builderFor(RestClientAdapter.create(restClient))
-                    .build()
-                    .createClient(ControlPlaneHttpApi.class);
+            RestClient restClient =
+                    RestClient.builder().baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build();
+            ControlPlaneHttpApi httpApi =
+                    HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build()
+                            .createClient(ControlPlaneHttpApi.class);
 
             // When
             ResponseEntity<Void> response = httpApi.releaseNodeLease("node-1", LEASE_ID);

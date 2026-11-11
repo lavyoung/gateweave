@@ -45,14 +45,13 @@ class GatewayApplicationConfigurationTests {
         when(repository.renewLease(any())).thenReturn(true);
         when(repository.markExpiredLeasesOffline(any())).thenReturn(2);
         AtomicReference<ThreadPoolTaskScheduler> taskSchedulerReference = new AtomicReference<>();
-        ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-                .withUserConfiguration(
-                        ControlPlaneClockConfiguration.class, GatewayApplicationConfiguration.class)
-                .withBean(GatewayNodeRepository.class, () -> repository)
-                .withPropertyValues(
-                        "gateweave.gateway-node.lease.heartbeat-interval=15s",
-                        "gateweave.gateway-node.lease.lease-timeout=45s",
-                        "gateweave.gateway-node.lease.expiration-scan-interval=1h");
+        ApplicationContextRunner contextRunner =
+                new ApplicationContextRunner().withUserConfiguration(ControlPlaneClockConfiguration.class,
+                                GatewayApplicationConfiguration.class).withBean(GatewayNodeRepository.class,
+                                () -> repository)
+                        .withPropertyValues("gateweave.gateway-node.lease.heartbeat-interval=15s",
+                                "gateweave.gateway-node.lease.lease-timeout=45s",
+                                "gateweave.gateway-node.lease.expiration-scan-interval=1h");
 
         // When & Then
         contextRunner.run(context -> {
@@ -77,8 +76,8 @@ class GatewayApplicationConfigurationTests {
 
             RegisterGatewayNodeUseCase useCase = context.getBean(RegisterGatewayNodeUseCase.class);
             assertThat(useCase).isInstanceOf(DefaultGatewayNodeRegistrationService.class);
-            GatewayNodeRegistration registration = new GatewayNodeRegistration(
-                    "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:8080"));
+            GatewayNodeRegistration registration = new GatewayNodeRegistration("node-1", "default", "Gateway Node 1",
+                    URI.create("http://127.0.0.1:8080"));
             Instant beforeRegistration = Instant.now();
 
             GatewayNodeRegistrationResult result = useCase.register(registration);
@@ -91,10 +90,8 @@ class GatewayApplicationConfigurationTests {
             assertThat(result.node().currentConfigVersion()).isZero();
 
             RenewGatewayNodeLeaseUseCase leaseUseCase = context.getBean(RenewGatewayNodeLeaseUseCase.class);
-            ExpireGatewayNodeLeasesUseCase expirationUseCase =
-                    context.getBean(ExpireGatewayNodeLeasesUseCase.class);
-            ReleaseGatewayNodeLeaseUseCase releaseUseCase =
-                    context.getBean(ReleaseGatewayNodeLeaseUseCase.class);
+            ExpireGatewayNodeLeasesUseCase expirationUseCase = context.getBean(ExpireGatewayNodeLeasesUseCase.class);
+            ReleaseGatewayNodeLeaseUseCase releaseUseCase = context.getBean(ReleaseGatewayNodeLeaseUseCase.class);
             assertThat(leaseUseCase).isInstanceOf(DefaultGatewayNodeLeaseService.class);
             assertThat(expirationUseCase).isSameAs(leaseUseCase);
             assertThat(releaseUseCase).isSameAs(leaseUseCase);

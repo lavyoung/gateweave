@@ -12,8 +12,8 @@ class ServiceDefinitionRegistrationResponseTests {
     @Test
     void shouldCreateRegistrationResponse() {
         // When
-        ServiceDefinitionRegistrationResponse response = new ServiceDefinitionRegistrationResponse(
-                "activity-service", CatalogRegistrationOutcome.CREATED);
+        ServiceDefinitionRegistrationResponse response =
+                new ServiceDefinitionRegistrationResponse("activity-service", CatalogRegistrationOutcome.CREATED);
 
         // Then
         assertThat(response.serviceId()).isEqualTo("activity-service");
@@ -22,24 +22,21 @@ class ServiceDefinitionRegistrationResponseTests {
 
     @Test
     void shouldRejectNullServiceId() {
-        assertThatThrownBy(() -> new ServiceDefinitionRegistrationResponse(
-                null, CatalogRegistrationOutcome.CREATED))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("serviceId must not be null");
+        assertThatThrownBy(
+                () -> new ServiceDefinitionRegistrationResponse(null, CatalogRegistrationOutcome.CREATED)).isInstanceOf(
+                NullPointerException.class).hasMessage("serviceId must not be null");
     }
 
     @Test
     void shouldRejectBlankServiceId() {
-        assertThatThrownBy(() -> new ServiceDefinitionRegistrationResponse(
-                " ", CatalogRegistrationOutcome.CREATED))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("serviceId must not be blank");
+        assertThatThrownBy(
+                () -> new ServiceDefinitionRegistrationResponse(" ", CatalogRegistrationOutcome.CREATED)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("serviceId must not be blank");
     }
 
     @Test
     void shouldRejectNullOutcome() {
-        assertThatThrownBy(() -> new ServiceDefinitionRegistrationResponse("activity-service", null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("outcome must not be null");
+        assertThatThrownBy(() -> new ServiceDefinitionRegistrationResponse("activity-service", null)).isInstanceOf(
+                NullPointerException.class).hasMessage("outcome must not be null");
     }
 }

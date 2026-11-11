@@ -51,21 +51,17 @@ class RoutePageTests {
 
         // When & Then
         assertThatThrownBy(() -> new RoutePage(null, 1, 20, 0)).isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> new RoutePage(routesWithNull, 1, 20, 1))
-                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new RoutePage(routesWithNull, 1, 20, 1)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
     void shouldRejectInvalidPageMetadata() {
         // When & Then
-        assertThatThrownBy(() -> new RoutePage(List.of(), 0, 20, 0))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new RoutePage(List.of(), 0, 20, 0)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("pageNumber must be greater than zero");
-        assertThatThrownBy(() -> new RoutePage(List.of(), 1, 0, 0))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new RoutePage(List.of(), 1, 0, 0)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("pageSize must be greater than zero");
-        assertThatThrownBy(() -> new RoutePage(List.of(), 1, 20, -1))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new RoutePage(List.of(), 1, 20, -1)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("totalElements must not be negative");
     }
 
@@ -75,17 +71,15 @@ class RoutePageTests {
         List<RouteDefinition> twoRoutes = List.of(route("route-one", "/one"), route("route-two", "/two"));
 
         // When & Then
-        assertThatThrownBy(() -> new RoutePage(twoRoutes, 1, 1, 2))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new RoutePage(twoRoutes, 1, 1, 2)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("routes size must not exceed pageSize");
-        assertThatThrownBy(() -> new RoutePage(twoRoutes, 1, 2, 1))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new RoutePage(twoRoutes, 1, 2, 1)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("routes size must not exceed totalElements");
     }
 
     private static RouteDefinition route(String routeId, String path) {
         return new RouteDefinition(routeId, "default", path, "GET", "activity-query",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of());
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of());
     }
 }

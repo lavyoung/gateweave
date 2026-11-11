@@ -50,8 +50,8 @@ public final class DubboProtocolInvoker implements ProtocolInvoker {
     public CompletionStage<String> invoke(InvocationRequest request) {
         Objects.requireNonNull(request, "request must not be null");
         DubboReferenceOptions options = DubboReferenceOptions.from(request.attributes());
-        IGenericReference reference = this.referenceRegistry.getGenericReference(
-                request.service(), request.operation(), options.version());
+        IGenericReference reference =
+                this.referenceRegistry.getGenericReference(request.service(), request.operation(), options.version());
         CompletionStage<String> completionStage = reference.$invoke(request.invocationArguments());
         return Objects.requireNonNull(completionStage, "generic reference must not return null");
     }

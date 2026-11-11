@@ -18,8 +18,8 @@ import java.util.Objects;
  * @since 1.0
  */
 public record InvocationTargetConfiguration(String protocol, String service, String operation,
-                                            List<InvocationParameterConfiguration> parameters,
-                                            Duration timeout, Map<String, String> attributes) {
+                                            List<InvocationParameterConfiguration> parameters, Duration timeout,
+                                            Map<String, String> attributes) {
     /**
      * 校验调用目标并建立不可变快照。
      *

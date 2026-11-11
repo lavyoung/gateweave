@@ -37,11 +37,11 @@ class GatewayNodeLeaseManagerTests {
     private static final Instant REGISTERED_AT = Instant.parse("2026-11-09T12:00:00Z");
     private static final Duration HEARTBEAT_INTERVAL = Duration.ofSeconds(10);
     private static final Clock FIXED_CLOCK = Clock.fixed(REGISTERED_AT, ZoneOffset.UTC);
-    private static final RegisterGatewayNodeRequest REGISTRATION_REQUEST = new RegisterGatewayNodeRequest(
-            "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
-    private static final GatewayNodeLease NODE_LEASE = new GatewayNodeLease(
-            "node-1", UUID.fromString("00000000-0000-0000-0000-000000000001"),
-            HEARTBEAT_INTERVAL, Duration.ofSeconds(30));
+    private static final RegisterGatewayNodeRequest REGISTRATION_REQUEST =
+            new RegisterGatewayNodeRequest("node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
+    private static final GatewayNodeLease NODE_LEASE =
+            new GatewayNodeLease("node-1", UUID.fromString("00000000-0000-0000-0000-000000000001"), HEARTBEAT_INTERVAL,
+                    Duration.ofSeconds(30));
 
     @Test
     void shouldRegisterScheduleHeartbeatAndStopOnlyOnce() {
@@ -53,10 +53,10 @@ class GatewayNodeLeaseManagerTests {
         when(controlPlaneClient.registerNode(REGISTRATION_REQUEST)).thenReturn(NODE_LEASE);
         when(routeTable.currentVersion()).thenReturn(7L);
         when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
-        doReturn(heartbeatTask).when(taskScheduler).scheduleWithFixedDelay(
-                any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
-        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
-                controlPlaneClient, routeTable, taskScheduler);
+        doReturn(heartbeatTask).when(taskScheduler)
+                .scheduleWithFixedDelay(any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)),
+                        eq(HEARTBEAT_INTERVAL));
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
 
         // When
         manager.start(REGISTRATION_REQUEST);
@@ -65,8 +65,8 @@ class GatewayNodeLeaseManagerTests {
         // Then
         ArgumentCaptor<Runnable> heartbeatCaptor = ArgumentCaptor.forClass(Runnable.class);
         verify(controlPlaneClient, times(1)).registerNode(REGISTRATION_REQUEST);
-        verify(taskScheduler, times(1)).scheduleWithFixedDelay(
-                heartbeatCaptor.capture(), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
+        verify(taskScheduler, times(1)).scheduleWithFixedDelay(heartbeatCaptor.capture(),
+                eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
 
         // When
         heartbeatCaptor.getValue().run();
@@ -90,13 +90,12 @@ class GatewayNodeLeaseManagerTests {
         TaskScheduler taskScheduler = mock(TaskScheduler.class);
         IllegalStateException failure = new IllegalStateException("registration failed");
         doThrow(failure).when(controlPlaneClient).registerNode(REGISTRATION_REQUEST);
-        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
-                controlPlaneClient, routeTable, taskScheduler);
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
 
         // When & Then
         assertThatThrownBy(() -> manager.start(REGISTRATION_REQUEST)).isSameAs(failure);
-        verify(taskScheduler, never()).scheduleWithFixedDelay(
-                any(Runnable.class), any(Instant.class), any(Duration.class));
+        verify(taskScheduler, never()).scheduleWithFixedDelay(any(Runnable.class), any(Instant.class),
+                any(Duration.class));
         verifyNoInteractions(routeTable);
     }
 
@@ -109,10 +108,10 @@ class GatewayNodeLeaseManagerTests {
         IllegalStateException failure = new IllegalStateException("scheduling rejected");
         when(controlPlaneClient.registerNode(REGISTRATION_REQUEST)).thenReturn(NODE_LEASE);
         when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
-        doThrow(failure).when(taskScheduler).scheduleWithFixedDelay(
-                any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
-        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
-                controlPlaneClient, routeTable, taskScheduler);
+        doThrow(failure).when(taskScheduler)
+                .scheduleWithFixedDelay(any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)),
+                        eq(HEARTBEAT_INTERVAL));
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
 
         // When & Then
         assertThatThrownBy(() -> manager.start(REGISTRATION_REQUEST)).isSameAs(failure);
@@ -128,12 +127,12 @@ class GatewayNodeLeaseManagerTests {
         ScheduledFuture<?> heartbeatTask = mock(ScheduledFuture.class);
         when(controlPlaneClient.registerNode(REGISTRATION_REQUEST)).thenReturn(NODE_LEASE);
         when(taskScheduler.getClock()).thenReturn(FIXED_CLOCK);
-        doReturn(heartbeatTask).when(taskScheduler).scheduleWithFixedDelay(
-                any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)), eq(HEARTBEAT_INTERVAL));
-        doThrow(new IllegalStateException("control plane unavailable"))
-                .when(controlPlaneClient).releaseNodeLease("node-1", NODE_LEASE.leaseId());
-        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
-                controlPlaneClient, routeTable, taskScheduler);
+        doReturn(heartbeatTask).when(taskScheduler)
+                .scheduleWithFixedDelay(any(Runnable.class), eq(REGISTERED_AT.plus(HEARTBEAT_INTERVAL)),
+                        eq(HEARTBEAT_INTERVAL));
+        doThrow(new IllegalStateException("control plane unavailable")).when(controlPlaneClient)
+                .releaseNodeLease("node-1", NODE_LEASE.leaseId());
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
         manager.start(REGISTRATION_REQUEST);
 
         // When & Then
@@ -149,21 +148,16 @@ class GatewayNodeLeaseManagerTests {
         GatewayControlPlaneClient controlPlaneClient = mock(GatewayControlPlaneClient.class);
         GatewayRouteTable routeTable = mock(GatewayRouteTable.class);
         TaskScheduler taskScheduler = mock(TaskScheduler.class);
-        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(
-                controlPlaneClient, routeTable, taskScheduler);
+        GatewayNodeLeaseManager manager = new GatewayNodeLeaseManager(controlPlaneClient, routeTable, taskScheduler);
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLeaseManager(null, routeTable, taskScheduler))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("controlPlaneClient must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLeaseManager(controlPlaneClient, null, taskScheduler))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("routeTable must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLeaseManager(controlPlaneClient, routeTable, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("taskScheduler must not be null");
-        assertThatThrownBy(() -> manager.start(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayNodeLeaseManager(null, routeTable, taskScheduler)).isInstanceOf(
+                NullPointerException.class).hasMessage("controlPlaneClient must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLeaseManager(controlPlaneClient, null, taskScheduler)).isInstanceOf(
+                NullPointerException.class).hasMessage("routeTable must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLeaseManager(controlPlaneClient, routeTable, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("taskScheduler must not be null");
+        assertThatThrownBy(() -> manager.start(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
         verifyNoInteractions(controlPlaneClient, routeTable, taskScheduler);
     }

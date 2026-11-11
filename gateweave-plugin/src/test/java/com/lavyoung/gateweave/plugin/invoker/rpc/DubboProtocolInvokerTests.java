@@ -55,8 +55,7 @@ class DubboProtocolInvokerTests {
         DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
 
         // When & Then
-        assertThatThrownBy(() -> invoker.prepare(target))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.prepare(target)).isInstanceOf(NullPointerException.class)
                 .hasMessage("version must not be null");
         verifyNoInteractions(registry);
     }
@@ -68,8 +67,7 @@ class DubboProtocolInvokerTests {
         DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
 
         // When & Then
-        assertThatThrownBy(() -> invoker.prepare(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.prepare(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("target must not be null");
         verifyNoInteractions(registry);
     }
@@ -110,8 +108,7 @@ class DubboProtocolInvokerTests {
         CompletionStage<String> resultStage = invoker.invoke(request);
 
         // Then
-        assertThatThrownBy(() -> resultStage.toCompletableFuture().join())
-                .isInstanceOf(CompletionException.class)
+        assertThatThrownBy(() -> resultStage.toCompletableFuture().join()).isInstanceOf(CompletionException.class)
                 .hasCause(failure);
     }
 
@@ -123,8 +120,7 @@ class DubboProtocolInvokerTests {
         DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
 
         // When & Then
-        assertThatThrownBy(() -> invoker.invoke(request))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.invoke(request)).isInstanceOf(NullPointerException.class)
                 .hasMessage("version must not be null");
         verifyNoInteractions(registry);
     }
@@ -141,8 +137,7 @@ class DubboProtocolInvokerTests {
         DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
 
         // When & Then
-        assertThatThrownBy(() -> invoker.invoke(request))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.invoke(request)).isInstanceOf(NullPointerException.class)
                 .hasMessage("generic reference must not return null");
     }
 
@@ -153,16 +148,14 @@ class DubboProtocolInvokerTests {
         DubboProtocolInvoker invoker = new DubboProtocolInvoker(registry);
 
         // When & Then
-        assertThatThrownBy(() -> new DubboProtocolInvoker(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new DubboProtocolInvoker(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("referenceRegistry must not be null");
-        assertThatThrownBy(() -> invoker.invoke(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> invoker.invoke(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
     }
 
-    private static InvocationRequest request(
-            Map<String, String> attributes, GenericInvocationArguments invocationArguments) {
+    private static InvocationRequest request(Map<String, String> attributes,
+            GenericInvocationArguments invocationArguments) {
         return new InvocationRequest("request-1", "route-1", "dubbo", "demo.GreetingService", "sayHello",
                 invocationArguments, Duration.ofSeconds(3), Map.of(), attributes, new byte[]{1, 2, 3});
     }

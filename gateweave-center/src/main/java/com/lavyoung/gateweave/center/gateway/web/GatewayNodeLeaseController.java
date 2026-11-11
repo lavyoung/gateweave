@@ -41,10 +41,10 @@ public class GatewayNodeLeaseController {
      */
     public GatewayNodeLeaseController(RenewGatewayNodeLeaseUseCase renewGatewayNodeLeaseUseCase,
             ReleaseGatewayNodeLeaseUseCase releaseGatewayNodeLeaseUseCase) {
-        this.renewGatewayNodeLeaseUseCase = Objects.requireNonNull(
-                renewGatewayNodeLeaseUseCase, "renewGatewayNodeLeaseUseCase must not be null");
-        this.releaseGatewayNodeLeaseUseCase = Objects.requireNonNull(
-                releaseGatewayNodeLeaseUseCase, "releaseGatewayNodeLeaseUseCase must not be null");
+        this.renewGatewayNodeLeaseUseCase =
+                Objects.requireNonNull(renewGatewayNodeLeaseUseCase, "renewGatewayNodeLeaseUseCase must not be null");
+        this.releaseGatewayNodeLeaseUseCase = Objects.requireNonNull(releaseGatewayNodeLeaseUseCase,
+                "releaseGatewayNodeLeaseUseCase must not be null");
     }
 
     /**
@@ -57,8 +57,8 @@ public class GatewayNodeLeaseController {
      * @throws IllegalArgumentException 节点标识为空白或配置版本为负数时抛出
      */
     @PutMapping("/{nodeId}/lease")
-    public ResponseEntity<Void> renewLease(
-            @PathVariable("nodeId") String nodeId, @RequestBody GatewayNodeHeartbeatRequest request) {
+    public ResponseEntity<Void> renewLease(@PathVariable("nodeId") String nodeId,
+            @RequestBody GatewayNodeHeartbeatRequest request) {
         Objects.requireNonNull(request, "request must not be null");
         this.renewGatewayNodeLeaseUseCase.renew(nodeId, request.leaseId(), request.currentConfigVersion());
         return ResponseEntity.noContent().build();
@@ -74,8 +74,8 @@ public class GatewayNodeLeaseController {
      * @throws IllegalArgumentException nodeId 为空白时抛出
      */
     @DeleteMapping("/{nodeId}/lease")
-    public ResponseEntity<Void> releaseLease(
-            @PathVariable("nodeId") String nodeId, @RequestParam("leaseId") UUID leaseId) {
+    public ResponseEntity<Void> releaseLease(@PathVariable("nodeId") String nodeId,
+            @RequestParam("leaseId") UUID leaseId) {
         this.releaseGatewayNodeLeaseUseCase.release(nodeId, leaseId);
         return ResponseEntity.noContent().build();
     }

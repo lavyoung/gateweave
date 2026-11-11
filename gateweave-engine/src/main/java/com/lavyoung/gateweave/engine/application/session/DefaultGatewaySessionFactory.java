@@ -33,7 +33,6 @@ public final class DefaultGatewaySessionFactory implements GatewaySessionFactory
     @Override
     public Optional<GatewaySession> openSession(GatewayRequestCommand command) {
         Objects.requireNonNull(command, "command must not be null");
-        return this.routeTable.match(command.method(), command.uri())
-                .map(route -> new GatewaySession(command, route));
+        return this.routeTable.match(command.method(), command.uri()).map(route -> new GatewaySession(command, route));
     }
 }

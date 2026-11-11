@@ -27,8 +27,8 @@ public class DefaultServiceDefinitionRegistrationService implements RegisterServ
      * @throws NullPointerException serviceCatalogRepository 为 null 时抛出
      */
     public DefaultServiceDefinitionRegistrationService(ServiceCatalogRepository serviceCatalogRepository) {
-        this.serviceCatalogRepository = Objects.requireNonNull(
-                serviceCatalogRepository, "serviceCatalogRepository must not be null");
+        this.serviceCatalogRepository =
+                Objects.requireNonNull(serviceCatalogRepository, "serviceCatalogRepository must not be null");
     }
 
     @Override

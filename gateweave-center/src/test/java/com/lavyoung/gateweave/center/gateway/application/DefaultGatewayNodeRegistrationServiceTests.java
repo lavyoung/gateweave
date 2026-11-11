@@ -31,12 +31,12 @@ class DefaultGatewayNodeRegistrationServiceTests {
     void shouldRegisterOnlineNodeAtControlPlaneTime() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
-        DefaultGatewayNodeRegistrationService service = new DefaultGatewayNodeRegistrationService(
-                repository, FIXED_CLOCK);
+        DefaultGatewayNodeRegistrationService service =
+                new DefaultGatewayNodeRegistrationService(repository, FIXED_CLOCK);
         GatewayNodeRegistration registration = registration();
-        when(repository.registerOrRefresh(any(GatewayNode.class))).thenAnswer(invocation ->
-                new GatewayNodeRegistrationResult(
-                        invocation.getArgument(0), GatewayNodeRegistrationOutcome.REGISTERED));
+        when(repository.registerOrRefresh(any(GatewayNode.class))).thenAnswer(
+                invocation -> new GatewayNodeRegistrationResult(invocation.getArgument(0),
+                        GatewayNodeRegistrationOutcome.REGISTERED));
 
         // When
         GatewayNodeRegistrationResult result = service.register(registration);
@@ -53,8 +53,8 @@ class DefaultGatewayNodeRegistrationServiceTests {
     void shouldPropagateRepositoryFailure() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
-        DefaultGatewayNodeRegistrationService service = new DefaultGatewayNodeRegistrationService(
-                repository, FIXED_CLOCK);
+        DefaultGatewayNodeRegistrationService service =
+                new DefaultGatewayNodeRegistrationService(repository, FIXED_CLOCK);
         GatewayNodeRegistration registration = registration();
         IllegalStateException failure = new IllegalStateException("storage unavailable");
         when(repository.registerOrRefresh(any(GatewayNode.class))).thenThrow(failure);
@@ -67,24 +67,20 @@ class DefaultGatewayNodeRegistrationServiceTests {
     void shouldRejectMissingDependenciesAndRegistration() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
-        DefaultGatewayNodeRegistrationService service = new DefaultGatewayNodeRegistrationService(
-                repository, FIXED_CLOCK);
+        DefaultGatewayNodeRegistrationService service =
+                new DefaultGatewayNodeRegistrationService(repository, FIXED_CLOCK);
 
         // When & Then
-        assertThatThrownBy(() -> new DefaultGatewayNodeRegistrationService(null, FIXED_CLOCK))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("gatewayNodeRepository must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayNodeRegistrationService(repository, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("clock must not be null");
-        assertThatThrownBy(() -> service.register(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new DefaultGatewayNodeRegistrationService(null, FIXED_CLOCK)).isInstanceOf(
+                NullPointerException.class).hasMessage("gatewayNodeRepository must not be null");
+        assertThatThrownBy(() -> new DefaultGatewayNodeRegistrationService(repository, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("clock must not be null");
+        assertThatThrownBy(() -> service.register(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("registration must not be null");
         verifyNoInteractions(repository);
     }
 
     private static GatewayNodeRegistration registration() {
-        return new GatewayNodeRegistration(
-                "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:8080"));
+        return new GatewayNodeRegistration("node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:8080"));
     }
 }

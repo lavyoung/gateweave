@@ -47,52 +47,46 @@ class GatewayHttpPropertiesTests {
     @Test
     void shouldRejectMissingDurations() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayHttpProperties(null, 2, 8, 256, Duration.ofSeconds(30)))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("connectTimeout must not be null");
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 256, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("keepAlive must not be null");
+        assertThatThrownBy(() -> new GatewayHttpProperties(null, 2, 8, 256, Duration.ofSeconds(30))).isInstanceOf(
+                NullPointerException.class).hasMessage("connectTimeout must not be null");
+        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 256, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("keepAlive must not be null");
     }
 
     @Test
     void shouldRejectNonPositiveConnectTimeout() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ZERO, 2, 8, 256, Duration.ofSeconds(30)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("connectTimeout must be greater than zero");
+        assertThatThrownBy(
+                () -> new GatewayHttpProperties(Duration.ZERO, 2, 8, 256, Duration.ofSeconds(30))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("connectTimeout must be greater than zero");
         assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(-1), 2, 8, 256,
-                Duration.ofSeconds(30)))
-                .isInstanceOf(IllegalArgumentException.class)
+                Duration.ofSeconds(30))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("connectTimeout must be greater than zero");
     }
 
     @Test
     void shouldRejectInvalidThreadCounts() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 0, 8, 256,
-                Duration.ofSeconds(30)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("coreThreads must be greater than zero");
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 4, 3, 256,
-                Duration.ofSeconds(30)))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new GatewayHttpProperties(Duration.ofSeconds(2), 0, 8, 256, Duration.ofSeconds(30))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("coreThreads must be greater than zero");
+        assertThatThrownBy(
+                () -> new GatewayHttpProperties(Duration.ofSeconds(2), 4, 3, 256, Duration.ofSeconds(30))).isInstanceOf(
+                        IllegalArgumentException.class)
                 .hasMessage("maximumThreads must be greater than or equal to coreThreads");
     }
 
     @Test
     void shouldRejectInvalidQueueCapacityOrKeepAlive() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 0,
-                Duration.ofSeconds(30)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("queueCapacity must be greater than zero");
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 256, Duration.ZERO))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("keepAlive must be greater than zero");
-        assertThatThrownBy(() -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 256,
-                Duration.ofSeconds(-1)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("keepAlive must be greater than zero");
+        assertThatThrownBy(
+                () -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 0, Duration.ofSeconds(30))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("queueCapacity must be greater than zero");
+        assertThatThrownBy(
+                () -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 256, Duration.ZERO)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("keepAlive must be greater than zero");
+        assertThatThrownBy(
+                () -> new GatewayHttpProperties(Duration.ofSeconds(2), 2, 8, 256, Duration.ofSeconds(-1))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("keepAlive must be greater than zero");
     }
 }

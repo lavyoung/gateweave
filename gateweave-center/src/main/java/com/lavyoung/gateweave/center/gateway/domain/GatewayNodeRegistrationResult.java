@@ -11,9 +11,7 @@ import java.util.Objects;
  * @version 1.0.0
  * @date 2026/10/31
  */
-public record GatewayNodeRegistrationResult(
-        GatewayNode node,
-        GatewayNodeRegistrationOutcome outcome) {
+public record GatewayNodeRegistrationResult(GatewayNode node, GatewayNodeRegistrationOutcome outcome) {
 
     /**
      * 创建节点注册结果。

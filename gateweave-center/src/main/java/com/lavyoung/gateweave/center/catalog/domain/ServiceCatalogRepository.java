@@ -26,7 +26,7 @@ public interface ServiceCatalogRepository {
      * @param serviceDefinition 包含操作和参数的完整服务定义
      * @return 首次创建时返回 CREATED，已有完全一致定义时返回 UNCHANGED
      * @throws NullPointerException serviceDefinition 为 null 时抛出
-     * @throws BusinessException 稳定标识冲突、定义不一致或持久化失败时抛出
+     * @throws BusinessException    稳定标识冲突、定义不一致或持久化失败时抛出
      */
     CatalogRegistrationOutcome register(ServiceDefinition serviceDefinition);
 }

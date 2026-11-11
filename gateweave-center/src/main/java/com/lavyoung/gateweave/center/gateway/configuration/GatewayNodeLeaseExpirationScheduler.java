@@ -40,11 +40,10 @@ public final class GatewayNodeLeaseExpirationScheduler implements SmartLifecycle
      * @param scanInterval                   过期租约扫描周期
      * @throws NullPointerException 任一参数为 null 时抛出
      */
-    public GatewayNodeLeaseExpirationScheduler(
-            ExpireGatewayNodeLeasesUseCase expireGatewayNodeLeasesUseCase,
+    public GatewayNodeLeaseExpirationScheduler(ExpireGatewayNodeLeasesUseCase expireGatewayNodeLeasesUseCase,
             TaskScheduler taskScheduler, Duration scanInterval) {
-        this.expireGatewayNodeLeasesUseCase = Objects.requireNonNull(
-                expireGatewayNodeLeasesUseCase, "expireGatewayNodeLeasesUseCase must not be null");
+        this.expireGatewayNodeLeasesUseCase = Objects.requireNonNull(expireGatewayNodeLeasesUseCase,
+                "expireGatewayNodeLeasesUseCase must not be null");
         this.taskScheduler = Objects.requireNonNull(taskScheduler, "taskScheduler must not be null");
         this.scanInterval = Objects.requireNonNull(scanInterval, "scanInterval must not be null");
     }
@@ -55,8 +54,8 @@ public final class GatewayNodeLeaseExpirationScheduler implements SmartLifecycle
             return;
         }
         Instant firstExecutionAt = this.taskScheduler.getClock().instant().plus(this.scanInterval);
-        this.expirationTask = this.taskScheduler.scheduleWithFixedDelay(this::expireLeases,
-                firstExecutionAt, this.scanInterval);
+        this.expirationTask =
+                this.taskScheduler.scheduleWithFixedDelay(this::expireLeases, firstExecutionAt, this.scanInterval);
     }
 
     @Override
@@ -70,9 +69,7 @@ public final class GatewayNodeLeaseExpirationScheduler implements SmartLifecycle
 
     @Override
     public boolean isRunning() {
-        return this.expirationTask != null
-                && !this.expirationTask.isCancelled()
-                && !this.expirationTask.isDone();
+        return this.expirationTask != null && !this.expirationTask.isCancelled() && !this.expirationTask.isDone();
     }
 
     /**

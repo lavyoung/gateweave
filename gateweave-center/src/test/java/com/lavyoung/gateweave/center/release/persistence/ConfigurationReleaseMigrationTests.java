@@ -33,22 +33,16 @@ class ConfigurationReleaseMigrationTests {
             assertThat(context).hasNotFailed();
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
             List<String> tableNames = jdbcTemplate.queryForList("""
-                            SELECT TABLE_NAME
-                            FROM INFORMATION_SCHEMA.TABLES
-                            WHERE TABLE_SCHEMA = 'PUBLIC'
-                            """, String.class)
-                    .stream()
-                    .map(String::toLowerCase)
-                    .toList();
+                    SELECT TABLE_NAME
+                    FROM INFORMATION_SCHEMA.TABLES
+                    WHERE TABLE_SCHEMA = 'PUBLIC'
+                    """, String.class).stream().map(String::toLowerCase).toList();
             List<String> indexNames = jdbcTemplate.queryForList("""
-                            SELECT INDEX_NAME
-                            FROM INFORMATION_SCHEMA.INDEXES
-                            WHERE TABLE_SCHEMA = 'PUBLIC'
-                              AND TABLE_NAME = 'GW_CONFIG_RELEASE'
-                            """, String.class)
-                    .stream()
-                    .map(String::toLowerCase)
-                    .toList();
+                    SELECT INDEX_NAME
+                    FROM INFORMATION_SCHEMA.INDEXES
+                    WHERE TABLE_SCHEMA = 'PUBLIC'
+                      AND TABLE_NAME = 'GW_CONFIG_RELEASE'
+                    """, String.class).stream().map(String::toLowerCase).toList();
 
             assertThat(tableNames).contains("gw_config_release");
             assertThat(indexNames).contains("idx_gw_config_release_group_status_version");
@@ -91,29 +85,27 @@ class ConfigurationReleaseMigrationTests {
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
             insertRelease(jdbcTemplate, 1, "sha256:first", "{\"routes\":[]}");
 
-            assertThatThrownBy(() -> insertRelease(jdbcTemplate, 1, "sha256:duplicate", "{\"routes\":[]}"))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update(
-                    INSERT_RELEASE, "default", 0L, "sha256:invalid", "{\"routes\":[]}", "PUBLISHED", PUBLISHED_AT))
-                    .isInstanceOf(DataIntegrityViolationException.class);
-            assertThatThrownBy(() -> jdbcTemplate.update(
-                    INSERT_RELEASE, "missing", 1L, "sha256:missing", "{\"routes\":[]}", "PUBLISHED", PUBLISHED_AT))
-                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(
+                    () -> insertRelease(jdbcTemplate, 1, "sha256:duplicate", "{\"routes\":[]}")).isInstanceOf(
+                    DataIntegrityViolationException.class);
+            assertThatThrownBy(
+                    () -> jdbcTemplate.update(INSERT_RELEASE, "default", 0L, "sha256:invalid", "{\"routes\":[]}",
+                            "PUBLISHED", PUBLISHED_AT)).isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(
+                    () -> jdbcTemplate.update(INSERT_RELEASE, "missing", 1L, "sha256:missing", "{\"routes\":[]}",
+                            "PUBLISHED", PUBLISHED_AT)).isInstanceOf(DataIntegrityViolationException.class);
         });
     }
 
     private static void insertRelease(JdbcTemplate jdbcTemplate, long version, String checksum,
             String snapshotContent) {
-        jdbcTemplate.update(
-                INSERT_RELEASE, "default", version, checksum, snapshotContent, "PUBLISHED", PUBLISHED_AT);
+        jdbcTemplate.update(INSERT_RELEASE, "default", version, checksum, snapshotContent, "PUBLISHED", PUBLISHED_AT);
     }
 
     private static WebApplicationContextRunner contextRunner(String databaseName) {
-        return new WebApplicationContextRunner()
-                .withUserConfiguration(GateWeaveCenterApplication.class)
+        return new WebApplicationContextRunner().withUserConfiguration(GateWeaveCenterApplication.class)
                 .withPropertyValues(
                         "spring.datasource.url=jdbc:h2:mem:%s;MODE=MySQL;DB_CLOSE_DELAY=0".formatted(databaseName),
-                        "spring.datasource.username=sa",
-                        "spring.datasource.password=");
+                        "spring.datasource.username=sa", "spring.datasource.password=");
     }
 }

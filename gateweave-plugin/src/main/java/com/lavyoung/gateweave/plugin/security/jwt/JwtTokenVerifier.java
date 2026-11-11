@@ -36,16 +36,9 @@ public final class JwtTokenVerifier implements GatewayAuthenticator {
      */
     public JwtTokenVerifier(JwtVerificationPolicy policy) {
         this.policy = Objects.requireNonNull(policy, "policy must not be null");
-        this.parser = Jwts.parser()
-                .verifyWith(policy.verificationKey())
-                .requireIssuer(policy.issuer())
-                .requireAudience(policy.audience())
-                .clockSkewSeconds(policy.clockSkew().toSeconds())
-                .sig()
-                .clear()
-                .add(Jwts.SIG.HS256)
-                .and()
-                .build();
+        this.parser = Jwts.parser().verifyWith(policy.verificationKey()).requireIssuer(policy.issuer())
+                .requireAudience(policy.audience()).clockSkewSeconds(policy.clockSkew().toSeconds()).sig().clear()
+                .add(Jwts.SIG.HS256).and().build();
     }
 
     /**

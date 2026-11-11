@@ -43,11 +43,9 @@ class GatewaySessionTests {
         var route = route();
 
         // When & Then
-        assertThatThrownBy(() -> new GatewaySession(null, route))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewaySession(null, route)).isInstanceOf(NullPointerException.class)
                 .hasMessage("command must not be null");
-        assertThatThrownBy(() -> new GatewaySession(command, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewaySession(command, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("route must not be null");
     }
 

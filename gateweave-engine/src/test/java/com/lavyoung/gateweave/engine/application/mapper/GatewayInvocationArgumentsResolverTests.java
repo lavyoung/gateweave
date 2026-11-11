@@ -26,16 +26,15 @@ class GatewayInvocationArgumentsResolverTests {
     void shouldResolveScalarParametersInDeclaredOrder() {
         // Given
         var command = command("GET", Map.of("age", List.of("18"), "name", List.of("lavyoung")));
-        var parameters = List.of(
-                new InvocationParameter("name", String.class.getName()),
+        var parameters = List.of(new InvocationParameter("name", String.class.getName()),
                 new InvocationParameter("age", Integer.class.getName()));
 
         // When
         var invocationArguments = this.resolver.resolve(command, parameters);
 
         // Then
-        assertThat(invocationArguments.parameterTypes())
-                .containsExactly(String.class.getName(), Integer.class.getName());
+        assertThat(invocationArguments.parameterTypes()).containsExactly(String.class.getName(),
+                Integer.class.getName());
         assertThat(invocationArguments.arguments()).containsExactly("lavyoung", "18");
     }
 
@@ -102,9 +101,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("name", String.class.getName()));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("missing query parameter: name");
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("missing query parameter: name");
     }
 
     @Test
@@ -114,9 +112,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("name", String.class.getName()));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("query parameter must have exactly one value: name");
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("query parameter must have exactly one value: name");
     }
 
     @Test
@@ -137,16 +134,15 @@ class GatewayInvocationArgumentsResolverTests {
     void shouldResolveMultiplePostParametersInDeclaredOrder() {
         // Given
         var command = command("POST", "{\"age\":19,\"name\":\"lavyoung\"}");
-        var parameters = List.of(
-                new InvocationParameter("name", String.class.getName()),
+        var parameters = List.of(new InvocationParameter("name", String.class.getName()),
                 new InvocationParameter("age", Integer.class.getName()));
 
         // When
         var invocationArguments = this.resolver.resolve(command, parameters);
 
         // Then
-        assertThat(invocationArguments.parameterTypes())
-                .containsExactly(String.class.getName(), Integer.class.getName());
+        assertThat(invocationArguments.parameterTypes()).containsExactly(String.class.getName(),
+                Integer.class.getName());
         assertThat(invocationArguments.arguments()).containsExactly("lavyoung", 19);
     }
 
@@ -169,24 +165,23 @@ class GatewayInvocationArgumentsResolverTests {
         // Given
         var command = formCommand("application/x-www-form-urlencoded; charset=UTF-8",
                 Map.of("age", List.of("19"), "name", List.of("lavyoung")));
-        var parameters = List.of(
-                new InvocationParameter("name", String.class.getName()),
+        var parameters = List.of(new InvocationParameter("name", String.class.getName()),
                 new InvocationParameter("age", Integer.class.getName()));
 
         // When
         var invocationArguments = this.resolver.resolve(command, parameters);
 
         // Then
-        assertThat(invocationArguments.parameterTypes())
-                .containsExactly(String.class.getName(), Integer.class.getName());
+        assertThat(invocationArguments.parameterTypes()).containsExactly(String.class.getName(),
+                Integer.class.getName());
         assertThat(invocationArguments.arguments()).containsExactly("lavyoung", "19");
     }
 
     @Test
     void shouldKeepAllMultipartValuesForCollectionParameter() {
         // Given
-        var command = formCommand("multipart/form-data; boundary=GateWeaveBoundary",
-                Map.of("tag", List.of("java", "netty")));
+        var command =
+                formCommand("multipart/form-data; boundary=GateWeaveBoundary", Map.of("tag", List.of("java", "netty")));
         var parameters = List.of(new InvocationParameter("tag", Set.class.getName()));
 
         // When
@@ -204,9 +199,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("name", String.class.getName()));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("missing form parameter: name");
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("missing form parameter: name");
     }
 
     @Test
@@ -229,9 +223,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("request", "com.example.UserRequest"));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("POST request body must not be empty");
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("POST request body must not be empty");
     }
 
     @Test
@@ -241,9 +234,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("request", "com.example.UserRequest"));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("POST request body must be valid JSON")
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                        IllegalArgumentException.class).hasMessage("POST request body must be valid JSON")
                 .hasCauseInstanceOf(Exception.class);
     }
 
@@ -254,9 +246,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("request", "com.example.UserRequest"));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("POST request Content-Type is required");
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("POST request Content-Type is required");
     }
 
     @Test
@@ -266,8 +257,8 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("request", String.class.getName()));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                        IllegalArgumentException.class)
                 .hasMessage("unsupported POST request Content-Type: text/plain; charset=UTF-8");
     }
 
@@ -278,9 +269,9 @@ class GatewayInvocationArgumentsResolverTests {
         var parameters = List.of(new InvocationParameter("request", "com.example.UserRequest"));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invalid POST request Content-Type: invalid content type")
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                        IllegalArgumentException.class).hasMessage("invalid POST request Content-Type: invalid " +
+                        "content type")
                 .hasCauseInstanceOf(IllegalArgumentException.class);
     }
 
@@ -288,13 +279,12 @@ class GatewayInvocationArgumentsResolverTests {
     void shouldRejectNonObjectPostBodyForMultipleParameters() {
         // Given
         var command = command("POST", "[\"lavyoung\",19]");
-        var parameters = List.of(
-                new InvocationParameter("name", String.class.getName()),
+        var parameters = List.of(new InvocationParameter("name", String.class.getName()),
                 new InvocationParameter("age", Integer.class.getName()));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                        IllegalArgumentException.class)
                 .hasMessage("POST request body must be a JSON object for multiple parameters");
     }
 
@@ -302,14 +292,12 @@ class GatewayInvocationArgumentsResolverTests {
     void shouldRejectMissingPostParameter() {
         // Given
         var command = command("POST", "{\"name\":\"lavyoung\"}");
-        var parameters = List.of(
-                new InvocationParameter("name", String.class.getName()),
+        var parameters = List.of(new InvocationParameter("name", String.class.getName()),
                 new InvocationParameter("age", Integer.class.getName()));
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, parameters))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("missing body parameter: age");
+        assertThatThrownBy(() -> this.resolver.resolve(command, parameters)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("missing body parameter: age");
     }
 
     @Test
@@ -318,8 +306,7 @@ class GatewayInvocationArgumentsResolverTests {
         var command = command("PUT", Map.of());
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(command, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> this.resolver.resolve(command, List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("unsupported HTTP method for parameter binding: PUT");
     }
 
@@ -329,14 +316,11 @@ class GatewayInvocationArgumentsResolverTests {
         var command = command("GET", Map.of());
 
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(null, List.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.resolver.resolve(null, List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("command must not be null");
-        assertThatThrownBy(() -> this.resolver.resolve(command, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.resolver.resolve(command, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("parameters must not be null");
-        assertThatThrownBy(() -> new GatewayInvocationArgumentsResolver(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayInvocationArgumentsResolver(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("objectMapper must not be null");
     }
 
@@ -351,8 +335,8 @@ class GatewayInvocationArgumentsResolverTests {
     }
 
     private static GatewayRequestCommand command(String method, String body, String contentType) {
-        Map<String, List<String>> headerValues = contentType == null
-                ? Map.of() : Map.of("Content-Type", List.of(contentType));
+        Map<String, List<String>> headerValues =
+                contentType == null ? Map.of() : Map.of("Content-Type", List.of(contentType));
         var headers = HttpHeaders.of(headerValues, (name, value) -> true);
         return new GatewayRequestCommand("request-1", method, URI.create("/invoke"), headers,
                 new HttpParameterValues(Map.of()), body.getBytes(StandardCharsets.UTF_8));

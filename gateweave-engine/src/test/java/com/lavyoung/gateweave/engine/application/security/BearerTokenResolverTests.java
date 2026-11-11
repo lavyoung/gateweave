@@ -37,8 +37,8 @@ class BearerTokenResolverTests {
     void shouldRejectMissingOrRepeatedAuthorizationHeader() {
         // Given
         HttpHeaders missingHeaders = headers(Map.of());
-        HttpHeaders repeatedHeaders = headers(
-                Map.of("Authorization", List.of("Bearer first-jwt", "Bearer second-jwt")));
+        HttpHeaders repeatedHeaders =
+                headers(Map.of("Authorization", List.of("Bearer first-jwt", "Bearer second-jwt")));
 
         // When & Then
         assertThat(this.resolver.resolve(missingHeaders)).isEmpty();
@@ -63,8 +63,7 @@ class BearerTokenResolverTests {
     @Test
     void shouldRejectNullHeaders() {
         // When & Then
-        assertThatThrownBy(() -> this.resolver.resolve(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.resolver.resolve(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("headers must not be null");
     }
 

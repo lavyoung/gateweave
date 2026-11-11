@@ -64,10 +64,8 @@ class NettyGatewayRequestMapperTests {
 
         // Then
         assertThat(command.uri().toString()).isEqualTo(uri);
-        assertThat(command.queryParameters().values())
-                .containsEntry("keyword", List.of("网关"))
-                .containsEntry("tag", List.of("java", "netty"))
-                .containsEntry("empty", List.of(""));
+        assertThat(command.queryParameters().values()).containsEntry("keyword", List.of("网关"))
+                .containsEntry("tag", List.of("java", "netty")).containsEntry("empty", List.of(""));
     }
 
     @Test
@@ -88,8 +86,7 @@ class NettyGatewayRequestMapperTests {
 
         // Then
         assertThat(command.queryParameters().values()).containsEntry("role", List.of("query"));
-        assertThat(command.formParameters().values())
-                .containsEntry("role", List.of("admin", "developer"))
+        assertThat(command.formParameters().values()).containsEntry("role", List.of("admin", "developer"))
                 .containsEntry("empty", List.of(""));
     }
 
@@ -98,13 +95,9 @@ class NettyGatewayRequestMapperTests {
         // Given
         var mapper = new NettyGatewayRequestMapper();
         var boundary = "GateWeaveBoundary";
-        var body = "--" + boundary + "\r\n"
-                + "Content-Disposition: form-data; name=\"name\"\r\n\r\n"
-                + "lavyoung\r\n"
-                + "--" + boundary + "\r\n"
-                + "Content-Disposition: form-data; name=\"tag\"\r\n\r\n"
-                + "netty\r\n"
-                + "--" + boundary + "--\r\n";
+        var body = "--" + boundary + "\r\n" + "Content-Disposition: form-data; name=\"name\"\r\n\r\n" + "lavyoung\r\n" +
+                "--" + boundary + "\r\n" + "Content-Disposition: form-data; name=\"tag\"\r\n\r\n" + "netty\r\n" + "--" +
+                boundary + "--\r\n";
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/users",
                 Unpooled.copiedBuffer(body, StandardCharsets.UTF_8));
         request.headers().set("Content-Type", "multipart/form-data; boundary=" + boundary);
@@ -118,8 +111,7 @@ class NettyGatewayRequestMapperTests {
         }
 
         // Then
-        assertThat(command.formParameters().values())
-                .containsEntry("name", List.of("lavyoung"))
+        assertThat(command.formParameters().values()).containsEntry("name", List.of("lavyoung"))
                 .containsEntry("tag", List.of("netty"));
     }
 
@@ -128,19 +120,16 @@ class NettyGatewayRequestMapperTests {
         // Given
         var mapper = new NettyGatewayRequestMapper();
         var boundary = "GateWeaveFileBoundary";
-        var body = "--" + boundary + "\r\n"
-                + "Content-Disposition: form-data; name=\"file\"; filename=\"gateway.txt\"\r\n"
-                + "Content-Type: text/plain\r\n\r\n"
-                + "GateWeave\r\n"
-                + "--" + boundary + "--\r\n";
+        var body = "--" + boundary + "\r\n" +
+                "Content-Disposition: form-data; name=\"file\"; filename=\"gateway.txt\"\r\n" +
+                "Content-Type: text/plain\r\n\r\n" + "GateWeave\r\n" + "--" + boundary + "--\r\n";
         var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/upload",
                 Unpooled.copiedBuffer(body, StandardCharsets.UTF_8));
         request.headers().set("Content-Type", "multipart/form-data; boundary=" + boundary);
 
         // When & Then
         try {
-            assertThatThrownBy(() -> mapper.map(request))
-                    .isInstanceOf(IllegalArgumentException.class)
+            assertThatThrownBy(() -> mapper.map(request)).isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("file upload form fields are not supported");
         } finally {
             ReferenceCountUtil.release(request);
@@ -185,8 +174,7 @@ class NettyGatewayRequestMapperTests {
         // Then
         assertThat(command.requestId()).isNotBlank();
         assertThat(command.queryParameters().values()).isEmpty();
-        assertThatCode(() -> UUID.fromString(command.requestId()))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> UUID.fromString(command.requestId())).doesNotThrowAnyException();
     }
 
     @Test
@@ -195,8 +183,7 @@ class NettyGatewayRequestMapperTests {
         var mapper = new NettyGatewayRequestMapper();
 
         // When & Then
-        assertThatThrownBy(() -> mapper.map(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> mapper.map(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
     }
 
@@ -204,13 +191,12 @@ class NettyGatewayRequestMapperTests {
     void shouldRejectInvalidRequestUri() {
         // Given
         var mapper = new NettyGatewayRequestMapper();
-        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/invalid path",
-                Unpooled.buffer(0));
+        var request =
+                new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/invalid path", Unpooled.buffer(0));
 
         // When & Then
         try {
-            assertThatThrownBy(() -> mapper.map(request))
-                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> mapper.map(request)).isInstanceOf(IllegalArgumentException.class);
         } finally {
             ReferenceCountUtil.release(request);
         }

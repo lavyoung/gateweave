@@ -25,9 +25,8 @@ import java.util.Objects;
  * @date 2026/11/02
  */
 @ConfigurationProperties(prefix = "gateweave.control-plane")
-public record GatewayControlPlaneProperties(
-        URI baseUri, String nodeId, String gatewayGroupId, String nodeName, URI advertisedAddress,
-        Duration requestTimeout, Duration refreshInterval) {
+public record GatewayControlPlaneProperties(URI baseUri, String nodeId, String gatewayGroupId, String nodeName,
+                                            URI advertisedAddress, Duration requestTimeout, Duration refreshInterval) {
 
     /**
      * 校验 Engine 建立控制面连接所需的本地配置。

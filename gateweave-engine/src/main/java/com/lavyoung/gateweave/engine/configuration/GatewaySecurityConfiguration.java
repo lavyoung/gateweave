@@ -40,9 +40,9 @@ public class GatewaySecurityConfiguration {
     @Bean
     public GatewayAuthenticationRealm gatewayAuthenticationRealm(GatewayJwtProperties properties) {
         byte[] verificationKeyBytes = Base64.getDecoder().decode(properties.verificationKeyBase64());
-        JwtVerificationPolicy policy = new JwtVerificationPolicy(
-                verificationKeyBytes, properties.issuer(), properties.audience(), properties.clockSkew(),
-                properties.maximumTokenLength());
+        JwtVerificationPolicy policy =
+                new JwtVerificationPolicy(verificationKeyBytes, properties.issuer(), properties.audience(),
+                        properties.clockSkew(), properties.maximumTokenLength());
         return new GatewayAuthenticationRealm(new JwtTokenVerifier(policy));
     }
 
@@ -86,8 +86,8 @@ public class GatewaySecurityConfiguration {
      * @return 会话鉴权应用服务
      */
     @Bean
-    public GatewaySessionAuthenticationService gatewaySessionAuthenticationService(
-            BearerTokenResolver tokenResolver, GatewayAuthenticator authenticator) {
+    public GatewaySessionAuthenticationService gatewaySessionAuthenticationService(BearerTokenResolver tokenResolver,
+            GatewayAuthenticator authenticator) {
         return new GatewaySessionAuthenticationService(tokenResolver, authenticator);
     }
 }

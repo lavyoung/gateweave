@@ -30,13 +30,9 @@ import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(
-        classes = GateWeaveCenterApplication.class,
-        properties = {
-                "spring.datasource.url=jdbc:h2:mem:configuration-release-repository;MODE=MySQL;DB_CLOSE_DELAY=-1",
-                "spring.datasource.username=sa",
-                "spring.datasource.password="
-        })
+@SpringBootTest(classes = GateWeaveCenterApplication.class,
+        properties = {"spring.datasource.url=jdbc:h2:mem:configuration-release-repository;MODE=MySQL;" +
+                "DB_CLOSE_DELAY=-1", "spring.datasource.username=sa", "spring.datasource.password="})
 class JdbcConfigurationReleaseRepositoryTests {
 
     private static final Instant FIRST_PUBLISHED_AT = Instant.parse("2026-11-02T10:15:30Z");
@@ -46,8 +42,7 @@ class JdbcConfigurationReleaseRepositoryTests {
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    JdbcConfigurationReleaseRepositoryTests(
-            ConfigurationReleaseRepository repository, JdbcTemplate jdbcTemplate) {
+    JdbcConfigurationReleaseRepositoryTests(ConfigurationReleaseRepository repository, JdbcTemplate jdbcTemplate) {
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -79,12 +74,10 @@ class JdbcConfigurationReleaseRepositoryTests {
     @Test
     void shouldIncrementVersionAndReturnLatestPublishedSnapshot() {
         // Given
-        GatewayConfigurationSnapshot first = this.repository.publish(
-                "default", List.of(), FIRST_PUBLISHED_AT);
+        GatewayConfigurationSnapshot first = this.repository.publish("default", List.of(), FIRST_PUBLISHED_AT);
 
         // When
-        GatewayConfigurationSnapshot second = this.repository.publish(
-                "default", List.of(route()), SECOND_PUBLISHED_AT);
+        GatewayConfigurationSnapshot second = this.repository.publish("default", List.of(route()), SECOND_PUBLISHED_AT);
         GatewayConfigurationSnapshot latest = this.repository.findLatestPublished("default").orElseThrow();
 
         // Then
@@ -106,9 +99,10 @@ class JdbcConfigurationReleaseRepositoryTests {
     @Test
     void shouldRejectPublicationForMissingGatewayGroup() {
         // When & Then
-        assertThatThrownBy(() -> this.repository.publish("missing-group", List.of(), FIRST_PUBLISHED_AT))
-                .isInstanceOfSatisfying(GatewayGroupNotFoundException.class,
-                        exception -> assertThat(exception.gatewayGroupId()).isEqualTo("missing-group"));
+        assertThatThrownBy(
+                () -> this.repository.publish("missing-group", List.of(), FIRST_PUBLISHED_AT)).isInstanceOfSatisfying(
+                GatewayGroupNotFoundException.class,
+                exception -> assertThat(exception.gatewayGroupId()).isEqualTo("missing-group"));
         assertThat(releaseCount()).isZero();
     }
 
@@ -123,8 +117,8 @@ class JdbcConfigurationReleaseRepositoryTests {
                 """);
 
         // When & Then
-        assertThatThrownBy(() -> this.repository.findLatestPublished("default"))
-                .isInstanceOf(DataRetrievalFailureException.class)
+        assertThatThrownBy(() -> this.repository.findLatestPublished("default")).isInstanceOf(
+                        DataRetrievalFailureException.class)
                 .hasMessage("Configuration release checksum does not match stored content");
     }
 
@@ -136,10 +130,10 @@ class JdbcConfigurationReleaseRepositoryTests {
         CountDownLatch start = new CountDownLatch(1);
 
         try {
-            CompletableFuture<GatewayConfigurationSnapshot> first = publishAsync(
-                    List.of(route()), FIRST_PUBLISHED_AT, executor, ready, start);
-            CompletableFuture<GatewayConfigurationSnapshot> second = publishAsync(
-                    List.of(), SECOND_PUBLISHED_AT, executor, ready, start);
+            CompletableFuture<GatewayConfigurationSnapshot> first =
+                    publishAsync(List.of(route()), FIRST_PUBLISHED_AT, executor, ready, start);
+            CompletableFuture<GatewayConfigurationSnapshot> second =
+                    publishAsync(List.of(), SECOND_PUBLISHED_AT, executor, ready, start);
             assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
 
             // When
@@ -148,8 +142,7 @@ class JdbcConfigurationReleaseRepositoryTests {
             GatewayConfigurationSnapshot secondSnapshot = second.get(5, TimeUnit.SECONDS);
 
             // Then
-            assertThat(List.of(firstSnapshot.version(), secondSnapshot.version()))
-                    .containsExactlyInAnyOrder(1L, 2L);
+            assertThat(List.of(firstSnapshot.version(), secondSnapshot.version())).containsExactlyInAnyOrder(1L, 2L);
             assertThat(releaseCount()).isEqualTo(2);
         } finally {
             start.countDown();
@@ -157,9 +150,8 @@ class JdbcConfigurationReleaseRepositoryTests {
         }
     }
 
-    private CompletableFuture<GatewayConfigurationSnapshot> publishAsync(
-            List<RouteConfiguration> routes, Instant publishedAt, ExecutorService executor,
-            CountDownLatch ready, CountDownLatch start) {
+    private CompletableFuture<GatewayConfigurationSnapshot> publishAsync(List<RouteConfiguration> routes,
+            Instant publishedAt, ExecutorService executor, CountDownLatch ready, CountDownLatch start) {
         return CompletableFuture.supplyAsync(() -> {
             ready.countDown();
             awaitStart(start);
@@ -183,12 +175,11 @@ class JdbcConfigurationReleaseRepositoryTests {
     }
 
     private static RouteConfiguration route() {
-        InvocationTargetConfiguration target = new InvocationTargetConfiguration(
-                "dubbo", "cn.example.ActivityBooth", "sayHi",
-                List.of(new InvocationParameterConfiguration("name", "java.lang.String")), Duration.ofSeconds(3),
-                Map.of("version", "1.0.0"));
-        return new RouteConfiguration(
-                "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
-                target, Map.of("filter", "logging"));
+        InvocationTargetConfiguration target =
+                new InvocationTargetConfiguration("dubbo", "cn.example.ActivityBooth", "sayHi",
+                        List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
+                        Duration.ofSeconds(3), Map.of("version", "1.0.0"));
+        return new RouteConfiguration("route-say-hi", "/sayHi", "GET", "activity-service",
+                RouteAuthenticationMode.REQUIRED, target, Map.of("filter", "logging"));
     }
 }

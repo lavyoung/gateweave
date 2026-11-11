@@ -59,12 +59,9 @@ public class GlobalExceptionHandler {
      * @return HTTP 422 业务失败响应
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Result<ErrorDetails>> handleBusinessException(
-            BusinessException exception, HttpServletRequest request) {
-        return this.resultFactory.failureResponse(
-                HttpStatus.UNPROCESSABLE_ENTITY,
-                exception.responseCode(),
-                request,
+    public ResponseEntity<Result<ErrorDetails>> handleBusinessException(BusinessException exception,
+            HttpServletRequest request) {
+        return this.resultFactory.failureResponse(HttpStatus.UNPROCESSABLE_ENTITY, exception.responseCode(), request,
                 exception.arguments());
     }
 
@@ -75,15 +72,12 @@ public class GlobalExceptionHandler {
      * @param request   当前 HTTP 请求
      * @return HTTP 400 参数错误响应
      */
-    @ExceptionHandler({
-            MethodArgumentNotValidException.class,
-            HandlerMethodValidationException.class,
-            ConstraintViolationException.class,
-            MissingServletRequestParameterException.class,
-            MethodArgumentTypeMismatchException.class
-    })
-    public ResponseEntity<Result<ErrorDetails>> handleInvalidParameter(
-            Exception exception, HttpServletRequest request) {
+    @ExceptionHandler(
+            {MethodArgumentNotValidException.class, HandlerMethodValidationException.class,
+                    ConstraintViolationException.class, MissingServletRequestParameterException.class,
+                    MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<Result<ErrorDetails>> handleInvalidParameter(Exception exception,
+            HttpServletRequest request) {
         return this.resultFactory.failureResponse(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
     }
 
@@ -95,10 +89,10 @@ public class GlobalExceptionHandler {
      * @return HTTP 400 请求体错误响应
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Result<ErrorDetails>> handleUnreadableBody(
-            HttpMessageNotReadableException exception, HttpServletRequest request) {
-        return this.resultFactory.failureResponse(
-                HttpStatus.BAD_REQUEST, CommonResponseCode.REQUEST_BODY_INVALID, request);
+    public ResponseEntity<Result<ErrorDetails>> handleUnreadableBody(HttpMessageNotReadableException exception,
+            HttpServletRequest request) {
+        return this.resultFactory.failureResponse(HttpStatus.BAD_REQUEST, CommonResponseCode.REQUEST_BODY_INVALID,
+                request);
     }
 
     /**
@@ -109,10 +103,9 @@ public class GlobalExceptionHandler {
      * @return HTTP 404 资源不存在响应
      */
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Result<ErrorDetails>> handleResourceNotFound(
-            NoResourceFoundException exception, HttpServletRequest request) {
-        return this.resultFactory.failureResponse(
-                HttpStatus.NOT_FOUND, CommonResponseCode.RESOURCE_NOT_FOUND, request);
+    public ResponseEntity<Result<ErrorDetails>> handleResourceNotFound(NoResourceFoundException exception,
+            HttpServletRequest request) {
+        return this.resultFactory.failureResponse(HttpStatus.NOT_FOUND, CommonResponseCode.RESOURCE_NOT_FOUND, request);
     }
 
     /**
@@ -123,8 +116,8 @@ public class GlobalExceptionHandler {
      * @return HTTP 400 参数错误响应
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Result<ErrorDetails>> handleInvalidArgument(
-            IllegalArgumentException exception, HttpServletRequest request) {
+    public ResponseEntity<Result<ErrorDetails>> handleInvalidArgument(IllegalArgumentException exception,
+            HttpServletRequest request) {
         return this.resultFactory.failureResponse(HttpStatus.BAD_REQUEST, CommonResponseCode.PARAM_INVALID, request);
     }
 
@@ -136,12 +129,12 @@ public class GlobalExceptionHandler {
      * @return HTTP 500 系统错误响应
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Result<ErrorDetails>> handleUnexpectedException(
-            Exception exception, HttpServletRequest request) {
+    public ResponseEntity<Result<ErrorDetails>> handleUnexpectedException(Exception exception,
+            HttpServletRequest request) {
         String requestId = RequestIdFilter.requestId(request);
-        LOGGER.error("Unhandled request exception requestId={} method={} path={}",
-                requestId, request.getMethod(), request.getRequestURI(), exception);
-        return this.resultFactory.failureResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR, CommonResponseCode.SYSTEM_ERROR, request);
+        LOGGER.error("Unhandled request exception requestId={} method={} path={}", requestId, request.getMethod(),
+                request.getRequestURI(), exception);
+        return this.resultFactory.failureResponse(HttpStatus.INTERNAL_SERVER_ERROR, CommonResponseCode.SYSTEM_ERROR,
+                request);
     }
 }

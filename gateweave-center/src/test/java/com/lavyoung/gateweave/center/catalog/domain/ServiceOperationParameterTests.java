@@ -21,30 +21,25 @@ class ServiceOperationParameterTests {
     @Test
     void shouldRejectNegativePosition() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperationParameter(-1, "name", "java.lang.String"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("position must not be negative");
+        assertThatThrownBy(() -> new ServiceOperationParameter(-1, "name", "java.lang.String")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("position must not be negative");
     }
 
     @Test
     void shouldRejectMissingName() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperationParameter(0, null, "java.lang.String"))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("name must not be null");
-        assertThatThrownBy(() -> new ServiceOperationParameter(0, " ", "java.lang.String"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("name must not be blank");
+        assertThatThrownBy(() -> new ServiceOperationParameter(0, null, "java.lang.String")).isInstanceOf(
+                NullPointerException.class).hasMessage("name must not be null");
+        assertThatThrownBy(() -> new ServiceOperationParameter(0, " ", "java.lang.String")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("name must not be blank");
     }
 
     @Test
     void shouldRejectMissingTypeName() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceOperationParameter(0, "name", null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("typeName must not be null");
-        assertThatThrownBy(() -> new ServiceOperationParameter(0, "name", " "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("typeName must not be blank");
+        assertThatThrownBy(() -> new ServiceOperationParameter(0, "name", null)).isInstanceOf(
+                NullPointerException.class).hasMessage("typeName must not be null");
+        assertThatThrownBy(() -> new ServiceOperationParameter(0, "name", " ")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("typeName must not be blank");
     }
 }

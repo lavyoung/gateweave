@@ -24,11 +24,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @version 1.0.0
  * @date 2026/11/02
  */
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:configuration-release-endpoint;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.username=sa",
-        "spring.datasource.password="
-})
+@SpringBootTest(
+        properties = {"spring.datasource.url=jdbc:h2:mem:configuration-release-endpoint;MODE=MySQL;DB_CLOSE_DELAY=-1"
+                , "spring.datasource.username=sa", "spring.datasource.password="})
 @AutoConfigureMockMvc
 @Transactional
 class ConfigurationReleaseEndpointIntegrationTests {
@@ -71,22 +69,18 @@ class ConfigurationReleaseEndpointIntegrationTests {
 
         // When & Then
         this.mockMvc.perform(post("/api/v1/gateway-groups/default/configuration-releases"))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(status().isCreated()).andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.gatewayGroupId").value("default"))
-                .andExpect(jsonPath("$.data.version").value(1))
-                .andExpect(jsonPath("$.data.checksum").value(org.hamcrest.Matchers.matchesPattern(
-                        "sha256:[0-9a-f]{64}")))
+                .andExpect(jsonPath("$.data.version").value(1)).andExpect(
+                        jsonPath("$.data.checksum").value(org.hamcrest.Matchers.matchesPattern("sha256:[0-9a-f]{64}")))
                 .andExpect(jsonPath("$.data.routes[0].routeId").value("route-query"))
                 .andExpect(jsonPath("$.data.routes[0].path").value("/activities/query"));
 
-        this.jdbcTemplate.update(
-                "UPDATE gw_route SET path = '/activities/changed' WHERE route_id = 'route-query'");
+        this.jdbcTemplate.update("UPDATE gw_route SET path = '/activities/changed' WHERE route_id = 'route-query'");
 
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/configuration-releases/latest"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.version").value(1))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(1))
                 .andExpect(jsonPath("$.data.routes[0].path").value("/activities/query"));
     }
 
@@ -99,17 +93,15 @@ class ConfigurationReleaseEndpointIntegrationTests {
     void shouldReturnNoContentBeforeFirstConfigurationPublication() throws Exception {
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/configuration-releases/latest"))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
+                .andExpect(status().isNoContent()).andExpect(content().string(""));
     }
 
     private void insertRouteCandidate() {
-        this.jdbcTemplate.update(
-                INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0", "ACTIVE");
-        this.jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service",
-                "cn.example.ActivityService", "query", "ACTIVE");
-        this.jdbcTemplate.update(
-                INSERT_ROUTE, "route-query", "default", "/activities/query", "GET", "activity-query",
+        this.jdbcTemplate.update(INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0",
+                "ACTIVE");
+        this.jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service", "cn.example.ActivityService",
+                "query", "ACTIVE");
+        this.jdbcTemplate.update(INSERT_ROUTE, "route-query", "default", "/activities/query", "GET", "activity-query",
                 "REQUIRED", 3000L, "{\"version\":\"1.0.0\"}", "{\"source\":\"center\"}", "ENABLED");
     }
 }

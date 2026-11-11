@@ -28,11 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @version 1.0.0
  * @date 2026/11/01
  */
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:service-registration-endpoint;MODE=MySQL;DB_CLOSE_DELAY=-1",
-        "spring.datasource.username=sa",
-        "spring.datasource.password="
-})
+@SpringBootTest(
+        properties = {"spring.datasource.url=jdbc:h2:mem:service-registration-endpoint;MODE=MySQL;DB_CLOSE_DELAY=-1",
+                "spring.datasource.username=sa", "spring.datasource.password="})
 @AutoConfigureMockMvc
 class ServiceDefinitionRegistrationEndpointIntegrationTests {
 
@@ -62,18 +60,16 @@ class ServiceDefinitionRegistrationEndpointIntegrationTests {
     @Test
     void shouldRegisterAndRetryCompleteDefinitionIdempotently() throws Exception {
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody("activity-application")))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.serviceId").value("activity-service"))
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(requestBody("activity" +
+                                "-application")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.data.serviceId").value("activity-service"))
                 .andExpect(jsonPath("$.data.outcome").value("CREATED"));
 
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody("activity-application")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.serviceId").value("activity-service"))
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(requestBody("activity" +
+                                "-application")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.serviceId").value("activity-service"))
                 .andExpect(jsonPath("$.data.outcome").value("UNCHANGED"));
 
         assertThat(count("gw_service")).isEqualTo(1);
@@ -90,23 +86,20 @@ class ServiceDefinitionRegistrationEndpointIntegrationTests {
     @Test
     void shouldRejectConflictingDefinitionThroughCompleteApplicationChain() throws Exception {
         // Given
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody("activity-application")))
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(requestBody("activity" +
+                                "-application")))
                 .andExpect(status().isCreated());
 
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .header(RequestIdFilter.REQUEST_ID_HEADER, "request-definition-conflict")
-                        .content(requestBody("other-application")))
-                .andExpect(status().isUnprocessableEntity())
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                                .header(RequestIdFilter.REQUEST_ID_HEADER, "request-definition-conflict")
+                                .content(requestBody("other-application"))).andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-definition-conflict"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("CATALOG-0002"))
-                .andExpect(jsonPath("$.message")
-                        .value("Service activity-service already exists with a different definition"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("CATALOG-0002"))
+                .andExpect(jsonPath("$.message").value(
+                        "Service activity-service already exists with a different definition"))
                 .andExpect(jsonPath("$.data.path").value(ENDPOINT))
                 .andExpect(jsonPath("$.data.requestId").value("request-definition-conflict"));
 

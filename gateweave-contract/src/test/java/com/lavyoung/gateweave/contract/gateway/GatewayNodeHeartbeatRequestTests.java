@@ -33,16 +33,14 @@ class GatewayNodeHeartbeatRequestTests {
     @Test
     void shouldRejectMissingLeaseId() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeHeartbeatRequest(null, 0))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayNodeHeartbeatRequest(null, 0)).isInstanceOf(NullPointerException.class)
                 .hasMessage("leaseId must not be null");
     }
 
     @Test
     void shouldRejectNegativeConfigurationVersion() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeHeartbeatRequest(LEASE_ID, -1))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("currentConfigVersion must not be negative");
+        assertThatThrownBy(() -> new GatewayNodeHeartbeatRequest(LEASE_ID, -1)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("currentConfigVersion must not be negative");
     }
 }

@@ -36,12 +36,13 @@ public final class GatewayRouteConfigurationMapper {
         Objects.requireNonNull(configuration, "configuration must not be null");
         InvocationTargetConfiguration target = configuration.target();
         List<InvocationParameter> parameters = target.parameters().stream().map(this::toDomain).toList();
-        InvocationTarget invocationTarget = new InvocationTarget(target.protocol(), target.service(),
-                target.operation(), parameters, target.timeout(), target.attributes());
+        InvocationTarget invocationTarget =
+                new InvocationTarget(target.protocol(), target.service(), target.operation(), parameters,
+                        target.timeout(), target.attributes());
 
-        return new GatewayRoute(
-                configuration.routeId(), configuration.path(), configuration.method(), configuration.serviceId(),
-                toDomain(configuration.authenticationMode()), invocationTarget, configuration.attributes());
+        return new GatewayRoute(configuration.routeId(), configuration.path(), configuration.method(),
+                configuration.serviceId(), toDomain(configuration.authenticationMode()), invocationTarget,
+                configuration.attributes());
     }
 
     /**

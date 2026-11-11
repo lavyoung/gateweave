@@ -25,11 +25,11 @@ import static org.mockito.Mockito.when;
 
 class HttpGatewayControlPlaneClientTests {
 
-    private static final RegisterGatewayNodeRequest REGISTRATION_REQUEST = new RegisterGatewayNodeRequest(
-            "node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
-    private static final GatewayNodeLease NODE_LEASE = new GatewayNodeLease(
-            "node-1", UUID.fromString("00000000-0000-0000-0000-000000000001"),
-            Duration.ofSeconds(10), Duration.ofSeconds(30));
+    private static final RegisterGatewayNodeRequest REGISTRATION_REQUEST =
+            new RegisterGatewayNodeRequest("node-1", "default", "Gateway Node 1", URI.create("http://127.0.0.1:7397"));
+    private static final GatewayNodeLease NODE_LEASE =
+            new GatewayNodeLease("node-1", UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                    Duration.ofSeconds(10), Duration.ofSeconds(30));
     private static final GatewayNodeHeartbeatRequest HEARTBEAT_REQUEST =
             new GatewayNodeHeartbeatRequest(NODE_LEASE.leaseId(), 7);
 
@@ -37,8 +37,8 @@ class HttpGatewayControlPlaneClientTests {
     void shouldRegisterNodeThroughHttpApi() {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
-        when(httpApi.registerNode(REGISTRATION_REQUEST))
-                .thenReturn(ResponseEntity.status(HttpStatus.CREATED).body(Result.success(NODE_LEASE)));
+        when(httpApi.registerNode(REGISTRATION_REQUEST)).thenReturn(
+                ResponseEntity.status(HttpStatus.CREATED).body(Result.success(NODE_LEASE)));
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When
@@ -53,15 +53,13 @@ class HttpGatewayControlPlaneClientTests {
     void shouldRejectFailedRegistrationEnvelope() {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
-        Result<GatewayNodeLease> failure = new Result<>(
-                false, "GATEWAY-0001", "Gateway group missing", NODE_LEASE);
-        when(httpApi.registerNode(REGISTRATION_REQUEST))
-                .thenReturn(ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(failure));
+        Result<GatewayNodeLease> failure = new Result<>(false, "GATEWAY-0001", "Gateway group missing", NODE_LEASE);
+        when(httpApi.registerNode(REGISTRATION_REQUEST)).thenReturn(
+                ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(failure));
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.registerNode(REGISTRATION_REQUEST))
-                .isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> client.registerNode(REGISTRATION_REQUEST)).isInstanceOf(IllegalStateException.class)
                 .hasMessage("Gateway node registration failed with status 422 and code GATEWAY-0001");
     }
 
@@ -74,10 +72,8 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.registerNode(REGISTRATION_REQUEST))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Gateway node registration request failed")
-                .hasCause(failure);
+        assertThatThrownBy(() -> client.registerNode(REGISTRATION_REQUEST)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("Gateway node registration request failed").hasCause(failure);
     }
 
     @Test
@@ -102,9 +98,8 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), 7))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Gateway node lease renewal failed with status 200");
+        assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), 7)).isInstanceOf(
+                IllegalStateException.class).hasMessage("Gateway node lease renewal failed with status 200");
     }
 
     @Test
@@ -116,18 +111,15 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), 7))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Gateway node lease renewal request failed")
-                .hasCause(failure);
+        assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), 7)).isInstanceOf(
+                IllegalStateException.class).hasMessage("Gateway node lease renewal request failed").hasCause(failure);
     }
 
     @Test
     void shouldReleaseNodeLeaseThroughHttpApi() {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
-        when(httpApi.releaseNodeLease("node-1", NODE_LEASE.leaseId()))
-                .thenReturn(ResponseEntity.noContent().build());
+        when(httpApi.releaseNodeLease("node-1", NODE_LEASE.leaseId())).thenReturn(ResponseEntity.noContent().build());
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When
@@ -145,9 +137,8 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.releaseNodeLease("node-1", NODE_LEASE.leaseId()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Gateway node lease release failed with status 200");
+        assertThatThrownBy(() -> client.releaseNodeLease("node-1", NODE_LEASE.leaseId())).isInstanceOf(
+                IllegalStateException.class).hasMessage("Gateway node lease release failed with status 200");
     }
 
     @Test
@@ -159,10 +150,8 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.releaseNodeLease("node-1", NODE_LEASE.leaseId()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Gateway node lease release request failed")
-                .hasCause(failure);
+        assertThatThrownBy(() -> client.releaseNodeLease("node-1", NODE_LEASE.leaseId())).isInstanceOf(
+                IllegalStateException.class).hasMessage("Gateway node lease release request failed").hasCause(failure);
     }
 
     @Test
@@ -170,8 +159,8 @@ class HttpGatewayControlPlaneClientTests {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
         GatewayConfigurationSnapshot snapshot = snapshot();
-        when(httpApi.findLatestPublishedConfiguration("default"))
-                .thenReturn(ResponseEntity.ok(Result.success(snapshot)));
+        when(httpApi.findLatestPublishedConfiguration("default")).thenReturn(
+                ResponseEntity.ok(Result.success(snapshot)));
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When
@@ -200,15 +189,15 @@ class HttpGatewayControlPlaneClientTests {
     void shouldRejectFailedConfigurationEnvelope() {
         // Given
         ControlPlaneHttpApi httpApi = mock(ControlPlaneHttpApi.class);
-        Result<GatewayConfigurationSnapshot> failure = new Result<>(
-                false, "CONFIGURATION_UNAVAILABLE", "Configuration unavailable", snapshot());
-        when(httpApi.findLatestPublishedConfiguration("default"))
-                .thenReturn(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(failure));
+        Result<GatewayConfigurationSnapshot> failure =
+                new Result<>(false, "CONFIGURATION_UNAVAILABLE", "Configuration unavailable", snapshot());
+        when(httpApi.findLatestPublishedConfiguration("default")).thenReturn(
+                ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(failure));
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.findLatestPublishedConfiguration("default"))
-                .isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> client.findLatestPublishedConfiguration("default")).isInstanceOf(
+                        IllegalStateException.class)
                 .hasMessage("Gateway configuration query failed with status 503 and code CONFIGURATION_UNAVAILABLE");
     }
 
@@ -221,10 +210,8 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> client.findLatestPublishedConfiguration("default"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Gateway configuration query request failed")
-                .hasCause(failure);
+        assertThatThrownBy(() -> client.findLatestPublishedConfiguration("default")).isInstanceOf(
+                IllegalStateException.class).hasMessage("Gateway configuration query request failed").hasCause(failure);
     }
 
     @Test
@@ -234,40 +221,30 @@ class HttpGatewayControlPlaneClientTests {
         HttpGatewayControlPlaneClient client = new HttpGatewayControlPlaneClient(httpApi);
 
         // When & Then
-        assertThatThrownBy(() -> new HttpGatewayControlPlaneClient(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new HttpGatewayControlPlaneClient(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("controlPlaneHttpApi must not be null");
-        assertThatThrownBy(() -> client.registerNode(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> client.registerNode(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
-        assertThatThrownBy(() -> client.renewNodeLease(null, NODE_LEASE.leaseId(), 0))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> client.renewNodeLease(" ", NODE_LEASE.leaseId(), 0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("nodeId must not be blank");
-        assertThatThrownBy(() -> client.renewNodeLease("node-1", null, 0))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> client.renewNodeLease(null, NODE_LEASE.leaseId(), 0)).isInstanceOf(
+                NullPointerException.class).hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> client.renewNodeLease(" ", NODE_LEASE.leaseId(), 0)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("nodeId must not be blank");
+        assertThatThrownBy(() -> client.renewNodeLease("node-1", null, 0)).isInstanceOf(NullPointerException.class)
                 .hasMessage("leaseId must not be null");
-        assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), -1))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("currentConfigVersion must not be negative");
-        assertThatThrownBy(() -> client.releaseNodeLease(null, NODE_LEASE.leaseId()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> client.releaseNodeLease(" ", NODE_LEASE.leaseId()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("nodeId must not be blank");
-        assertThatThrownBy(() -> client.releaseNodeLease("node-1", null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> client.renewNodeLease("node-1", NODE_LEASE.leaseId(), -1)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("currentConfigVersion must not be negative");
+        assertThatThrownBy(() -> client.releaseNodeLease(null, NODE_LEASE.leaseId())).isInstanceOf(
+                NullPointerException.class).hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> client.releaseNodeLease(" ", NODE_LEASE.leaseId())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("nodeId must not be blank");
+        assertThatThrownBy(() -> client.releaseNodeLease("node-1", null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("leaseId must not be null");
-        assertThatThrownBy(() -> client.findLatestPublishedConfiguration(" "))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("gatewayGroupId must not be blank");
+        assertThatThrownBy(() -> client.findLatestPublishedConfiguration(" ")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("gatewayGroupId must not be blank");
     }
 
     private static GatewayConfigurationSnapshot snapshot() {
-        return new GatewayConfigurationSnapshot(
-                "default", 1, Instant.parse("2026-11-02T00:00:00Z"), "sha256:configuration", List.of());
+        return new GatewayConfigurationSnapshot("default", 1, Instant.parse("2026-11-02T00:00:00Z"),
+                "sha256:configuration", List.of());
     }
 }

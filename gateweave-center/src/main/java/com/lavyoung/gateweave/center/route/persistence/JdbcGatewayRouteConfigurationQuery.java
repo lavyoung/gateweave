@@ -79,8 +79,8 @@ public class JdbcGatewayRouteConfigurationQuery implements GatewayRouteConfigura
      * @param attributesReader 路由属性 JSON 读取器
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public JdbcGatewayRouteConfigurationQuery(
-            NamedParameterJdbcTemplate jdbcTemplate, RouteAttributesJsonReader attributesReader) {
+    public JdbcGatewayRouteConfigurationQuery(NamedParameterJdbcTemplate jdbcTemplate,
+            RouteAttributesJsonReader attributesReader) {
         this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate, "jdbcTemplate must not be null");
         this.attributesReader = Objects.requireNonNull(attributesReader, "attributesReader must not be null");
     }
@@ -92,18 +92,16 @@ public class JdbcGatewayRouteConfigurationQuery implements GatewayRouteConfigura
             throw new IllegalArgumentException("gatewayGroupId must not be blank");
         }
         MapSqlParameterSource parameters = new MapSqlParameterSource("gatewayGroupId", groupId);
-        List<RouteProjectionRow> rows = this.jdbcTemplate.query(
-                FIND_CANDIDATE_ROUTES_SQL, parameters, this::mapRouteRow);
+        List<RouteProjectionRow> rows =
+                this.jdbcTemplate.query(FIND_CANDIDATE_ROUTES_SQL, parameters, this::mapRouteRow);
         if (rows.isEmpty()) {
             return List.of();
         }
         List<String> routeIds = rows.stream().map(RouteProjectionRow::routeId).toList();
         Map<String, List<InvocationParameterConfiguration>> parametersByRouteId =
                 this.findParametersByRouteId(routeIds);
-        return rows.stream()
-                .map(routeRow -> routeRow.toConfiguration(
-                        parametersByRouteId.getOrDefault(routeRow.routeId(), List.of())))
-                .toList();
+        return rows.stream().map(routeRow -> routeRow.toConfiguration(
+                parametersByRouteId.getOrDefault(routeRow.routeId(), List.of()))).toList();
     }
 
     /**
@@ -116,8 +114,9 @@ public class JdbcGatewayRouteConfigurationQuery implements GatewayRouteConfigura
         Map<String, List<InvocationParameterConfiguration>> parametersByRouteId = new LinkedHashMap<>();
         this.jdbcTemplate.query(FIND_PARAMETERS_SQL, Map.of("routeIds", routeIds), resultSet -> {
             String routeId = resultSet.getString("route_id");
-            InvocationParameterConfiguration parameter = new InvocationParameterConfiguration(
-                    resultSet.getString("parameter_name"), resultSet.getString("type_name"));
+            InvocationParameterConfiguration parameter =
+                    new InvocationParameterConfiguration(resultSet.getString("parameter_name"),
+                            resultSet.getString("type_name"));
             parametersByRouteId.computeIfAbsent(routeId, ignored -> new ArrayList<>()).add(parameter);
         });
         return parametersByRouteId;
@@ -135,23 +134,16 @@ public class JdbcGatewayRouteConfigurationQuery implements GatewayRouteConfigura
     private RouteProjectionRow mapRouteRow(ResultSet resultSet, int rowNumber) throws SQLException {
         String routeId = resultSet.getString("route_id");
         try {
-            return new RouteProjectionRow(
-                    routeId,
-                    resultSet.getString("path"),
-                    resultSet.getString("http_method"),
+            return new RouteProjectionRow(routeId, resultSet.getString("path"), resultSet.getString("http_method"),
                     RouteAuthenticationMode.valueOf(resultSet.getString("authentication_mode")),
                     resultSet.getLong("invocation_timeout_ms"),
-                    this.attributesReader.read(
-                            resultSet.getString("target_attributes"), routeId, "target_attributes"),
-                    this.attributesReader.read(
-                            resultSet.getString("route_attributes"), routeId, "route_attributes"),
-                    resultSet.getString("service_id"),
-                    resultSet.getString("protocol"),
-                    resultSet.getString("interface_name"),
-                    resultSet.getString("operation_name"));
+                    this.attributesReader.read(resultSet.getString("target_attributes"), routeId, "target_attributes"),
+                    this.attributesReader.read(resultSet.getString("route_attributes"), routeId, "route_attributes"),
+                    resultSet.getString("service_id"), resultSet.getString("protocol"),
+                    resultSet.getString("interface_name"), resultSet.getString("operation_name"));
         } catch (IllegalArgumentException exception) {
-            throw new DataRetrievalFailureException(
-                    "Route contains an unsupported authentication mode: " + routeId, exception);
+            throw new DataRetrievalFailureException("Route contains an unsupported authentication mode: " + routeId,
+                    exception);
         }
     }
 
@@ -170,11 +162,10 @@ public class JdbcGatewayRouteConfigurationQuery implements GatewayRouteConfigura
      * @param interfaceName           目标服务接口名称
      * @param operationName           目标操作名称
      */
-    private record RouteProjectionRow(
-            String routeId, String path, String method, RouteAuthenticationMode authenticationMode,
-            long invocationTimeoutMillis, Map<String, String> targetAttributes,
-            Map<String, String> routeAttributes, String serviceId, String protocol,
-            String interfaceName, String operationName) {
+    private record RouteProjectionRow(String routeId, String path, String method,
+                                      RouteAuthenticationMode authenticationMode, long invocationTimeoutMillis,
+                                      Map<String, String> targetAttributes, Map<String, String> routeAttributes,
+                                      String serviceId, String protocol, String interfaceName, String operationName) {
 
         /**
          * 将路由投影和有序参数组装为稳定配置契约。
@@ -183,21 +174,11 @@ public class JdbcGatewayRouteConfigurationQuery implements GatewayRouteConfigura
          * @return 路由配置候选项
          */
         private RouteConfiguration toConfiguration(List<InvocationParameterConfiguration> parameters) {
-            InvocationTargetConfiguration target = new InvocationTargetConfiguration(
-                    this.protocol,
-                    this.interfaceName,
-                    this.operationName,
-                    parameters,
-                    Duration.ofMillis(this.invocationTimeoutMillis),
-                    this.targetAttributes);
-            return new RouteConfiguration(
-                    this.routeId,
-                    this.path,
-                    this.method,
-                    this.serviceId,
-                    this.authenticationMode,
-                    target,
-                    this.routeAttributes);
+            InvocationTargetConfiguration target =
+                    new InvocationTargetConfiguration(this.protocol, this.interfaceName, this.operationName, parameters,
+                            Duration.ofMillis(this.invocationTimeoutMillis), this.targetAttributes);
+            return new RouteConfiguration(this.routeId, this.path, this.method, this.serviceId, this.authenticationMode,
+                    target, this.routeAttributes);
         }
     }
 }

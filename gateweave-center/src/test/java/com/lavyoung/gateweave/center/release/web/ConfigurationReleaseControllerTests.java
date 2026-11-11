@@ -44,8 +44,7 @@ class ConfigurationReleaseControllerTests {
     private final LocalizedResultFactory resultFactory;
 
     @Autowired
-    ConfigurationReleaseControllerTests(
-            MockMvc mockMvc, PublishGatewayConfigurationUseCase publishUseCase,
+    ConfigurationReleaseControllerTests(MockMvc mockMvc, PublishGatewayConfigurationUseCase publishUseCase,
             QueryPublishedGatewayConfigurationUseCase queryUseCase, LocalizedResultFactory resultFactory) {
         this.mockMvc = mockMvc;
         this.publishUseCase = publishUseCase;
@@ -66,10 +65,8 @@ class ConfigurationReleaseControllerTests {
 
         // When & Then
         this.mockMvc.perform(post("/api/v1/gateway-groups/default/configuration-releases"))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(status().isCreated()).andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.gatewayGroupId").value("default"))
                 .andExpect(jsonPath("$.data.version").value(3))
                 .andExpect(jsonPath("$.data.publishedAt").value("2026-11-02T10:15:30Z"))
@@ -88,8 +85,7 @@ class ConfigurationReleaseControllerTests {
 
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/configuration-releases/latest"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith("application/json"))
+                .andExpect(status().isOk()).andExpect(content().contentTypeCompatibleWith("application/json"))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.gatewayGroupId").value("default"))
                 .andExpect(jsonPath("$.data.version").value(3));
@@ -105,8 +101,7 @@ class ConfigurationReleaseControllerTests {
 
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/configuration-releases/latest"))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
+                .andExpect(status().isNoContent()).andExpect(content().string(""));
 
         verify(this.queryUseCase).findLatestPublished("default");
     }
@@ -114,22 +109,18 @@ class ConfigurationReleaseControllerTests {
     @Test
     void shouldRejectMissingDependencies() {
         // When & Then
-        assertThatThrownBy(() -> new ConfigurationReleaseController(
-                null, this.queryUseCase, this.resultFactory))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("publishUseCase must not be null");
-        assertThatThrownBy(() -> new ConfigurationReleaseController(
-                this.publishUseCase, null, this.resultFactory))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("queryUseCase must not be null");
-        assertThatThrownBy(() -> new ConfigurationReleaseController(
-                this.publishUseCase, this.queryUseCase, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("resultFactory must not be null");
+        assertThatThrownBy(
+                () -> new ConfigurationReleaseController(null, this.queryUseCase, this.resultFactory)).isInstanceOf(
+                NullPointerException.class).hasMessage("publishUseCase must not be null");
+        assertThatThrownBy(
+                () -> new ConfigurationReleaseController(this.publishUseCase, null, this.resultFactory)).isInstanceOf(
+                NullPointerException.class).hasMessage("queryUseCase must not be null");
+        assertThatThrownBy(
+                () -> new ConfigurationReleaseController(this.publishUseCase, this.queryUseCase, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("resultFactory must not be null");
     }
 
     private static GatewayConfigurationSnapshot snapshot() {
-        return new GatewayConfigurationSnapshot(
-                "default", 3, PUBLISHED_AT, "sha256:configuration", List.of());
+        return new GatewayConfigurationSnapshot("default", 3, PUBLISHED_AT, "sha256:configuration", List.of());
     }
 }

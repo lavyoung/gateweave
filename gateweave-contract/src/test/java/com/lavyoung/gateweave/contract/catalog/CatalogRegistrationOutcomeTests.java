@@ -9,7 +9,7 @@ class CatalogRegistrationOutcomeTests {
     @Test
     void shouldExposeOnlyCreatedAndUnchangedOutcomes() {
         // When & Then
-        assertThat(CatalogRegistrationOutcome.values()).containsExactly(
-                CatalogRegistrationOutcome.CREATED, CatalogRegistrationOutcome.UNCHANGED);
+        assertThat(CatalogRegistrationOutcome.values()).containsExactly(CatalogRegistrationOutcome.CREATED,
+                CatalogRegistrationOutcome.UNCHANGED);
     }
 }

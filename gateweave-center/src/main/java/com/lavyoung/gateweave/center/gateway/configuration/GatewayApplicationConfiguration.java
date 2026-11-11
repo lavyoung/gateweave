@@ -37,8 +37,8 @@ public class GatewayApplicationConfiguration {
      * @return 网关节点注册用例
      */
     @Bean
-    public RegisterGatewayNodeUseCase registerGatewayNodeUseCase(
-            GatewayNodeRepository gatewayNodeRepository, Clock controlPlaneClock) {
+    public RegisterGatewayNodeUseCase registerGatewayNodeUseCase(GatewayNodeRepository gatewayNodeRepository,
+            Clock controlPlaneClock) {
         return new DefaultGatewayNodeRegistrationService(gatewayNodeRepository, controlPlaneClock);
     }
 
@@ -51,11 +51,10 @@ public class GatewayApplicationConfiguration {
      * @return 同时支持节点续租和过期回收的应用服务
      */
     @Bean
-    public DefaultGatewayNodeLeaseService gatewayNodeLeaseService(
-            GatewayNodeRepository gatewayNodeRepository, Clock controlPlaneClock,
-            GatewayNodeLeaseProperties leaseProperties) {
-        return new DefaultGatewayNodeLeaseService(
-                gatewayNodeRepository, controlPlaneClock, leaseProperties.leaseTimeout());
+    public DefaultGatewayNodeLeaseService gatewayNodeLeaseService(GatewayNodeRepository gatewayNodeRepository,
+            Clock controlPlaneClock, GatewayNodeLeaseProperties leaseProperties) {
+        return new DefaultGatewayNodeLeaseService(gatewayNodeRepository, controlPlaneClock,
+                leaseProperties.leaseTimeout());
     }
 
     /**
@@ -83,7 +82,7 @@ public class GatewayApplicationConfiguration {
      *
      * @param expireGatewayNodeLeasesUseCase 过期租约回收用例
      * @param taskScheduler                  节点维护任务调度器
-     * @param leaseProperties               节点租约时间策略
+     * @param leaseProperties                节点租约时间策略
      * @return 节点过期租约扫描适配器
      */
     @Bean
@@ -91,7 +90,7 @@ public class GatewayApplicationConfiguration {
             ExpireGatewayNodeLeasesUseCase expireGatewayNodeLeasesUseCase,
             @Qualifier("gatewayNodeMaintenanceTaskScheduler") TaskScheduler taskScheduler,
             GatewayNodeLeaseProperties leaseProperties) {
-        return new GatewayNodeLeaseExpirationScheduler(
-                expireGatewayNodeLeasesUseCase, taskScheduler, leaseProperties.expirationScanInterval());
+        return new GatewayNodeLeaseExpirationScheduler(expireGatewayNodeLeasesUseCase, taskScheduler,
+                leaseProperties.expirationScanInterval());
     }
 }

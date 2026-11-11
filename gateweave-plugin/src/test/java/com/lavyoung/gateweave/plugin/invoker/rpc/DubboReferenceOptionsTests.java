@@ -21,19 +21,16 @@ class DubboReferenceOptionsTests {
     @Test
     void shouldRejectMissingAttributesOrVersion() {
         // When & Then
-        assertThatThrownBy(() -> DubboReferenceOptions.from(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> DubboReferenceOptions.from(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("attributes must not be null");
-        assertThatThrownBy(() -> DubboReferenceOptions.from(Map.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> DubboReferenceOptions.from(Map.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("version must not be null");
     }
 
     @Test
     void shouldRejectBlankVersion() {
         // When & Then
-        assertThatThrownBy(() -> DubboReferenceOptions.from(Map.of("version", " ")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("version must not be blank");
+        assertThatThrownBy(() -> DubboReferenceOptions.from(Map.of("version", " "))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("version must not be blank");
     }
 }

@@ -19,11 +19,9 @@ class AuthenticatedPrincipalTests {
     @Test
     void shouldRejectMissingOrBlankSubject() {
         // When & Then
-        assertThatThrownBy(() -> new AuthenticatedPrincipal(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new AuthenticatedPrincipal(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("subject must not be null");
-        assertThatThrownBy(() -> new AuthenticatedPrincipal(" "))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new AuthenticatedPrincipal(" ")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("subject must not be blank");
     }
 }

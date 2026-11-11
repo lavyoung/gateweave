@@ -19,10 +19,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayRouteTableTests {
 
-    private static final InvocationTarget DUBBO_TARGET = new InvocationTarget(
-            "dubbo", "cn.example.ActivityBooth", "sayHi",
-            List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
-            Map.of("version", "1.0.0"));
+    private static final InvocationTarget DUBBO_TARGET =
+            new InvocationTarget("dubbo", "cn.example.ActivityBooth", "sayHi",
+                    List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
+                    Map.of("version", "1.0.0"));
 
     @Test
     void shouldReturnEmptyWhenRouteTableHasNoRoutes() {
@@ -66,9 +66,8 @@ class GatewayRouteTableTests {
         var secondRoute = route("route-say-hi", "/goodbye", "POST");
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayRouteTable(List.of(firstRoute, secondRoute)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("duplicate routeId: route-say-hi");
+        assertThatThrownBy(() -> new GatewayRouteTable(List.of(firstRoute, secondRoute))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("duplicate routeId: route-say-hi");
     }
 
     @Test
@@ -78,9 +77,8 @@ class GatewayRouteTableTests {
         var secondRoute = route("route-say-hi-v2", "/sayHi", "get");
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayRouteTable(List.of(firstRoute, secondRoute)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("duplicate route match: GET /sayHi");
+        assertThatThrownBy(() -> new GatewayRouteTable(List.of(firstRoute, secondRoute))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("duplicate route match: GET /sayHi");
     }
 
     @Test
@@ -154,9 +152,8 @@ class GatewayRouteTableTests {
         routeTable.replaceIfNew(1, List.of(currentRoute));
 
         // When & Then
-        assertThatThrownBy(() -> routeTable.replaceIfNew(2, List.of(duplicateRoute, duplicateRoute)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("duplicate routeId: route-duplicate");
+        assertThatThrownBy(() -> routeTable.replaceIfNew(2, List.of(duplicateRoute, duplicateRoute))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("duplicate routeId: route-duplicate");
         assertThat(routeTable.currentVersion()).isEqualTo(1);
         assertThat(routeTable.match("GET", URI.create("/current"))).containsSame(currentRoute);
     }
@@ -169,11 +166,11 @@ class GatewayRouteTableTests {
 
         try {
             // When
-            List<Future<Boolean>> replacements = executor.invokeAll(List.of(
-                    () -> routeTable.replaceIfNew(1, List.of(route("route-v1", "/v1", "GET"))),
-                    () -> routeTable.replaceIfNew(2, List.of(route("route-v2", "/v2", "GET"))),
-                    () -> routeTable.replaceIfNew(3, List.of(route("route-v3", "/v3", "GET"))),
-                    () -> routeTable.replaceIfNew(4, List.of(route("route-v4", "/v4", "GET")))));
+            List<Future<Boolean>> replacements = executor.invokeAll(
+                    List.of(() -> routeTable.replaceIfNew(1, List.of(route("route-v1", "/v1", "GET"))),
+                            () -> routeTable.replaceIfNew(2, List.of(route("route-v2", "/v2", "GET"))),
+                            () -> routeTable.replaceIfNew(3, List.of(route("route-v3", "/v3", "GET"))),
+                            () -> routeTable.replaceIfNew(4, List.of(route("route-v4", "/v4", "GET")))));
             for (Future<Boolean> replacement : replacements) {
                 replacement.get();
             }
@@ -210,16 +207,12 @@ class GatewayRouteTableTests {
         routesWithNull.add(null);
 
         // When & Then
-        assertThatThrownBy(() -> new GatewayRouteTable(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayRouteTable(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("routes must not be null");
-        assertThatThrownBy(() -> new GatewayRouteTable(routesWithNull))
-                .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> routeTable.match(null, URI.create("/sayHi")))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayRouteTable(routesWithNull)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> routeTable.match(null, URI.create("/sayHi"))).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestMethod must not be null");
-        assertThatThrownBy(() -> routeTable.match("GET", null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> routeTable.match("GET", null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestUri must not be null");
     }
 

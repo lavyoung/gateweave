@@ -9,8 +9,8 @@ class RouteAuthenticationModeTests {
     @Test
     void shouldExposeStableConfigurationNames() {
         // When & Then
-        assertThat(RouteAuthenticationMode.values())
-                .containsExactly(RouteAuthenticationMode.ANONYMOUS, RouteAuthenticationMode.REQUIRED);
+        assertThat(RouteAuthenticationMode.values()).containsExactly(RouteAuthenticationMode.ANONYMOUS,
+                RouteAuthenticationMode.REQUIRED);
         assertThat(RouteAuthenticationMode.valueOf("ANONYMOUS")).isEqualTo(RouteAuthenticationMode.ANONYMOUS);
         assertThat(RouteAuthenticationMode.valueOf("REQUIRED")).isEqualTo(RouteAuthenticationMode.REQUIRED);
     }

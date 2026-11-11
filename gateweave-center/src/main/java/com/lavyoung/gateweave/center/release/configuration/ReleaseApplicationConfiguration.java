@@ -35,8 +35,8 @@ public class ReleaseApplicationConfiguration {
     public PublishGatewayConfigurationUseCase publishGatewayConfigurationUseCase(
             GatewayRouteConfigurationQuery routeConfigurationQuery,
             ConfigurationReleaseRepository configurationReleaseRepository, Clock controlPlaneClock) {
-        return new DefaultGatewayConfigurationPublicationService(
-                routeConfigurationQuery, configurationReleaseRepository, controlPlaneClock);
+        return new DefaultGatewayConfigurationPublicationService(routeConfigurationQuery,
+                configurationReleaseRepository, controlPlaneClock);
     }
 
     /**

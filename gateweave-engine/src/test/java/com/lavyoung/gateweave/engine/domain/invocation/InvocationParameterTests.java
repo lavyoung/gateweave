@@ -20,22 +20,18 @@ class InvocationParameterTests {
     @Test
     void shouldRejectNullNameOrTypeName() {
         // When & Then
-        assertThatThrownBy(() -> new InvocationParameter(null, "java.lang.String"))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("name must not be null");
-        assertThatThrownBy(() -> new InvocationParameter("userId", null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new InvocationParameter(null, "java.lang.String")).isInstanceOf(
+                NullPointerException.class).hasMessage("name must not be null");
+        assertThatThrownBy(() -> new InvocationParameter("userId", null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("typeName must not be null");
     }
 
     @Test
     void shouldRejectBlankNameOrTypeName() {
         // When & Then
-        assertThatThrownBy(() -> new InvocationParameter(" ", "java.lang.String"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("name must not be blank");
-        assertThatThrownBy(() -> new InvocationParameter("userId", " "))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new InvocationParameter(" ", "java.lang.String")).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("name must not be blank");
+        assertThatThrownBy(() -> new InvocationParameter("userId", " ")).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("typeName must not be blank");
     }
 }

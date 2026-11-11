@@ -59,8 +59,8 @@ class JdbcRouteDefinitionRepositoryTests {
             JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
             RouteDefinitionRepository repository = context.getBean(RouteDefinitionRepository.class);
             insertServiceCatalog(jdbcTemplate);
-            insertRoute(jdbcTemplate, new RouteFixture(
-                    "route-b", "/activities/b", "{\"version\":\"1.0.0\"}", "{\"tag\":\"beta\"}"));
+            insertRoute(jdbcTemplate,
+                    new RouteFixture("route-b", "/activities/b", "{\"version\":\"1.0.0\"}", "{\"tag\":\"beta\"}"));
             insertRoute(jdbcTemplate, new RouteFixture("route-a", "/activities/a", "{}", "{}"));
             insertParameters(jdbcTemplate, "route-b", List.of("userName", "userAge"));
             insertParameters(jdbcTemplate, "route-a", List.of("name", "age"));
@@ -72,11 +72,9 @@ class JdbcRouteDefinitionRepositoryTests {
             assertThat(routes.get(0).invocationTimeout()).isEqualTo(Duration.ofSeconds(3));
             assertThat(routes.get(0).targetAttributes()).containsEntry("version", "1.0.0");
             assertThat(routes.get(0).attributes()).containsEntry("tag", "beta");
-            assertThat(routes.get(0).parameterMappings())
-                    .extracting(RouteParameterMapping::requestName)
+            assertThat(routes.get(0).parameterMappings()).extracting(RouteParameterMapping::requestName)
                     .containsExactly("userName", "userAge");
-            assertThat(routes.get(1).parameterMappings())
-                    .extracting(RouteParameterMapping::requestName)
+            assertThat(routes.get(1).parameterMappings()).extracting(RouteParameterMapping::requestName)
                     .containsExactly("name", "age");
         });
     }
@@ -98,8 +96,7 @@ class JdbcRouteDefinitionRepositoryTests {
             insertRoute(jdbcTemplate, new RouteFixture("route-first", "/first", "{}", "{}"));
             insertRoute(jdbcTemplate, new RouteFixture("route-second", "/second", "{}", "{}"));
 
-            assertThat(repository.findPageByGatewayGroupId("default", 1, 1))
-                    .extracting(RouteDefinition::routeId)
+            assertThat(repository.findPageByGatewayGroupId("default", 1, 1)).extracting(RouteDefinition::routeId)
                     .containsExactly("route-second");
             assertThat(repository.findPageByGatewayGroupId("missing", 0, 10)).isEmpty();
             assertThat(repository.countByGatewayGroupId("missing")).isZero();
@@ -119,12 +116,10 @@ class JdbcRouteDefinitionRepositoryTests {
             assertThat(context).hasNotFailed();
             RouteDefinitionRepository repository = context.getBean(RouteDefinitionRepository.class);
 
-            assertThatThrownBy(() -> repository.findPageByGatewayGroupId("default", -1, 10))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("offset must not be negative");
-            assertThatThrownBy(() -> repository.findPageByGatewayGroupId("default", 0, 0))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("limit must be greater than zero");
+            assertThatThrownBy(() -> repository.findPageByGatewayGroupId("default", -1, 10)).isInstanceOf(
+                    IllegalArgumentException.class).hasMessage("offset must not be negative");
+            assertThatThrownBy(() -> repository.findPageByGatewayGroupId("default", 0, 0)).isInstanceOf(
+                    IllegalArgumentException.class).hasMessage("limit must be greater than zero");
         });
     }
 
@@ -144,9 +139,8 @@ class JdbcRouteDefinitionRepositoryTests {
             insertServiceCatalog(jdbcTemplate);
             insertRoute(jdbcTemplate, new RouteFixture("route-broken", "/broken", "not-json", "{}"));
 
-            assertThatThrownBy(() -> repository.findPageByGatewayGroupId("default", 0, 10))
-                    .isInstanceOf(DataRetrievalFailureException.class)
-                    .hasMessageContaining("target_attributes")
+            assertThatThrownBy(() -> repository.findPageByGatewayGroupId("default", 0, 10)).isInstanceOf(
+                            DataRetrievalFailureException.class).hasMessageContaining("target_attributes")
                     .hasMessageContaining("route-broken");
         });
     }
@@ -157,10 +151,9 @@ class JdbcRouteDefinitionRepositoryTests {
      * @param jdbcTemplate JDBC 操作入口
      */
     private static void insertServiceCatalog(JdbcTemplate jdbcTemplate) {
-        jdbcTemplate.update(
-                INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0", "ACTIVE");
-        jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service",
-                "cn.example.ActivityService", "query", "ACTIVE");
+        jdbcTemplate.update(INSERT_SERVICE, "activity-service", "activity-application", "dubbo", "", "1.0.0", "ACTIVE");
+        jdbcTemplate.update(INSERT_OPERATION, "activity-query", "activity-service", "cn.example.ActivityService",
+                "query", "ACTIVE");
         jdbcTemplate.update(INSERT_OPERATION_PARAMETER, "activity-query", 0, "name", "java.lang.String");
         jdbcTemplate.update(INSERT_OPERATION_PARAMETER, "activity-query", 1, "age", "java.lang.Integer");
     }
@@ -196,12 +189,10 @@ class JdbcRouteDefinitionRepositoryTests {
      * @return 测试上下文运行器
      */
     private static WebApplicationContextRunner contextRunner(String databaseName) {
-        return new WebApplicationContextRunner()
-                .withUserConfiguration(GateWeaveCenterApplication.class)
+        return new WebApplicationContextRunner().withUserConfiguration(GateWeaveCenterApplication.class)
                 .withPropertyValues(
                         "spring.datasource.url=jdbc:h2:mem:%s;MODE=MySQL;DB_CLOSE_DELAY=0".formatted(databaseName),
-                        "spring.datasource.username=sa",
-                        "spring.datasource.password=");
+                        "spring.datasource.username=sa", "spring.datasource.password=");
     }
 
     /**

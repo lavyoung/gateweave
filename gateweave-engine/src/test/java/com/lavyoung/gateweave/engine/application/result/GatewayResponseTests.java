@@ -21,17 +21,14 @@ class GatewayResponseTests {
 
         // Then
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.headers().firstValue("content-type"))
-                .contains("text/plain; charset=UTF-8");
+        assertThat(response.headers().firstValue("content-type")).contains("text/plain; charset=UTF-8");
         assertThat(new String(response.body(), StandardCharsets.UTF_8)).isEqualTo("网关响应成功");
     }
 
     @Test
     void shouldReuseImmutableMultiValueHeaders() {
         // Given
-        var headers = HttpHeaders.of(
-                Map.of("Set-Cookie", List.of("a=1", "b=2")),
-                (name, value) -> true);
+        var headers = HttpHeaders.of(Map.of("Set-Cookie", List.of("a=1", "b=2")), (name, value) -> true);
 
         // When
         var response = new GatewayResponse(200, headers, new byte[0]);
@@ -59,24 +56,20 @@ class GatewayResponseTests {
     @Test
     void shouldRejectInvalidStatusCode() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayResponse(99, EMPTY_HEADERS, new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("statusCode must be between 100 and 599");
+        assertThatThrownBy(() -> new GatewayResponse(99, EMPTY_HEADERS, new byte[0])).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("statusCode must be between 100 and 599");
 
-        assertThatThrownBy(() -> new GatewayResponse(600, EMPTY_HEADERS, new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("statusCode must be between 100 and 599");
+        assertThatThrownBy(() -> new GatewayResponse(600, EMPTY_HEADERS, new byte[0])).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("statusCode must be between 100 and 599");
     }
 
     @Test
     void shouldRejectMissingHeadersAndBody() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayResponse(200, null, new byte[0]))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayResponse(200, null, new byte[0])).isInstanceOf(NullPointerException.class)
                 .hasMessage("headers must not be null");
 
-        assertThatThrownBy(() -> new GatewayResponse(200, EMPTY_HEADERS, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new GatewayResponse(200, EMPTY_HEADERS, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("body must not be null");
     }
 }

@@ -42,8 +42,7 @@ public class ConfigurationReleaseController {
      * @param resultFactory  本地化统一响应工厂
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public ConfigurationReleaseController(
-            PublishGatewayConfigurationUseCase publishUseCase,
+    public ConfigurationReleaseController(PublishGatewayConfigurationUseCase publishUseCase,
             QueryPublishedGatewayConfigurationUseCase queryUseCase, LocalizedResultFactory resultFactory) {
         this.publishUseCase = Objects.requireNonNull(publishUseCase, "publishUseCase must not be null");
         this.queryUseCase = Objects.requireNonNull(queryUseCase, "queryUseCase must not be null");

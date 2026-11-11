@@ -118,8 +118,7 @@ public final class NettyGatewayRequestMapper {
         try {
             return attribute.getValue();
         } catch (IOException e) {
-            throw new IllegalArgumentException(
-                    "failed to read form parameter: %s".formatted(attribute.getName()), e);
+            throw new IllegalArgumentException("failed to read form parameter: %s".formatted(attribute.getName()), e);
         }
     }
 
@@ -141,8 +140,8 @@ public final class NettyGatewayRequestMapper {
      * @return JDK 不可变请求头
      */
     private static HttpHeaders mapHeaders(io.netty.handler.codec.http.HttpHeaders nettyHeaders) {
-        Map<String, List<String>> valuesByName = nettyHeaders.names().stream().collect(
-                Collectors.toUnmodifiableMap(name -> name, name -> List.copyOf(nettyHeaders.getAll(name))));
+        Map<String, List<String>> valuesByName = nettyHeaders.names().stream()
+                .collect(Collectors.toUnmodifiableMap(name -> name, name -> List.copyOf(nettyHeaders.getAll(name))));
         return HttpHeaders.of(valuesByName, (n, v) -> true);
     }
 }

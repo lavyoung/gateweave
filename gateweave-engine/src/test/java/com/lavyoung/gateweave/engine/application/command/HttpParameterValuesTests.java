@@ -26,10 +26,10 @@ class HttpParameterValuesTests {
 
         // Then
         assertThat(parameters.values()).containsOnly(Map.entry("tag", List.of("java", "gateway")));
-        assertThatThrownBy(() -> parameters.values().put("page", List.of("1")))
-                .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> parameters.values().get("tag").add("netty"))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> parameters.values().put("page", List.of("1"))).isInstanceOf(
+                UnsupportedOperationException.class);
+        assertThatThrownBy(() -> parameters.values().get("tag").add("netty")).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 
     @Test
@@ -43,8 +43,8 @@ class HttpParameterValuesTests {
 
         // Then
         assertThat(parameters.values()).isEmpty();
-        assertThatThrownBy(() -> parameters.values().put("changed", List.of("true")))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> parameters.values().put("changed", List.of("true"))).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 
     @Test
@@ -63,12 +63,10 @@ class HttpParameterValuesTests {
         nullName.put(null, List.of("value"));
 
         // When & Then
-        assertThatThrownBy(() -> new HttpParameterValues(nullName))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new HttpParameterValues(nullName)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("values must not contain null or blank names");
-        assertThatThrownBy(() -> new HttpParameterValues(Map.of(" ", List.of("value"))))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("values must not contain null or blank names");
+        assertThatThrownBy(() -> new HttpParameterValues(Map.of(" ", List.of("value")))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("values must not contain null or blank names");
     }
 
     @Test
@@ -80,22 +78,18 @@ class HttpParameterValuesTests {
         nullValue.add(null);
 
         // When & Then
-        assertThatThrownBy(() -> new HttpParameterValues(nullList))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new HttpParameterValues(nullList)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("values must not contain null or empty value lists");
-        assertThatThrownBy(() -> new HttpParameterValues(Map.of("name", List.of())))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("values must not contain null or empty value lists");
-        assertThatThrownBy(() -> new HttpParameterValues(Map.of("name", nullValue)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("values must not contain null parameter values");
+        assertThatThrownBy(() -> new HttpParameterValues(Map.of("name", List.of()))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("values must not contain null or empty value lists");
+        assertThatThrownBy(() -> new HttpParameterValues(Map.of("name", nullValue))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("values must not contain null parameter values");
     }
 
     @Test
     void shouldRejectNullMap() {
         // When & Then
-        assertThatThrownBy(() -> new HttpParameterValues(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new HttpParameterValues(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("values must not be null");
     }
 }

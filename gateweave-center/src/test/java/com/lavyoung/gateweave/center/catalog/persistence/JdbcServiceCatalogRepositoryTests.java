@@ -26,13 +26,9 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(
-        classes = GateWeaveCenterApplication.class,
-        properties = {
-                "spring.datasource.url=jdbc:h2:mem:service-catalog-repository;MODE=MySQL;DB_CLOSE_DELAY=-1",
-                "spring.datasource.username=sa",
-                "spring.datasource.password="
-        })
+@SpringBootTest(classes = GateWeaveCenterApplication.class,
+        properties = {"spring.datasource.url=jdbc:h2:mem:service-catalog-repository;MODE=MySQL;DB_CLOSE_DELAY=-1",
+                "spring.datasource.username=sa", "spring.datasource.password="})
 class JdbcServiceCatalogRepositoryTests {
 
     private final ServiceCatalogRepository repository;
@@ -54,9 +50,9 @@ class JdbcServiceCatalogRepositoryTests {
     @Test
     void shouldRegisterCompleteServiceDefinitionAtomically() {
         // Given
-        ServiceDefinition definition = serviceDefinition("activity-service", "activity-application", List.of(
-                operation("activity-query", "activity-service", "query", "name", "java.lang.String"),
-                operation("activity-create", "activity-service", "create", "request", "cn.example.Request")));
+        ServiceDefinition definition = serviceDefinition("activity-service", "activity-application",
+                List.of(operation("activity-query", "activity-service", "query", "name", "java.lang.String"),
+                        operation("activity-create", "activity-service", "create", "request", "cn.example.Request")));
 
         // When
         CatalogRegistrationOutcome outcome = this.repository.register(definition);
@@ -67,24 +63,20 @@ class JdbcServiceCatalogRepositoryTests {
         assertThat(count("gw_service_operation")).isEqualTo(2);
         assertThat(count("gw_service_operation_parameter")).isEqualTo(2);
         assertThat(serviceRow("activity-service")).containsEntry("APPLICATION_NAME", "activity-application")
-                .containsEntry("PROTOCOL", "dubbo")
-                .containsEntry("NAMESPACE", "production")
-                .containsEntry("SERVICE_VERSION", "1.0.0")
-                .containsEntry("STATUS", "ACTIVE")
+                .containsEntry("PROTOCOL", "dubbo").containsEntry("NAMESPACE", "production")
+                .containsEntry("SERVICE_VERSION", "1.0.0").containsEntry("STATUS", "ACTIVE")
                 .containsEntry("REVISION", 3L);
     }
 
     @Test
     void shouldTreatSameDefinitionWithDifferentOperationOrderAsUnchanged() {
         // Given
-        ServiceOperation query = operation(
-                "activity-query", "activity-service", "query", "name", "java.lang.String");
-        ServiceOperation create = operation(
-                "activity-create", "activity-service", "create", "request", "cn.example.Request");
-        ServiceDefinition first = serviceDefinition(
-                "activity-service", "activity-application", List.of(query, create));
-        ServiceDefinition retried = serviceDefinition(
-                "activity-service", "activity-application", List.of(create, query));
+        ServiceOperation query = operation("activity-query", "activity-service", "query", "name", "java.lang.String");
+        ServiceOperation create =
+                operation("activity-create", "activity-service", "create", "request", "cn.example.Request");
+        ServiceDefinition first = serviceDefinition("activity-service", "activity-application", List.of(query, create));
+        ServiceDefinition retried =
+                serviceDefinition("activity-service", "activity-application", List.of(create, query));
         assertThat(this.repository.register(first)).isEqualTo(CatalogRegistrationOutcome.CREATED);
 
         // When
@@ -100,8 +92,8 @@ class JdbcServiceCatalogRepositoryTests {
     @Test
     void shouldRegisterSameDefinitionIdempotentlyWhenRequestsRace() throws Exception {
         // Given
-        ServiceDefinition definition = serviceDefinition("activity-service", "activity-application", List.of(
-                operation("activity-query", "activity-service", "query", "name", "java.lang.String")));
+        ServiceDefinition definition = serviceDefinition("activity-service", "activity-application",
+                List.of(operation("activity-query", "activity-service", "query", "name", "java.lang.String")));
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
@@ -136,8 +128,8 @@ class JdbcServiceCatalogRepositoryTests {
         this.repository.register(existing);
 
         // When & Then
-        assertThatThrownBy(() -> this.repository.register(conflicting))
-                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+        assertThatThrownBy(() -> this.repository.register(conflicting)).isInstanceOfSatisfying(BusinessException.class,
+                exception -> {
                     assertThat(exception.responseCode()).isEqualTo(CatalogResponseCode.SERVICE_DEFINITION_CONFLICT);
                     assertThat(exception.arguments()).containsExactly("activity-service");
                 });
@@ -147,15 +139,15 @@ class JdbcServiceCatalogRepositoryTests {
     @Test
     void shouldRejectDifferentOperationForExistingService() {
         // Given
-        ServiceDefinition existing = serviceDefinition("activity-service", "activity-application", List.of(
-                operation("activity-query", "activity-service", "query", "name", "java.lang.String")));
-        ServiceDefinition conflicting = serviceDefinition("activity-service", "activity-application", List.of(
-                operation("activity-query", "activity-service", "find", "name", "java.lang.String")));
+        ServiceDefinition existing = serviceDefinition("activity-service", "activity-application",
+                List.of(operation("activity-query", "activity-service", "query", "name", "java.lang.String")));
+        ServiceDefinition conflicting = serviceDefinition("activity-service", "activity-application",
+                List.of(operation("activity-query", "activity-service", "find", "name", "java.lang.String")));
         this.repository.register(existing);
 
         // When & Then
-        assertThatThrownBy(() -> this.repository.register(conflicting))
-                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+        assertThatThrownBy(() -> this.repository.register(conflicting)).isInstanceOfSatisfying(BusinessException.class,
+                exception -> {
                     assertThat(exception.responseCode()).isEqualTo(CatalogResponseCode.OPERATION_DEFINITION_CONFLICT);
                     assertThat(exception.arguments()).containsExactly("activity-query");
                 });
@@ -165,15 +157,15 @@ class JdbcServiceCatalogRepositoryTests {
     @Test
     void shouldRollBackNewServiceWhenOperationIdBelongsToAnotherService() {
         // Given
-        ServiceDefinition existing = serviceDefinition("activity-service", "activity-application", List.of(
-                operation("shared-operation", "activity-service", "query", "name", "java.lang.String")));
-        ServiceDefinition conflicting = serviceDefinition("order-service", "order-application", List.of(
-                operation("shared-operation", "order-service", "find", "id", "java.lang.Long")));
+        ServiceDefinition existing = serviceDefinition("activity-service", "activity-application",
+                List.of(operation("shared-operation", "activity-service", "query", "name", "java.lang.String")));
+        ServiceDefinition conflicting = serviceDefinition("order-service", "order-application",
+                List.of(operation("shared-operation", "order-service", "find", "id", "java.lang.Long")));
         this.repository.register(existing);
 
         // When & Then
-        assertThatThrownBy(() -> this.repository.register(conflicting))
-                .isInstanceOfSatisfying(BusinessException.class, exception -> {
+        assertThatThrownBy(() -> this.repository.register(conflicting)).isInstanceOfSatisfying(BusinessException.class,
+                exception -> {
                     assertThat(exception.responseCode()).isEqualTo(CatalogResponseCode.OPERATION_DEFINITION_CONFLICT);
                     assertThat(exception.arguments()).containsExactly("shared-operation");
                 });
@@ -186,8 +178,7 @@ class JdbcServiceCatalogRepositoryTests {
     @Test
     void shouldRejectNullServiceDefinitionBeforeDatabaseAccess() {
         // When & Then
-        assertThatThrownBy(() -> this.repository.register(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.repository.register(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("serviceDefinition must not be null");
         assertThat(count("gw_service")).isZero();
     }
@@ -197,8 +188,8 @@ class JdbcServiceCatalogRepositoryTests {
     }
 
     private int serviceCount(String serviceId) {
-        return this.jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM gw_service WHERE service_id = ?", Integer.class, serviceId);
+        return this.jdbcTemplate.queryForObject("SELECT COUNT(*) FROM gw_service WHERE service_id = ?", Integer.class,
+                serviceId);
     }
 
     private Map<String, Object> serviceRow(String serviceId) {
@@ -210,8 +201,8 @@ class JdbcServiceCatalogRepositoryTests {
                 "SELECT operation_name FROM gw_service_operation WHERE operation_id = ?", String.class, operationId);
     }
 
-    private CompletableFuture<CatalogRegistrationOutcome> registerAsync(
-            ServiceDefinition definition, ExecutorService executor, CountDownLatch ready, CountDownLatch start) {
+    private CompletableFuture<CatalogRegistrationOutcome> registerAsync(ServiceDefinition definition,
+            ExecutorService executor, CountDownLatch ready, CountDownLatch start) {
         return CompletableFuture.supplyAsync(() -> {
             ready.countDown();
             awaitStart(start);
@@ -230,28 +221,15 @@ class JdbcServiceCatalogRepositoryTests {
         }
     }
 
-    private static ServiceDefinition serviceDefinition(
-            String serviceId, String applicationName, List<ServiceOperation> operations) {
-        return new ServiceDefinition(
-                serviceId,
-                applicationName,
-                "dubbo",
-                "production",
-                "1.0.0",
-                ServiceCatalogStatus.ACTIVE,
-                3L,
-                operations);
+    private static ServiceDefinition serviceDefinition(String serviceId, String applicationName,
+            List<ServiceOperation> operations) {
+        return new ServiceDefinition(serviceId, applicationName, "dubbo", "production", "1.0.0",
+                ServiceCatalogStatus.ACTIVE, 3L, operations);
     }
 
-    private static ServiceOperation operation(
-            String operationId, String serviceId, String operationName, String parameterName, String typeName) {
-        return new ServiceOperation(
-                operationId,
-                serviceId,
-                "cn.example.ActivityService",
-                operationName,
-                ServiceCatalogStatus.ACTIVE,
-                2L,
-                List.of(new ServiceOperationParameter(0, parameterName, typeName)));
+    private static ServiceOperation operation(String operationId, String serviceId, String operationName,
+            String parameterName, String typeName) {
+        return new ServiceOperation(operationId, serviceId, "cn.example.ActivityService", operationName,
+                ServiceCatalogStatus.ACTIVE, 2L, List.of(new ServiceOperationParameter(0, parameterName, typeName)));
     }
 }

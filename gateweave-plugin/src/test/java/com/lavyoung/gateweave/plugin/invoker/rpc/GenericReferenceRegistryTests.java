@@ -38,8 +38,8 @@ class GenericReferenceRegistryTests {
         assertThat(DubboDiscoveryMode.INTERFACE.migrationStep()).isEqualTo("FORCE_INTERFACE");
         assertThat(DubboDiscoveryMode.INTERFACE.registerMode()).isEqualTo(CommonConstants.INTERFACE_REGISTER_MODE);
         assertThat(DubboDiscoveryMode.APPLICATION_FIRST.migrationStep()).isEqualTo("APPLICATION_FIRST");
-        assertThat(DubboDiscoveryMode.APPLICATION_FIRST.registerMode())
-                .isEqualTo(CommonConstants.DEFAULT_REGISTER_MODE);
+        assertThat(DubboDiscoveryMode.APPLICATION_FIRST.registerMode()).isEqualTo(
+                CommonConstants.DEFAULT_REGISTER_MODE);
         assertThat(DubboDiscoveryMode.APPLICATION.migrationStep()).isEqualTo("FORCE_APPLICATION");
         assertThat(DubboDiscoveryMode.APPLICATION.registerMode()).isEqualTo(CommonConstants.INSTANCE_REGISTER_MODE);
     }
@@ -51,31 +51,29 @@ class GenericReferenceRegistryTests {
         var genericService = mock(GenericService.class);
         when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(genericService);
         when(genericService.$invokeAsync(eq("sayHi"), aryEq(new String[]{"java.lang.String"}),
-                aryEq(new Object[]{"gateweave"})))
-                .thenReturn(CompletableFuture.completedFuture("hi gateweave"));
+                aryEq(new Object[]{"gateweave"}))).thenReturn(CompletableFuture.completedFuture("hi gateweave"));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
 
                 // When
-                IGenericReference reference = registry.getGenericReference(
-                        "cn.example.ActivityBooth", "sayHi", "1.0.0");
+                IGenericReference reference =
+                        registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
                 String result = reference.$invoke(stringArguments()).toCompletableFuture().join();
 
                 // Then
                 assertThat(result).isEqualTo("hi gateweave");
-                @SuppressWarnings({"rawtypes", "unchecked"})
-                ArgumentCaptor<ReferenceConfigBase<GenericService>> referenceCaptor =
-                        ArgumentCaptor.forClass(ReferenceConfigBase.class);
+                @SuppressWarnings({"rawtypes", "unchecked"}) ArgumentCaptor<ReferenceConfigBase<GenericService>>
+                        referenceCaptor = ArgumentCaptor.forClass(ReferenceConfigBase.class);
                 verify(referenceCache).get(referenceCaptor.capture());
-                assertThat(referenceCaptor.getValue().getParameters())
-                        .containsEntry("migration.step", "FORCE_INTERFACE");
+                assertThat(referenceCaptor.getValue().getParameters()).containsEntry("migration.step",
+                        "FORCE_INTERFACE");
                 assertThat(referenceCaptor.getValue().getApplication().getQosEnable()).isFalse();
-                assertThat(referenceCaptor.getValue().getApplication().getRegisterMode())
-                        .isEqualTo(CommonConstants.INTERFACE_REGISTER_MODE);
+                assertThat(referenceCaptor.getValue().getApplication().getRegisterMode()).isEqualTo(
+                        CommonConstants.INTERFACE_REGISTER_MODE);
                 assertThat(referenceCaptor.getValue().getScopeModel()).isInstanceOf(ModuleModel.class);
             }
         }
@@ -91,8 +89,8 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 // When
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
@@ -112,8 +110,8 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 // When
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
                 registry.addGenericReference("cn.example.ActivityBooth", "sayBye", "1.0.0");
@@ -130,21 +128,21 @@ class GenericReferenceRegistryTests {
     void shouldIsolateReferencesAcrossVersionsOfSameInterface() {
         // Given
         var referenceCache = mock(SimpleReferenceCache.class);
-        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class)))
-                .thenReturn(mock(GenericService.class), mock(GenericService.class));
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(mock(GenericService.class),
+                mock(GenericService.class));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 // When
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "2.0.0");
 
                 // Then
                 verify(referenceCache, times(2)).get(any(ReferenceConfigBase.class));
-                assertThat(registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0"))
-                        .isNotSameAs(registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "2.0.0"));
+                assertThat(registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0")).isNotSameAs(
+                        registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "2.0.0"));
             }
         }
     }
@@ -158,12 +156,12 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 // When
-                var registrations = IntStream.range(0, 32)
-                        .mapToObj(index -> CompletableFuture.runAsync(() -> registry.addGenericReference(
-                                "cn.example.ActivityBooth", "sayHi", "1.0.0"), executor))
+                var registrations = IntStream.range(0, 32).mapToObj(index -> CompletableFuture.runAsync(
+                                () -> registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0"),
+                                executor))
                         .toList();
                 CompletableFuture.allOf(registrations.toArray(CompletableFuture[]::new)).join();
 
@@ -182,17 +180,17 @@ class GenericReferenceRegistryTests {
         var referenceCache = mock(SimpleReferenceCache.class);
         var firstService = mock(GenericService.class);
         var secondService = mock(GenericService.class);
-        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class)))
-                .thenReturn(firstService, secondService);
-        when(firstService.$invokeAsync(eq("sayHi"), any(String[].class), any(Object[].class)))
-                .thenReturn(CompletableFuture.completedFuture("first"));
-        when(secondService.$invokeAsync(eq("sayHi"), any(String[].class), any(Object[].class)))
-                .thenReturn(CompletableFuture.completedFuture("second"));
+        when(referenceCache.<GenericService>get(any(ReferenceConfigBase.class))).thenReturn(firstService,
+                secondService);
+        when(firstService.$invokeAsync(eq("sayHi"), any(String[].class), any(Object[].class))).thenReturn(
+                CompletableFuture.completedFuture("first"));
+        when(secondService.$invokeAsync(eq("sayHi"), any(String[].class), any(Object[].class))).thenReturn(
+                CompletableFuture.completedFuture("second"));
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.FirstService", "sayHi", "1.0.0");
                 registry.addGenericReference("cn.example.SecondService", "sayHi", "1.0.0");
 
@@ -217,12 +215,11 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 // When & Then
-                assertThatThrownBy(() -> registry.getGenericReference(
-                        "cn.example.ActivityBooth", "unknown", "1.0.0"))
-                        .isInstanceOf(IllegalStateException.class)
+                assertThatThrownBy(() -> registry.getGenericReference("cn.example.ActivityBooth", "unknown",
+                        "1.0.0")).isInstanceOf(IllegalStateException.class)
                         .hasMessage("generic reference is not registered: cn.example.ActivityBooth#unknown:1.0.0");
             }
         }
@@ -239,16 +236,15 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
-                var reference = registry.getGenericReference(
-                        "cn.example.ActivityBooth", "sayHi", "1.0.0");
+                var reference = registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
 
                 // When & Then
-                assertThatThrownBy(() -> reference.$invoke(stringArguments()).toCompletableFuture().join())
-                        .isInstanceOf(CompletionException.class)
-                        .hasCauseInstanceOf(IllegalStateException.class)
+                assertThatThrownBy(
+                        () -> reference.$invoke(stringArguments()).toCompletableFuture().join()).isInstanceOf(
+                                CompletionException.class).hasCauseInstanceOf(IllegalStateException.class)
                         .hasRootCauseMessage("generic invocation result must be a String");
             }
         }
@@ -266,16 +262,15 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            try (var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE)) {
+            try (var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE)) {
                 registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
-                var reference = registry.getGenericReference(
-                        "cn.example.ActivityBooth", "sayHi", "1.0.0");
+                var reference = registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
 
                 // When & Then
-                assertThatThrownBy(() -> reference.$invoke(stringArguments()).toCompletableFuture().join())
-                        .isInstanceOf(CompletionException.class)
-                        .hasCause(failure);
+                assertThatThrownBy(
+                        () -> reference.$invoke(stringArguments()).toCompletableFuture().join()).isInstanceOf(
+                        CompletionException.class).hasCause(failure);
             }
         }
     }
@@ -288,8 +283,8 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE);
+            var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE);
             registry.addGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0");
 
             // When
@@ -298,9 +293,9 @@ class GenericReferenceRegistryTests {
 
             // Then
             verify(referenceCache, times(1)).destroyAll();
-            assertThatThrownBy(() -> registry.getGenericReference(
-                    "cn.example.ActivityBooth", "sayHi", "1.0.0"))
-                    .isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(
+                    () -> registry.getGenericReference("cn.example.ActivityBooth", "sayHi", "1.0.0")).isInstanceOf(
+                            IllegalStateException.class)
                     .hasMessage("generic reference is not registered: cn.example.ActivityBooth#sayHi:1.0.0");
         }
     }
@@ -313,13 +308,11 @@ class GenericReferenceRegistryTests {
 
         try (var cacheFactory = mockStatic(SimpleReferenceCache.class)) {
             cacheFactory.when(SimpleReferenceCache::newCache).thenReturn(referenceCache).thenCallRealMethod();
-            var registry = new GenericReferenceRegistry(
-                    "gateweave", "zookeeper://127.0.0.1:2181", DubboDiscoveryMode.INTERFACE);
+            var registry = new GenericReferenceRegistry("gateweave", "zookeeper://127.0.0.1:2181",
+                    DubboDiscoveryMode.INTERFACE);
 
             // When & Then
-            assertThatThrownBy(registry::close)
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessage("close failed");
+            assertThatThrownBy(registry::close).isInstanceOf(IllegalStateException.class).hasMessage("close failed");
             registry.close();
             registry.close();
             verify(referenceCache, times(2)).destroyAll();

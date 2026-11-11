@@ -12,17 +12,17 @@ import static org.mockito.Mockito.mock;
 
 class CatalogApplicationConfigurationTests {
 
-    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withUserConfiguration(CatalogApplicationConfiguration.class)
-            .withBean(ServiceCatalogRepository.class, () -> mock(ServiceCatalogRepository.class));
+    private final ApplicationContextRunner contextRunner =
+            new ApplicationContextRunner().withUserConfiguration(CatalogApplicationConfiguration.class)
+                    .withBean(ServiceCatalogRepository.class, () -> mock(ServiceCatalogRepository.class));
 
     @Test
     void shouldProvideServiceDefinitionRegistrationUseCase() {
         this.contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context).hasSingleBean(RegisterServiceDefinitionUseCase.class);
-            assertThat(context.getBean(RegisterServiceDefinitionUseCase.class))
-                    .isInstanceOf(DefaultServiceDefinitionRegistrationService.class);
+            assertThat(context.getBean(RegisterServiceDefinitionUseCase.class)).isInstanceOf(
+                    DefaultServiceDefinitionRegistrationService.class);
         });
     }
 }

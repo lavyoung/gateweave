@@ -25,7 +25,8 @@ public enum CatalogResponseCode implements ResponseCode {
     /**
      * 相同操作标识或自然唯一键已经对应另一份操作定义。
      */
-    OPERATION_DEFINITION_CONFLICT("CATALOG-0003", "catalog.operation.definition-conflict", "服务操作 {0} 已存在且定义不一致"),
+    OPERATION_DEFINITION_CONFLICT("CATALOG-0003", "catalog.operation.definition-conflict",
+            "服务操作 {0} 已存在且定义不一致"),
 
     /**
      * 服务目录注册操作因未识别的持久化错误而失败。

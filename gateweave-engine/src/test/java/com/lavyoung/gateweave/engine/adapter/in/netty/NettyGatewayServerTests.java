@@ -73,11 +73,9 @@ class NettyGatewayServerTests {
         var bindAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 7397);
 
         // When & Then
-        assertThatThrownBy(() -> new NettyGatewayServer(null, bindAddress))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new NettyGatewayServer(null, bindAddress)).isInstanceOf(NullPointerException.class)
                 .hasMessage("serverBootstrap must not be null");
-        assertThatThrownBy(() -> new NettyGatewayServer(bootstrap, null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new NettyGatewayServer(bootstrap, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("bindAddress must not be null");
     }
 

@@ -44,8 +44,8 @@ public record GatewayResponse(int statusCode, HttpHeaders headers, byte[] body) 
      */
     public static GatewayResponse text(int statusCode, String content) {
         Objects.requireNonNull(content, "content must not be null");
-        HttpHeaders headers = HttpHeaders.of(Map.of("Content-Type", List.of("text/plain; charset=UTF-8")),
-                (name, value) -> true);
+        HttpHeaders headers =
+                HttpHeaders.of(Map.of("Content-Type", List.of("text/plain; charset=UTF-8")), (name, value) -> true);
 
         return new GatewayResponse(statusCode, headers, content.getBytes(StandardCharsets.UTF_8));
     }

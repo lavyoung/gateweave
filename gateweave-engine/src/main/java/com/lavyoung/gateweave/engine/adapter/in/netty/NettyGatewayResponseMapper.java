@@ -35,8 +35,9 @@ public final class NettyGatewayResponseMapper {
         Objects.requireNonNull(response, "response must not be null");
 
         byte[] body = response.body();
-        DefaultFullHttpResponse nettyResponse = new DefaultFullHttpResponse(protocolVersion,
-                HttpResponseStatus.valueOf(response.statusCode()), Unpooled.wrappedBuffer(body));
+        DefaultFullHttpResponse nettyResponse =
+                new DefaultFullHttpResponse(protocolVersion, HttpResponseStatus.valueOf(response.statusCode()),
+                        Unpooled.wrappedBuffer(body));
         response.headers().map().forEach((name, values) -> nettyResponse.headers().set(name, values));
         HttpUtil.setTransferEncodingChunked(nettyResponse, false);
         HttpUtil.setContentLength(nettyResponse, body.length);

@@ -42,21 +42,21 @@ import static org.mockito.Mockito.when;
 class DefaultGatewayRequestServiceTests {
 
     private static final HttpHeaders EMPTY_HEADERS = HttpHeaders.of(Map.of(), (name, value) -> true);
-    private static final InvocationTarget TARGET = new InvocationTarget(
-            "dubbo", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi",
-            List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
-            Map.of("version", "1.0.0"));
-    private static final GatewayRoute ROUTE = new GatewayRoute(
-            "route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationPolicy.ANONYMOUS,
-            TARGET, Map.of());
+    private static final InvocationTarget TARGET =
+            new InvocationTarget("dubbo", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi",
+                    List.of(new InvocationParameter("name", "java.lang.String")), Duration.ofSeconds(3),
+                    Map.of("version", "1.0.0"));
+    private static final GatewayRoute ROUTE =
+            new GatewayRoute("route-say-hi", "/sayHi", "GET", "activity-service", RouteAuthenticationPolicy.ANONYMOUS,
+                    TARGET, Map.of());
     private static final GatewayRouteTable ROUTE_TABLE = new GatewayRouteTable(List.of(ROUTE));
 
     @Test
     void shouldCompleteSessionMappingAndProtocolInvocationWhenRouteMatches() {
         // Given
         ProtocolInvoker invoker = invoker();
-        when(invoker.invoke(any(InvocationRequest.class)))
-                .thenReturn(CompletableFuture.completedFuture("hi GateWeave"));
+        when(invoker.invoke(any(InvocationRequest.class))).thenReturn(
+                CompletableFuture.completedFuture("hi GateWeave"));
         DefaultGatewayRequestService service = service(invoker);
         GatewayRequestCommand command = request("GET", "/sayHi?name=GateWeave", "");
 
@@ -99,8 +99,8 @@ class DefaultGatewayRequestServiceTests {
         GatewaySessionAuthenticationService authenticationService = mock(GatewaySessionAuthenticationService.class);
         InvocationRequestMapper requestMapper = mock(InvocationRequestMapper.class);
         ProtocolInvocationDispatcher dispatcher = mock(ProtocolInvocationDispatcher.class);
-        DefaultGatewayRequestService service = new DefaultGatewayRequestService(
-                sessionFactory, requestMapper, dispatcher, authenticationService);
+        DefaultGatewayRequestService service =
+                new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher, authenticationService);
         when(authenticationService.authenticate(any(GatewaySession.class))).thenReturn(false);
 
         // When
@@ -123,10 +123,8 @@ class DefaultGatewayRequestServiceTests {
         DefaultGatewayRequestService service = service(invoker);
 
         // When & Then
-        assertThatThrownBy(() -> service.handle(request("GET", "/sayHi?name=GateWeave", ""))
-                .toCompletableFuture().join())
-                .isInstanceOf(CompletionException.class)
-                .hasCause(failure);
+        assertThatThrownBy(() -> service.handle(request("GET", "/sayHi?name=GateWeave", "")).toCompletableFuture()
+                .join()).isInstanceOf(CompletionException.class).hasCause(failure);
     }
 
     @Test
@@ -137,28 +135,24 @@ class DefaultGatewayRequestServiceTests {
         InvocationRequestMapper requestMapper = requestMapper();
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
         GatewaySessionAuthenticationService authenticationService = mock(GatewaySessionAuthenticationService.class);
-        DefaultGatewayRequestService service = new DefaultGatewayRequestService(
-                sessionFactory, requestMapper, dispatcher, authenticationService);
+        DefaultGatewayRequestService service =
+                new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher, authenticationService);
 
         // When & Then
-        assertThatThrownBy(() -> service.handle(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.handle(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("command must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(
-                null, requestMapper, dispatcher, authenticationService))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(null, requestMapper, dispatcher,
+                authenticationService)).isInstanceOf(NullPointerException.class)
                 .hasMessage("sessionFactory must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(
-                sessionFactory, null, dispatcher, authenticationService))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, null, dispatcher,
+                authenticationService)).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestMapper must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(
-                sessionFactory, requestMapper, null, authenticationService))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, requestMapper, null,
+                authenticationService)).isInstanceOf(NullPointerException.class)
                 .hasMessage("invocationDispatcher must not be null");
-        assertThatThrownBy(() -> new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("authenticationService must not be null");
+        assertThatThrownBy(
+                () -> new DefaultGatewayRequestService(sessionFactory, requestMapper, dispatcher, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("authenticationService must not be null");
     }
 
     private static DefaultGatewayRequestService service(ProtocolInvoker invoker) {
@@ -178,8 +172,8 @@ class DefaultGatewayRequestServiceTests {
 
     private static GatewayRequestCommand request(String method, String uri, String body) {
         URI requestUri = URI.create(uri);
-        Map<String, List<String>> queryParameters = requestUri.getQuery() == null
-                ? Map.of() : Map.of("name", List.of("GateWeave"));
+        Map<String, List<String>> queryParameters =
+                requestUri.getQuery() == null ? Map.of() : Map.of("name", List.of("GateWeave"));
         return new GatewayRequestCommand("request-1", method, requestUri, EMPTY_HEADERS,
                 new HttpParameterValues(queryParameters), body.getBytes(StandardCharsets.UTF_8));
     }

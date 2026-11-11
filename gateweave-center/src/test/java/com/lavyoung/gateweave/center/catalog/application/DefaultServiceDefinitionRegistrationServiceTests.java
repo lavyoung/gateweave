@@ -63,8 +63,8 @@ class DefaultServiceDefinitionRegistrationServiceTests {
         DefaultServiceDefinitionRegistrationService service =
                 new DefaultServiceDefinitionRegistrationService(repository);
         ServiceDefinition definition = serviceDefinition();
-        BusinessException failure = new BusinessException(
-                CatalogResponseCode.SERVICE_DEFINITION_CONFLICT, definition.serviceId());
+        BusinessException failure =
+                new BusinessException(CatalogResponseCode.SERVICE_DEFINITION_CONFLICT, definition.serviceId());
         when(repository.register(definition)).thenThrow(failure);
 
         // When & Then
@@ -74,9 +74,8 @@ class DefaultServiceDefinitionRegistrationServiceTests {
     @Test
     void shouldRejectMissingRepository() {
         // When & Then
-        assertThatThrownBy(() -> new DefaultServiceDefinitionRegistrationService(null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("serviceCatalogRepository must not be null");
+        assertThatThrownBy(() -> new DefaultServiceDefinitionRegistrationService(null)).isInstanceOf(
+                NullPointerException.class).hasMessage("serviceCatalogRepository must not be null");
     }
 
     @Test
@@ -87,19 +86,17 @@ class DefaultServiceDefinitionRegistrationServiceTests {
                 new DefaultServiceDefinitionRegistrationService(repository);
 
         // When & Then
-        assertThatThrownBy(() -> service.register(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.register(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("serviceDefinition must not be null");
         verifyNoInteractions(repository);
     }
 
     private static ServiceDefinition serviceDefinition() {
         ServiceOperationParameter parameter = new ServiceOperationParameter(0, "name", "java.lang.String");
-        ServiceOperation operation = new ServiceOperation(
-                "operation-1", "service-1", "com.example.GreetingService", "sayHello",
-                ServiceCatalogStatus.ACTIVE, 0, List.of(parameter));
-        return new ServiceDefinition(
-                "service-1", "greeting-application", "dubbo", "", "1.0.0",
+        ServiceOperation operation =
+                new ServiceOperation("operation-1", "service-1", "com.example.GreetingService", "sayHello",
+                        ServiceCatalogStatus.ACTIVE, 0, List.of(parameter));
+        return new ServiceDefinition("service-1", "greeting-application", "dubbo", "", "1.0.0",
                 ServiceCatalogStatus.ACTIVE, 0, List.of(operation));
     }
 }

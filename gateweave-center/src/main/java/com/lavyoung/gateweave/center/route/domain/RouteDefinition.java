@@ -29,11 +29,11 @@ import java.util.Objects;
  * @version 1.0.0
  * @date 2026/10/30
  */
-public record RouteDefinition(
-        String routeId, String gatewayGroupId, String path, String method, String serviceOperationId,
-        RouteAuthenticationRequirement authenticationRequirement, Duration invocationTimeout,
-        Map<String, String> targetAttributes, Map<String, String> attributes, RouteStatus status,
-        long revision, List<RouteParameterMapping> parameterMappings) {
+public record RouteDefinition(String routeId, String gatewayGroupId, String path, String method,
+                              String serviceOperationId, RouteAuthenticationRequirement authenticationRequirement,
+                              Duration invocationTimeout, Map<String, String> targetAttributes,
+                              Map<String, String> attributes, RouteStatus status, long revision,
+                              List<RouteParameterMapping> parameterMappings) {
 
     /**
      * 校验路由定义不变量并建立集合快照。
@@ -91,10 +91,7 @@ public record RouteDefinition(
             }
         }
 
-        long distinctNames = parameterMappings.stream()
-                .map(RouteParameterMapping::requestName)
-                .distinct()
-                .count();
+        long distinctNames = parameterMappings.stream().map(RouteParameterMapping::requestName).distinct().count();
         if (distinctNames != parameterMappings.size()) {
             throw new IllegalArgumentException("request parameter names must not be duplicated");
         }

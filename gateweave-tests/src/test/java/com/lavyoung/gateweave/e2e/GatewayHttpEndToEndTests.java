@@ -49,8 +49,7 @@ class GatewayHttpEndToEndTests {
 
     private static final String JWT_ISSUER = "gateweave-issuer";
     private static final String JWT_AUDIENCE = "gateweave-engine";
-    private static final byte[] JWT_KEY_BYTES =
-            "01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] JWT_KEY_BYTES = "01234567890123456789012345678901".getBytes(StandardCharsets.UTF_8);
     private static final String JWT_KEY_BASE64 = Base64.getEncoder().encodeToString(JWT_KEY_BYTES);
 
     @Test
@@ -61,14 +60,14 @@ class GatewayHttpEndToEndTests {
         AtomicReference<String> downstreamBody = new AtomicReference<>();
         AtomicReference<String> downstreamTraceId = new AtomicReference<>();
         AtomicInteger downstreamInvocations = new AtomicInteger();
-        HttpServer downstreamServer = createDownstreamServer(
-                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        HttpServer downstreamServer =
+                createDownstreamServer(downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
         HttpServer controlPlaneServer = createControlPlaneServerWithPublishedConfiguration(downstreamPort);
         int controlPlanePort = controlPlaneServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
-        ApplicationContextRunner contextRunner = createContextRunner(
-                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+        ApplicationContextRunner contextRunner =
+                createContextRunner(gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
 
         // When & Then
         downstreamServer.start();
@@ -79,13 +78,12 @@ class GatewayHttpEndToEndTests {
                 assertThat(context).hasNotFailed();
                 assertThat(context.getBean(GatewayRouteTable.class).currentVersion()).isEqualTo(1);
 
-                HttpRequest request = HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + gatewayPort + "/published/http"))
-                        .header("Content-Type", "text/plain; charset=UTF-8")
-                        .POST(HttpRequest.BodyPublishers.ofString("published", StandardCharsets.UTF_8))
-                        .build();
-                HttpResponse<String> response = HttpClient.newHttpClient().send(
-                        request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                HttpRequest request =
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + gatewayPort + "/published/http"))
+                                .header("Content-Type", "text/plain; charset=UTF-8")
+                                .POST(HttpRequest.BodyPublishers.ofString("published", StandardCharsets.UTF_8)).build();
+                HttpResponse<String> response = HttpClient.newHttpClient()
+                        .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 assertThat(response.statusCode()).isEqualTo(200);
                 assertThat(response.body()).isEqualTo("downstream:published");
@@ -106,16 +104,15 @@ class GatewayHttpEndToEndTests {
         AtomicReference<String> downstreamBody = new AtomicReference<>();
         AtomicReference<String> downstreamTraceId = new AtomicReference<>();
         AtomicInteger downstreamInvocations = new AtomicInteger();
-        HttpServer downstreamServer = createDownstreamServer(
-                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        HttpServer downstreamServer =
+                createDownstreamServer(downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
         AtomicBoolean configurationPublished = new AtomicBoolean();
-        HttpServer controlPlaneServer = createSwitchingControlPlaneServer(
-                downstreamPort, configurationPublished);
+        HttpServer controlPlaneServer = createSwitchingControlPlaneServer(downstreamPort, configurationPublished);
         int controlPlanePort = controlPlaneServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
-        ApplicationContextRunner contextRunner = createContextRunner(
-                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+        ApplicationContextRunner contextRunner =
+                createContextRunner(gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
 
         // When & Then
         downstreamServer.start();
@@ -132,12 +129,11 @@ class GatewayHttpEndToEndTests {
                 nodeLifecycle.refreshConfiguration();
 
                 assertThat(routeTable.currentVersion()).isEqualTo(1);
-                HttpRequest request = HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + gatewayPort + "/published/http"))
-                        .POST(HttpRequest.BodyPublishers.ofString("refreshed", StandardCharsets.UTF_8))
-                        .build();
-                HttpResponse<String> response = HttpClient.newHttpClient().send(
-                        request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                HttpRequest request =
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + gatewayPort + "/published/http"))
+                                .POST(HttpRequest.BodyPublishers.ofString("refreshed", StandardCharsets.UTF_8)).build();
+                HttpResponse<String> response = HttpClient.newHttpClient()
+                        .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 assertThat(response.statusCode()).isEqualTo(200);
                 assertThat(response.body()).isEqualTo("downstream:refreshed");
@@ -157,8 +153,8 @@ class GatewayHttpEndToEndTests {
         AtomicReference<String> downstreamBody = new AtomicReference<>();
         AtomicReference<String> downstreamTraceId = new AtomicReference<>();
         AtomicInteger downstreamInvocations = new AtomicInteger();
-        HttpServer downstreamServer = createDownstreamServer(
-                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        HttpServer downstreamServer =
+                createDownstreamServer(downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
         HttpServer controlPlaneServer = createControlPlaneServer();
         int controlPlanePort = controlPlaneServer.getAddress().getPort();
@@ -167,8 +163,8 @@ class GatewayHttpEndToEndTests {
         AtomicReference<EventLoopGroup> bossGroupReference = new AtomicReference<>();
         AtomicReference<EventLoopGroup> workerGroupReference = new AtomicReference<>();
         AtomicReference<ThreadPoolExecutor> httpExecutorReference = new AtomicReference<>();
-        ApplicationContextRunner contextRunner = createContextRunner(
-                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+        ApplicationContextRunner contextRunner =
+                createContextRunner(gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
 
         // When & Then
         downstreamServer.start();
@@ -182,14 +178,13 @@ class GatewayHttpEndToEndTests {
                 workerGroupReference.set(context.getBean("gatewayWorkerGroup", EventLoopGroup.class));
                 httpExecutorReference.set(context.getBean("gatewayHttpExecutor", ThreadPoolExecutor.class));
 
-                HttpRequest request = HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
-                        .header("Content-Type", "text/plain; charset=UTF-8")
-                        .header("X-Trace-Id", "trace-http-1")
-                        .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8))
-                        .build();
-                HttpResponse<String> response = HttpClient.newHttpClient().send(
-                        request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                HttpRequest request =
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
+                                .header("Content-Type", "text/plain; charset=UTF-8")
+                                .header("X-Trace-Id", "trace-http-1")
+                                .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8)).build();
+                HttpResponse<String> response = HttpClient.newHttpClient()
+                        .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 assertThat(response.statusCode()).isEqualTo(200);
                 assertThat(response.body()).isEqualTo("downstream:GateWeave");
@@ -222,14 +217,14 @@ class GatewayHttpEndToEndTests {
         AtomicReference<String> downstreamBody = new AtomicReference<>();
         AtomicReference<String> downstreamTraceId = new AtomicReference<>();
         AtomicInteger downstreamInvocations = new AtomicInteger();
-        HttpServer downstreamServer = createDownstreamServer(
-                downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
+        HttpServer downstreamServer =
+                createDownstreamServer(downstreamMethod, downstreamBody, downstreamTraceId, downstreamInvocations);
         int downstreamPort = downstreamServer.getAddress().getPort();
         HttpServer controlPlaneServer = createControlPlaneServer();
         int controlPlanePort = controlPlaneServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
-        ApplicationContextRunner contextRunner = createContextRunner(
-                gatewayPort, downstreamPort, controlPlanePort, "REQUIRED");
+        ApplicationContextRunner contextRunner =
+                createContextRunner(gatewayPort, downstreamPort, controlPlanePort, "REQUIRED");
 
         // When & Then
         downstreamServer.start();
@@ -239,24 +234,22 @@ class GatewayHttpEndToEndTests {
             contextRunner.run(context -> {
                 assertThat(context).hasNotFailed();
 
-                HttpRequest missingTokenRequest = HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
-                        .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8))
-                        .build();
-                HttpResponse<String> unauthorizedResponse = HttpClient.newHttpClient().send(
-                        missingTokenRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                HttpRequest missingTokenRequest =
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
+                                .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8)).build();
+                HttpResponse<String> unauthorizedResponse = HttpClient.newHttpClient()
+                        .send(missingTokenRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 assertThat(unauthorizedResponse.statusCode()).isEqualTo(401);
                 assertThat(unauthorizedResponse.headers().firstValue("WWW-Authenticate")).contains("Bearer");
                 assertThat(downstreamInvocations.get()).isZero();
 
-                HttpRequest authenticatedRequest = HttpRequest.newBuilder(
-                                URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
-                        .header("Authorization", "Bearer " + createJwt())
-                        .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8))
-                        .build();
-                HttpResponse<String> authenticatedResponse = HttpClient.newHttpClient().send(
-                        authenticatedRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                HttpRequest authenticatedRequest =
+                        HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + gatewayPort + "/proxy/http"))
+                                .header("Authorization", "Bearer " + createJwt())
+                                .POST(HttpRequest.BodyPublishers.ofString("GateWeave", StandardCharsets.UTF_8)).build();
+                HttpResponse<String> authenticatedResponse = HttpClient.newHttpClient()
+                        .send(authenticatedRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
                 assertThat(authenticatedResponse.statusCode()).isEqualTo(200);
                 assertThat(authenticatedResponse.body()).isEqualTo("downstream:GateWeave");
@@ -288,8 +281,8 @@ class GatewayHttpEndToEndTests {
         });
         int controlPlanePort = controlPlaneServer.getAddress().getPort();
         SimpleReferenceCache referenceCache = mock(SimpleReferenceCache.class);
-        ApplicationContextRunner contextRunner = createContextRunner(
-                gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
+        ApplicationContextRunner contextRunner =
+                createContextRunner(gatewayPort, downstreamPort, controlPlanePort, "ANONYMOUS");
 
         // When
         controlPlaneServer.start();
@@ -305,37 +298,28 @@ class GatewayHttpEndToEndTests {
         }
     }
 
-    private static ApplicationContextRunner createContextRunner(
-            int gatewayPort, int downstreamPort, int controlPlanePort, String authenticationMode) {
-        return new ApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(JacksonAutoConfiguration.class,
-                        HttpMessageConvertersAutoConfiguration.class, RestClientAutoConfiguration.class))
+    private static ApplicationContextRunner createContextRunner(int gatewayPort, int downstreamPort,
+            int controlPlanePort, String authenticationMode) {
+        return new ApplicationContextRunner().withConfiguration(
+                        AutoConfigurations.of(JacksonAutoConfiguration.class,
+                                HttpMessageConvertersAutoConfiguration.class,
+                                RestClientAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class, GatewaySecurityConfiguration.class)
-                .withPropertyValues(
-                        "gateweave.server.host=127.0.0.1",
-                        "gateweave.server.port=" + gatewayPort,
-                        "gateweave.server.max-content-length=1048576",
-                        "gateweave.server.boss-threads=1",
-                        "gateweave.server.worker-threads=1",
-                        "gateweave.server.connection-backlog=128",
+                .withPropertyValues("gateweave.server.host=127.0.0.1", "gateweave.server.port=" + gatewayPort,
+                        "gateweave.server.max-content-length=1048576", "gateweave.server.boss-threads=1",
+                        "gateweave.server.worker-threads=1", "gateweave.server.connection-backlog=128",
                         "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
-                        "gateweave.control-plane.node-id=e2e-node",
-                        "gateweave.control-plane.gateway-group-id=default",
+                        "gateweave.control-plane.node-id=e2e-node", "gateweave.control-plane.gateway-group-id=default",
                         "gateweave.control-plane.node-name=E2E Gateway Node",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,
-                        "gateweave.control-plane.request-timeout=2s",
-                        "gateweave.control-plane.refresh-interval=PT1H",
+                        "gateweave.control-plane.request-timeout=2s", "gateweave.control-plane.refresh-interval=PT1H",
                         "gateweave.rpc.application-name=gateweave-http-test",
                         "gateweave.rpc.registry-address=zookeeper://127.0.0.1:2181",
-                        "gateweave.rpc.discovery-mode=INTERFACE",
-                        "gateweave.http.connect-timeout=2s",
-                        "gateweave.http.core-threads=1",
-                        "gateweave.http.maximum-threads=2",
-                        "gateweave.http.queue-capacity=16",
-                        "gateweave.http.keep-alive=30s",
+                        "gateweave.rpc.discovery-mode=INTERFACE", "gateweave.http.connect-timeout=2s",
+                        "gateweave.http.core-threads=1", "gateweave.http.maximum-threads=2",
+                        "gateweave.http.queue-capacity=16", "gateweave.http.keep-alive=30s",
                         "gateweave.routing.routes[0].route-id=route-http-proxy",
-                        "gateweave.routing.routes[0].path=/proxy/http",
-                        "gateweave.routing.routes[0].method=POST",
+                        "gateweave.routing.routes[0].path=/proxy/http", "gateweave.routing.routes[0].method=POST",
                         "gateweave.routing.routes[0].service-id=local-http-service",
                         "gateweave.routing.routes[0].authentication-mode=" + authenticationMode,
                         "gateweave.routing.routes[0].target.protocol=http",
@@ -347,15 +331,14 @@ class GatewayHttpEndToEndTests {
                         "gateweave.security.jwt.issuer=" + JWT_ISSUER,
                         "gateweave.security.jwt.audience=" + JWT_AUDIENCE,
                         "gateweave.security.jwt.verification-key-base64=" + JWT_KEY_BASE64,
-                        "gateweave.security.jwt.clock-skew=0s",
-                        "gateweave.security.jwt.maximum-token-length=4096");
+                        "gateweave.security.jwt.clock-skew=0s", "gateweave.security.jwt.maximum-token-length=4096");
     }
 
     private static HttpServer createDownstreamServer(AtomicReference<String> method, AtomicReference<String> body,
             AtomicReference<String> traceId, AtomicInteger invocations) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext(
-                "/downstream", exchange -> handleDownstreamRequest(exchange, method, body, traceId, invocations));
+        server.createContext("/downstream",
+                exchange -> handleDownstreamRequest(exchange, method, body, traceId, invocations));
         return server;
     }
 
@@ -366,8 +349,8 @@ class GatewayHttpEndToEndTests {
         });
     }
 
-    private static HttpServer createControlPlaneServerWithPublishedConfiguration(int downstreamPort)
-            throws IOException {
+    private static HttpServer createControlPlaneServerWithPublishedConfiguration(int downstreamPort) throws
+            IOException {
         byte[] response = publishedConfigurationResponse(downstreamPort).getBytes(StandardCharsets.UTF_8);
         return createControlPlaneServer(exchange -> {
             exchange.getResponseHeaders().set("Content-Type", "application/json");
@@ -378,8 +361,8 @@ class GatewayHttpEndToEndTests {
         });
     }
 
-    private static HttpServer createSwitchingControlPlaneServer(
-            int downstreamPort, AtomicBoolean configurationPublished) throws IOException {
+    private static HttpServer createSwitchingControlPlaneServer(int downstreamPort,
+            AtomicBoolean configurationPublished) throws IOException {
         byte[] response = publishedConfigurationResponse(downstreamPort).getBytes(StandardCharsets.UTF_8);
         return createControlPlaneServer(exchange -> {
             if (!configurationPublished.get()) {
@@ -402,8 +385,8 @@ class GatewayHttpEndToEndTests {
         });
     }
 
-    private static HttpServer createControlPlaneServer(
-            HttpHandler configurationHandler, HttpHandler leaseHandler) throws IOException {
+    private static HttpServer createControlPlaneServer(HttpHandler configurationHandler,
+            HttpHandler leaseHandler) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/api/v1/gateway-nodes/e2e-node/lease", leaseHandler);
         server.createContext("/api/v1/gateway-nodes", exchange -> {
@@ -426,8 +409,7 @@ class GatewayHttpEndToEndTests {
                 outputStream.write(response);
             }
         });
-        server.createContext(
-                "/api/v1/gateway-groups/default/configuration-releases/latest", configurationHandler);
+        server.createContext("/api/v1/gateway-groups/default/configuration-releases/latest", configurationHandler);
         return server;
     }
 
@@ -466,8 +448,8 @@ class GatewayHttpEndToEndTests {
     }
 
     private static void handleDownstreamRequest(HttpExchange exchange, AtomicReference<String> method,
-            AtomicReference<String> body, AtomicReference<String> traceId, AtomicInteger invocations)
-            throws IOException {
+            AtomicReference<String> body, AtomicReference<String> traceId, AtomicInteger invocations) throws
+            IOException {
         invocations.incrementAndGet();
         method.set(exchange.getRequestMethod());
         traceId.set(exchange.getRequestHeaders().getFirst("X-Trace-Id"));
@@ -483,15 +465,8 @@ class GatewayHttpEndToEndTests {
 
     private static String createJwt() {
         SecretKey key = new SecretKeySpec(JWT_KEY_BYTES, "HmacSHA256");
-        return Jwts.builder()
-                .issuer(JWT_ISSUER)
-                .audience()
-                .add(JWT_AUDIENCE)
-                .and()
-                .subject("user-10001")
-                .expiration(Date.from(Instant.now().plusSeconds(300)))
-                .signWith(key, Jwts.SIG.HS256)
-                .compact();
+        return Jwts.builder().issuer(JWT_ISSUER).audience().add(JWT_AUDIENCE).and().subject("user-10001")
+                .expiration(Date.from(Instant.now().plusSeconds(300))).signWith(key, Jwts.SIG.HS256).compact();
     }
 
     private static int findAvailablePort() throws IOException {

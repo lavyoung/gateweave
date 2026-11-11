@@ -27,16 +27,16 @@ class ServiceDefinitionTests {
 
         // Then
         assertThat(service.operations()).containsExactly(sayHi);
-        assertThatThrownBy(() -> service.operations().add(create))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> service.operations().add(create)).isInstanceOf(UnsupportedOperationException.class);
         assertThat(service.revision()).isEqualTo(3L);
     }
 
     @Test
     void shouldAllowEmptyNamespaceVersionAndOperations() {
         // When
-        ServiceDefinition service = new ServiceDefinition(SERVICE_ID, "activity-application", "http", "", "",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of());
+        ServiceDefinition service =
+                new ServiceDefinition(SERVICE_ID, "activity-application", "http", "", "", ServiceCatalogStatus.ACTIVE,
+                        0L, List.of());
 
         // Then
         assertThat(service.namespace()).isEmpty();
@@ -47,50 +47,44 @@ class ServiceDefinitionTests {
     @Test
     void shouldRejectMissingReferences() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceDefinition(null, "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("serviceId must not be null");
-        assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, null, "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(
+                () -> new ServiceDefinition(null, "application", "dubbo", "", "1.0.0", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(NullPointerException.class).hasMessage("serviceId must not be null");
+        assertThatThrownBy(
+                () -> new ServiceDefinition(SERVICE_ID, null, "dubbo", "", "1.0.0", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("applicationName must not be null");
-        assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", null, "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(
+                () -> new ServiceDefinition(SERVICE_ID, "application", null, "", "1.0.0", ServiceCatalogStatus.ACTIVE,
+                        0L, List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("protocol must not be null");
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", null, "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
+                ServiceCatalogStatus.ACTIVE, 0L, List.of())).isInstanceOf(NullPointerException.class)
                 .hasMessage("namespace must not be null");
-        assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", null,
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("version must not be null");
-        assertThatThrownBy(() -> new ServiceDefinition(
-                SERVICE_ID, "application", "dubbo", "", "1.0.0", null, 0L, List.of()))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("status must not be null");
+        assertThatThrownBy(
+                () -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", null, ServiceCatalogStatus.ACTIVE,
+                        0L, List.of())).isInstanceOf(NullPointerException.class).hasMessage("version must not be null");
+        assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0", null, 0L,
+                List.of())).isInstanceOf(NullPointerException.class).hasMessage("status must not be null");
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, null))
-                .isInstanceOf(NullPointerException.class)
+                ServiceCatalogStatus.ACTIVE, 0L, null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("operations must not be null");
     }
 
     @Test
     void shouldRejectBlankRequiredValues() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceDefinition(" ", "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceDefinition(" ", "application", "dubbo", "", "1.0.0", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("serviceId must not be blank");
-        assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, " ", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceDefinition(SERVICE_ID, " ", "dubbo", "", "1.0.0", ServiceCatalogStatus.ACTIVE, 0L,
+                        List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("applicationName must not be blank");
-        assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", " ", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new ServiceDefinition(SERVICE_ID, "application", " ", "", "1.0.0", ServiceCatalogStatus.ACTIVE,
+                        0L, List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("protocol must not be blank");
     }
 
@@ -98,22 +92,20 @@ class ServiceDefinitionTests {
     void shouldRejectNegativeRevision() {
         // When & Then
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, -1L, List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
+                ServiceCatalogStatus.ACTIVE, -1L, List.of())).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("revision must not be negative");
     }
 
     @Test
     void shouldRejectOperationBelongingToAnotherService() {
         // Given
-        ServiceOperation foreignOperation = operation(
-                "payment-create", "payment-service", "cn.example.PaymentService", "create");
+        ServiceOperation foreignOperation =
+                operation("payment-create", "payment-service", "cn.example.PaymentService", "create");
 
         // When & Then
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of(foreignOperation)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("operations must belong to the service");
+                ServiceCatalogStatus.ACTIVE, 0L, List.of(foreignOperation))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("operations must belong to the service");
     }
 
     @Test
@@ -124,8 +116,7 @@ class ServiceDefinitionTests {
 
         // When & Then
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of(first, second)))
-                .isInstanceOf(IllegalArgumentException.class)
+                ServiceCatalogStatus.ACTIVE, 0L, List.of(first, second))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("operationIds must not be duplicated");
     }
 
@@ -137,14 +128,13 @@ class ServiceDefinitionTests {
 
         // When & Then
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0",
-                ServiceCatalogStatus.ACTIVE, 0L, List.of(first, second)))
-                .isInstanceOf(IllegalArgumentException.class)
+                ServiceCatalogStatus.ACTIVE, 0L, List.of(first, second))).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("operation definitions must not be duplicated");
     }
 
-    private static ServiceOperation operation(
-            String operationId, String serviceId, String interfaceName, String operationName) {
-        return new ServiceOperation(operationId, serviceId, interfaceName, operationName,
-                ServiceCatalogStatus.ACTIVE, 0L, List.of());
+    private static ServiceOperation operation(String operationId, String serviceId, String interfaceName,
+            String operationName) {
+        return new ServiceOperation(operationId, serviceId, interfaceName, operationName, ServiceCatalogStatus.ACTIVE,
+                0L, List.of());
     }
 }

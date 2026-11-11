@@ -48,8 +48,7 @@ class ProtocolInvocationDispatcherTests {
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
 
         // When & Then
-        assertThatThrownBy(() -> dispatcher.prepare(target("http")))
-                .isInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> dispatcher.prepare(target("http"))).isInstanceOf(IllegalStateException.class)
                 .hasMessage("No protocol invoker registered for: http");
         verify(invoker, never()).prepare(any());
     }
@@ -94,9 +93,8 @@ class ProtocolInvocationDispatcherTests {
         when(second.protocol()).thenReturn("DUBBO");
 
         // When & Then
-        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of(first, second)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("duplicate protocol invoker: dubbo");
+        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of(first, second))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("duplicate protocol invoker: dubbo");
     }
 
     @Test
@@ -107,9 +105,8 @@ class ProtocolInvocationDispatcherTests {
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
 
         // When & Then
-        assertThatThrownBy(() -> dispatcher.invoke(request("http")).toCompletableFuture().join())
-                .isInstanceOf(CompletionException.class)
-                .hasCauseInstanceOf(IllegalStateException.class)
+        assertThatThrownBy(() -> dispatcher.invoke(request("http")).toCompletableFuture().join()).isInstanceOf(
+                        CompletionException.class).hasCauseInstanceOf(IllegalStateException.class)
                 .hasRootCauseMessage("No protocol invoker registered for: http");
     }
 
@@ -124,9 +121,8 @@ class ProtocolInvocationDispatcherTests {
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
 
         // When & Then
-        assertThatThrownBy(() -> dispatcher.invoke(request).toCompletableFuture().join())
-                .isInstanceOf(CompletionException.class)
-                .hasCause(failure);
+        assertThatThrownBy(() -> dispatcher.invoke(request).toCompletableFuture().join()).isInstanceOf(
+                CompletionException.class).hasCause(failure);
     }
 
     @Test
@@ -139,9 +135,8 @@ class ProtocolInvocationDispatcherTests {
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
 
         // When & Then
-        assertThatThrownBy(() -> dispatcher.invoke(request).toCompletableFuture().join())
-                .isInstanceOf(CompletionException.class)
-                .hasCauseInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> dispatcher.invoke(request).toCompletableFuture().join()).isInstanceOf(
+                        CompletionException.class).hasCauseInstanceOf(NullPointerException.class)
                 .hasRootCauseMessage("protocol invoker must not return null");
     }
 
@@ -154,18 +149,14 @@ class ProtocolInvocationDispatcherTests {
         when(blankProtocolInvoker.protocol()).thenReturn(" ");
 
         // When & Then
-        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("invokers must not be null");
-        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invokers must not be empty");
-        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of(nullProtocolInvoker)))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("protocol invoker must return a protocol");
-        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of(blankProtocolInvoker)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("protocol invoker protocol must not be blank");
+        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of())).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("invokers must not be empty");
+        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of(nullProtocolInvoker))).isInstanceOf(
+                NullPointerException.class).hasMessage("protocol invoker must return a protocol");
+        assertThatThrownBy(() -> new ProtocolInvocationDispatcher(List.of(blankProtocolInvoker))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("protocol invoker protocol must not be blank");
     }
 
     @Test
@@ -176,20 +167,17 @@ class ProtocolInvocationDispatcherTests {
         ProtocolInvocationDispatcher dispatcher = new ProtocolInvocationDispatcher(List.of(invoker));
 
         // When & Then
-        assertThatThrownBy(() -> dispatcher.invoke(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> dispatcher.invoke(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("request must not be null");
-        assertThatThrownBy(() -> dispatcher.prepare(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> dispatcher.prepare(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("target must not be null");
     }
 
     private static InvocationRequest request(String protocol) {
         GenericInvocationArguments arguments =
                 new GenericInvocationArguments(List.of("java.lang.String"), List.of("GateWeave"));
-        return new InvocationRequest("request-1", "route-1", protocol, "demo.GreetingService", "sayHello",
-                arguments, Duration.ofSeconds(3), Map.of(), Map.of(),
-                "GateWeave".getBytes(StandardCharsets.UTF_8));
+        return new InvocationRequest("request-1", "route-1", protocol, "demo.GreetingService", "sayHello", arguments,
+                Duration.ofSeconds(3), Map.of(), Map.of(), "GateWeave".getBytes(StandardCharsets.UTF_8));
     }
 
     private static InvocationTargetConfiguration target(String protocol) {

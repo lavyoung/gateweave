@@ -49,10 +49,8 @@ class ServiceDefinitionRegistrationControllerTests {
     private final LocalizedResultFactory resultFactory;
 
     @Autowired
-    ServiceDefinitionRegistrationControllerTests(
-            MockMvc mockMvc,
-            RegisterServiceDefinitionUseCase registerServiceDefinitionUseCase,
-            LocalizedResultFactory resultFactory) {
+    ServiceDefinitionRegistrationControllerTests(MockMvc mockMvc,
+            RegisterServiceDefinitionUseCase registerServiceDefinitionUseCase, LocalizedResultFactory resultFactory) {
         this.mockMvc = mockMvc;
         this.registerServiceDefinitionUseCase = registerServiceDefinitionUseCase;
         this.resultFactory = resultFactory;
@@ -66,15 +64,12 @@ class ServiceDefinitionRegistrationControllerTests {
     @Test
     void shouldReturnCreatedAndMapCompleteDefinition() throws Exception {
         // Given
-        when(this.registerServiceDefinitionUseCase.register(any(ServiceDefinition.class)))
-                .thenReturn(CatalogRegistrationOutcome.CREATED);
+        when(this.registerServiceDefinitionUseCase.register(any(ServiceDefinition.class))).thenReturn(
+                CatalogRegistrationOutcome.CREATED);
 
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequestBody()))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
+        this.mockMvc.perform(post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(validRequestBody()))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.serviceId").value("activity-service"))
                 .andExpect(jsonPath("$.data.outcome").value("CREATED"));
@@ -87,15 +82,12 @@ class ServiceDefinitionRegistrationControllerTests {
     @Test
     void shouldReturnOkWhenDefinitionIsUnchanged() throws Exception {
         // Given
-        when(this.registerServiceDefinitionUseCase.register(any(ServiceDefinition.class)))
-                .thenReturn(CatalogRegistrationOutcome.UNCHANGED);
+        when(this.registerServiceDefinitionUseCase.register(any(ServiceDefinition.class))).thenReturn(
+                CatalogRegistrationOutcome.UNCHANGED);
 
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequestBody()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.serviceId").value("activity-service"))
+        this.mockMvc.perform(post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).content(validRequestBody()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.serviceId").value("activity-service"))
                 .andExpect(jsonPath("$.data.outcome").value("UNCHANGED"));
     }
 
@@ -105,11 +97,9 @@ class ServiceDefinitionRegistrationControllerTests {
         String requestBody = validRequestBody().replace("\"position\": 0", "\"position\": -1");
 
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .content(requestBody))
-                .andExpect(status().isBadRequest())
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                                .content(requestBody)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON-0001"))
                 .andExpect(jsonPath("$.message").value("Request parameters are invalid"));
 
@@ -122,11 +112,9 @@ class ServiceDefinitionRegistrationControllerTests {
         String requestBody = validRequestBody().replace("\"position\": 0", "\"position\": 1");
 
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .content(requestBody))
-                .andExpect(status().isBadRequest())
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                                .content(requestBody)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON-0001"));
 
         verify(this.registerServiceDefinitionUseCase, never()).register(any(ServiceDefinition.class));
@@ -135,22 +123,18 @@ class ServiceDefinitionRegistrationControllerTests {
     @Test
     void shouldReturnLocalizedBusinessFailureForDefinitionConflict() throws Exception {
         // Given
-        when(this.registerServiceDefinitionUseCase.register(any(ServiceDefinition.class)))
-                .thenThrow(new BusinessException(
-                        CatalogResponseCode.SERVICE_DEFINITION_CONFLICT, "activity-service"));
+        when(this.registerServiceDefinitionUseCase.register(any(ServiceDefinition.class))).thenThrow(
+                new BusinessException(CatalogResponseCode.SERVICE_DEFINITION_CONFLICT, "activity-service"));
 
         // When & Then
-        this.mockMvc.perform(post(ENDPOINT)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .header(RequestIdFilter.REQUEST_ID_HEADER, "request-catalog-conflict")
-                        .content(validRequestBody()))
-                .andExpect(status().isUnprocessableEntity())
+        this.mockMvc.perform(
+                        post(ENDPOINT).contentType(MediaType.APPLICATION_JSON).header(HttpHeaders.ACCEPT_LANGUAGE, "en")
+                                .header(RequestIdFilter.REQUEST_ID_HEADER, "request-catalog-conflict")
+                                .content(validRequestBody())).andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-catalog-conflict"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("CATALOG-0002"))
-                .andExpect(jsonPath("$.message")
-                        .value("Service activity-service already exists with a different definition"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("CATALOG-0002"))
+                .andExpect(jsonPath("$.message").value(
+                        "Service activity-service already exists with a different definition"))
                 .andExpect(jsonPath("$.data.path").value(ENDPOINT))
                 .andExpect(jsonPath("$.data.requestId").value("request-catalog-conflict"));
     }
@@ -158,34 +142,19 @@ class ServiceDefinitionRegistrationControllerTests {
     @Test
     void shouldRejectMissingDependencies() {
         // When & Then
-        assertThatThrownBy(() -> new ServiceDefinitionRegistrationController(null, this.resultFactory))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("registerServiceDefinitionUseCase must not be null");
-        assertThatThrownBy(() -> new ServiceDefinitionRegistrationController(
-                this.registerServiceDefinitionUseCase, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("resultFactory must not be null");
+        assertThatThrownBy(() -> new ServiceDefinitionRegistrationController(null, this.resultFactory)).isInstanceOf(
+                NullPointerException.class).hasMessage("registerServiceDefinitionUseCase must not be null");
+        assertThatThrownBy(() -> new ServiceDefinitionRegistrationController(this.registerServiceDefinitionUseCase,
+                null)).isInstanceOf(NullPointerException.class).hasMessage("resultFactory must not be null");
     }
 
     private static ServiceDefinition expectedDefinition() {
         ServiceOperationParameter parameter = new ServiceOperationParameter(0, "name", "java.lang.String");
-        ServiceOperation operation = new ServiceOperation(
-                "activity-query",
-                "activity-service",
-                "cn.example.ActivityService",
-                "query",
-                ServiceCatalogStatus.ACTIVE,
-                0L,
-                List.of(parameter));
-        return new ServiceDefinition(
-                "activity-service",
-                "activity-application",
-                "dubbo",
-                "production",
-                "1.0.0",
-                ServiceCatalogStatus.ACTIVE,
-                0L,
-                List.of(operation));
+        ServiceOperation operation =
+                new ServiceOperation("activity-query", "activity-service", "cn.example.ActivityService", "query",
+                        ServiceCatalogStatus.ACTIVE, 0L, List.of(parameter));
+        return new ServiceDefinition("activity-service", "activity-application", "dubbo", "production", "1.0.0",
+                ServiceCatalogStatus.ACTIVE, 0L, List.of(operation));
     }
 
     private static String validRequestBody() {

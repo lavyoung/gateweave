@@ -88,17 +88,15 @@ class DefaultRouteQueryServiceTests {
         DefaultRouteQueryService service = new DefaultRouteQueryService(repository);
 
         // When & Then
-        assertThatThrownBy(() -> new DefaultRouteQueryService(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> new DefaultRouteQueryService(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("routeRepository must not be null");
-        assertThatThrownBy(() -> service.query(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> service.query(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("query must not be null");
     }
 
     private static RouteDefinition route(String routeId, String path) {
         return new RouteDefinition(routeId, "default", path, "GET", "activity-query",
-                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(),
-                RouteStatus.ENABLED, 0L, List.of());
+                RouteAuthenticationRequirement.REQUIRED, Duration.ofSeconds(3), Map.of(), Map.of(), RouteStatus.ENABLED,
+                0L, List.of());
     }
 }

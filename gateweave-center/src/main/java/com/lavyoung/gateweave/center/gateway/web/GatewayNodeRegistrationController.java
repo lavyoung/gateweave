@@ -45,11 +45,10 @@ public class GatewayNodeRegistrationController {
      * @param leaseProperties            节点租约时间配置
      * @throws NullPointerException 任一依赖为 null 时抛出
      */
-    public GatewayNodeRegistrationController(
-            RegisterGatewayNodeUseCase registerGatewayNodeUseCase, LocalizedResultFactory resultFactory,
-            GatewayNodeLeaseProperties leaseProperties) {
-        this.registerGatewayNodeUseCase = Objects.requireNonNull(
-                registerGatewayNodeUseCase, "registerGatewayNodeUseCase must not be null");
+    public GatewayNodeRegistrationController(RegisterGatewayNodeUseCase registerGatewayNodeUseCase,
+            LocalizedResultFactory resultFactory, GatewayNodeLeaseProperties leaseProperties) {
+        this.registerGatewayNodeUseCase =
+                Objects.requireNonNull(registerGatewayNodeUseCase, "registerGatewayNodeUseCase must not be null");
         this.resultFactory = Objects.requireNonNull(resultFactory, "resultFactory must not be null");
         this.leaseProperties = Objects.requireNonNull(leaseProperties, "leaseProperties must not be null");
     }
@@ -64,15 +63,16 @@ public class GatewayNodeRegistrationController {
      */
     @PostMapping
     public ResponseEntity<Result<GatewayNodeLease>> register(@RequestBody RegisterGatewayNodeRequest request) {
-        GatewayNodeRegistration registration = new GatewayNodeRegistration(
-                request.nodeId(), request.gatewayGroupId(), request.nodeName(), request.advertisedAddress());
+        GatewayNodeRegistration registration =
+                new GatewayNodeRegistration(request.nodeId(), request.gatewayGroupId(), request.nodeName(),
+                        request.advertisedAddress());
         GatewayNodeRegistrationResult registrationResult = this.registerGatewayNodeUseCase.register(registration);
         GatewayNode node = registrationResult.node();
         GatewayNodeLease lease = new GatewayNodeLease(node.registration().nodeId(), node.leaseId(),
                 this.leaseProperties.heartbeatInterval(), this.leaseProperties.leaseTimeout());
-        HttpStatus status = registrationResult.outcome() == GatewayNodeRegistrationOutcome.REGISTERED
-                ? HttpStatus.CREATED
-                : HttpStatus.OK;
+        HttpStatus status =
+                registrationResult.outcome() == GatewayNodeRegistrationOutcome.REGISTERED ? HttpStatus.CREATED :
+                        HttpStatus.OK;
         return ResponseEntity.status(status).body(this.resultFactory.success(lease));
     }
 }

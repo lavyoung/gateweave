@@ -18,19 +18,18 @@ import static org.assertj.core.api.Assertions.tuple;
 
 class GatewayRouteConfigurationMapperTests {
 
-    private static final InvocationTargetConfiguration TARGET_CONFIGURATION = new InvocationTargetConfiguration(
-            "DUBBO", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi",
-            List.of(new InvocationParameterConfiguration("name", "java.lang.String")),
-            Duration.ofSeconds(3), Map.of("version", "1.0.0"));
+    private static final InvocationTargetConfiguration TARGET_CONFIGURATION =
+            new InvocationTargetConfiguration("DUBBO", "cn.bugstack.gateway.rpc.IActivityBooth", "sayHi",
+                    List.of(new InvocationParameterConfiguration("name", "java.lang.String")), Duration.ofSeconds(3),
+                    Map.of("version", "1.0.0"));
 
     private final GatewayRouteConfigurationMapper mapper = new GatewayRouteConfigurationMapper();
 
     @Test
     void shouldConvertRouteConfigurationToDomainRoute() {
         // Given
-        var configuration = new RouteConfiguration(
-                "route-say-hi", "/sayHi", "get", "activity-service", RouteAuthenticationMode.REQUIRED,
-                TARGET_CONFIGURATION, Map.of("filter", "logging"));
+        var configuration = new RouteConfiguration("route-say-hi", "/sayHi", "get", "activity-service",
+                RouteAuthenticationMode.REQUIRED, TARGET_CONFIGURATION, Map.of("filter", "logging"));
 
         // When
         var route = this.mapper.toDomain(configuration);
@@ -54,9 +53,8 @@ class GatewayRouteConfigurationMapperTests {
     @Test
     void shouldConvertAnonymousAuthenticationMode() {
         // Given
-        var configuration = new RouteConfiguration(
-                "route-public", "/public", "GET", "public-service", RouteAuthenticationMode.ANONYMOUS,
-                TARGET_CONFIGURATION, Map.of());
+        var configuration = new RouteConfiguration("route-public", "/public", "GET", "public-service",
+                RouteAuthenticationMode.ANONYMOUS, TARGET_CONFIGURATION, Map.of());
 
         // When
         var route = this.mapper.toDomain(configuration);
@@ -68,21 +66,18 @@ class GatewayRouteConfigurationMapperTests {
     @Test
     void shouldRejectMissingConfiguration() {
         // When & Then
-        assertThatThrownBy(() -> this.mapper.toDomain(null))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(() -> this.mapper.toDomain(null)).isInstanceOf(NullPointerException.class)
                 .hasMessage("configuration must not be null");
     }
 
     @Test
     void shouldPropagateDomainValidationFailure() {
         // Given
-        var configuration = new RouteConfiguration(
-                "route-say-hi", "sayHi", "GET", "activity-service", RouteAuthenticationMode.REQUIRED,
-                TARGET_CONFIGURATION, Map.of());
+        var configuration = new RouteConfiguration("route-say-hi", "sayHi", "GET", "activity-service",
+                RouteAuthenticationMode.REQUIRED, TARGET_CONFIGURATION, Map.of());
 
         // When & Then
-        assertThatThrownBy(() -> this.mapper.toDomain(configuration))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> this.mapper.toDomain(configuration)).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("path must start with '/'");
     }
 }

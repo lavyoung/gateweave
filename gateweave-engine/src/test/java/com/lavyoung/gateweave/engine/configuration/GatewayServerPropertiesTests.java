@@ -35,13 +35,10 @@ class GatewayServerPropertiesTests {
     void shouldOverrideApplicationYamlWithEnvironmentVariables() throws IOException {
         // Given
         var environment = new StandardEnvironment();
-        var overrides = new MapPropertySource("serverOverrides", Map.of(
-                "GATEWEAVE_SERVER_HOST", "127.0.0.1",
-                "GATEWEAVE_SERVER_PORT", "8397",
-                "GATEWEAVE_SERVER_MAX_CONTENT_LENGTH", "2097152",
-                "GATEWEAVE_SERVER_BOSS_THREADS", "2",
-                "GATEWEAVE_SERVER_WORKER_THREADS", "8",
-                "GATEWEAVE_SERVER_CONNECTION_BACKLOG", "2048"));
+        var overrides = new MapPropertySource("serverOverrides",
+                Map.of("GATEWEAVE_SERVER_HOST", "127.0.0.1", "GATEWEAVE_SERVER_PORT", "8397",
+                        "GATEWEAVE_SERVER_MAX_CONTENT_LENGTH", "2097152", "GATEWEAVE_SERVER_BOSS_THREADS", "2",
+                        "GATEWEAVE_SERVER_WORKER_THREADS", "8", "GATEWEAVE_SERVER_CONNECTION_BACKLOG", "2048"));
         environment.getPropertySources().addFirst(overrides);
         var applicationYaml = new ClassPathResource("application.yml");
         var propertySources = new YamlPropertySourceLoader().load("application", applicationYaml);
@@ -72,39 +69,31 @@ class GatewayServerPropertiesTests {
     @Test
     void shouldRejectMissingOrBlankHost() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayServerProperties(null, 7397, 1_048_576, 1, 4, 1024))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("host must not be null");
-        assertThatThrownBy(() -> new GatewayServerProperties(" ", 7397, 1_048_576, 1, 4, 1024))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("host must not be blank");
+        assertThatThrownBy(() -> new GatewayServerProperties(null, 7397, 1_048_576, 1, 4, 1024)).isInstanceOf(
+                NullPointerException.class).hasMessage("host must not be null");
+        assertThatThrownBy(() -> new GatewayServerProperties(" ", 7397, 1_048_576, 1, 4, 1024)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("host must not be blank");
     }
 
     @Test
     void shouldRejectPortOutsideTcpRange() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 0, 1_048_576, 1, 4, 1024))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("port must be between 1 and 65535");
-        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 65_536, 1_048_576, 1, 4, 1024))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("port must be between 1 and 65535");
+        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 0, 1_048_576, 1, 4, 1024)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("port must be between 1 and 65535");
+        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 65_536, 1_048_576, 1, 4, 1024)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("port must be between 1 and 65535");
     }
 
     @Test
     void shouldRejectNonPositiveServerLimits() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 0, 1, 4, 1024))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("maxContentLength must be greater than zero");
-        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 1_048_576, 0, 4, 1024))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("bossThreads must be greater than zero");
-        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 1_048_576, 1, 0, 1024))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("workerThreads must be greater than zero");
-        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 1_048_576, 1, 4, 0))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("connectionBacklog must be greater than zero");
+        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 0, 1, 4, 1024)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("maxContentLength must be greater than zero");
+        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 1_048_576, 0, 4, 1024)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("bossThreads must be greater than zero");
+        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 1_048_576, 1, 0, 1024)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("workerThreads must be greater than zero");
+        assertThatThrownBy(() -> new GatewayServerProperties("0.0.0.0", 7397, 1_048_576, 1, 4, 0)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("connectionBacklog must be greater than zero");
     }
 }

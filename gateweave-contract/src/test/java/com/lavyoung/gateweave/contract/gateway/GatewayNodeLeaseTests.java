@@ -29,47 +29,41 @@ class GatewayNodeLeaseTests {
     @Test
     void shouldRejectBlankNodeId() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLease(" ", LEASE_ID, HEARTBEAT_INTERVAL, LEASE_TIMEOUT))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("nodeId must not be blank");
+        assertThatThrownBy(() -> new GatewayNodeLease(" ", LEASE_ID, HEARTBEAT_INTERVAL, LEASE_TIMEOUT)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("nodeId must not be blank");
     }
 
     @Test
     void shouldRejectNonPositiveHeartbeatInterval() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, Duration.ZERO, LEASE_TIMEOUT))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("heartbeatInterval must be positive");
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, Duration.ofSeconds(-1), LEASE_TIMEOUT))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("heartbeatInterval must be positive");
+        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, Duration.ZERO, LEASE_TIMEOUT)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("heartbeatInterval must be positive");
+        assertThatThrownBy(
+                () -> new GatewayNodeLease("node-1", LEASE_ID, Duration.ofSeconds(-1), LEASE_TIMEOUT)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("heartbeatInterval must be positive");
     }
 
     @Test
     void shouldRejectLeaseTimeoutNotGreaterThanHeartbeatInterval() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, HEARTBEAT_INTERVAL, HEARTBEAT_INTERVAL))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("leaseTimeout must be greater than heartbeatInterval");
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, HEARTBEAT_INTERVAL, Duration.ofSeconds(9)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("leaseTimeout must be greater than heartbeatInterval");
+        assertThatThrownBy(
+                () -> new GatewayNodeLease("node-1", LEASE_ID, HEARTBEAT_INTERVAL, HEARTBEAT_INTERVAL)).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("leaseTimeout must be greater than heartbeatInterval");
+        assertThatThrownBy(
+                () -> new GatewayNodeLease("node-1", LEASE_ID, HEARTBEAT_INTERVAL, Duration.ofSeconds(9))).isInstanceOf(
+                IllegalArgumentException.class).hasMessage("leaseTimeout must be greater than heartbeatInterval");
     }
 
     @Test
     void shouldRejectNullFields() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLease(null, LEASE_ID, HEARTBEAT_INTERVAL, LEASE_TIMEOUT))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("nodeId must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", null, HEARTBEAT_INTERVAL, LEASE_TIMEOUT))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseId must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, null, LEASE_TIMEOUT))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("heartbeatInterval must not be null");
-        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, HEARTBEAT_INTERVAL, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("leaseTimeout must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLease(null, LEASE_ID, HEARTBEAT_INTERVAL, LEASE_TIMEOUT)).isInstanceOf(
+                NullPointerException.class).hasMessage("nodeId must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLease("node-1", null, HEARTBEAT_INTERVAL, LEASE_TIMEOUT)).isInstanceOf(
+                NullPointerException.class).hasMessage("leaseId must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, null, LEASE_TIMEOUT)).isInstanceOf(
+                NullPointerException.class).hasMessage("heartbeatInterval must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLease("node-1", LEASE_ID, HEARTBEAT_INTERVAL, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("leaseTimeout must not be null");
     }
 }

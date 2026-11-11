@@ -42,8 +42,8 @@ class GatewayRequestCommandTests {
         assertThat(command.queryParameters()).isSameAs(queryParameters);
         assertThat(command.formParameters()).isSameAs(formParameters);
         assertThat(command.body()).containsExactly("hello".getBytes(StandardCharsets.UTF_8));
-        assertThatThrownBy(() -> command.headers().map().put("X-Test", List.of("value")))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> command.headers().map().put("X-Test", List.of("value"))).isInstanceOf(
+                UnsupportedOperationException.class);
     }
 
     @Test
@@ -63,18 +63,17 @@ class GatewayRequestCommandTests {
     @Test
     void shouldRejectBlankRequestId() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayRequestCommand(" ", "GET", URI.create("/queryUserInfo"),
-                EMPTY_HEADERS, new HttpParameterValues(Map.of()), new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> new GatewayRequestCommand(" ", "GET", URI.create("/queryUserInfo"), EMPTY_HEADERS,
+                new HttpParameterValues(Map.of()), new byte[0])).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("requestId must not be blank");
     }
 
     @Test
     void shouldRejectBlankMethod() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayRequestCommand("request-1", " ", URI.create("/queryUserInfo"),
-                EMPTY_HEADERS, new HttpParameterValues(Map.of()), new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(
+                () -> new GatewayRequestCommand("request-1", " ", URI.create("/queryUserInfo"), EMPTY_HEADERS,
+                        new HttpParameterValues(Map.of()), new byte[0])).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("method must not be blank");
     }
 
@@ -82,26 +81,25 @@ class GatewayRequestCommandTests {
     void shouldExplainMissingHeaders() {
         // When & Then
         assertThatThrownBy(() -> new GatewayRequestCommand("request-1", "GET", URI.create("/queryUserInfo"), null,
-                new HttpParameterValues(Map.of()), new byte[0]))
-                .isInstanceOf(NullPointerException.class)
+                new HttpParameterValues(Map.of()), new byte[0])).isInstanceOf(NullPointerException.class)
                 .hasMessage("headers must not be null");
     }
 
     @Test
     void shouldExplainMissingQueryParameters() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayRequestCommand("request-1", "GET", URI.create("/queryUserInfo"),
-                EMPTY_HEADERS, null, new byte[0]))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(
+                () -> new GatewayRequestCommand("request-1", "GET", URI.create("/queryUserInfo"), EMPTY_HEADERS, null,
+                        new byte[0])).isInstanceOf(NullPointerException.class)
                 .hasMessage("queryParameters must not be null");
     }
 
     @Test
     void shouldExplainMissingFormParameters() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayRequestCommand("request-1", "POST", URI.create("/queryUserInfo"),
-                EMPTY_HEADERS, new HttpParameterValues(Map.of()), null, new byte[0]))
-                .isInstanceOf(NullPointerException.class)
+        assertThatThrownBy(
+                () -> new GatewayRequestCommand("request-1", "POST", URI.create("/queryUserInfo"), EMPTY_HEADERS,
+                        new HttpParameterValues(Map.of()), null, new byte[0])).isInstanceOf(NullPointerException.class)
                 .hasMessage("formParameters must not be null");
     }
 

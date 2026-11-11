@@ -62,11 +62,8 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldReturnNoContentAndForwardHeartbeat() throws Exception {
         // When & Then
-        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(validRequestBody()))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
+        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease").contentType(MediaType.APPLICATION_JSON)
+                .content(validRequestBody())).andExpect(status().isNoContent()).andExpect(content().string(""));
 
         verify(this.renewGatewayNodeLeaseUseCase).renew("node-1", LEASE_ID, 7);
     }
@@ -74,19 +71,17 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldReturnLocalizedBusinessFailureWhenLeaseIsRejected() throws Exception {
         // Given
-        doThrow(new BusinessException(GatewayResponseCode.GATEWAY_NODE_LEASE_REJECTED, "node-1"))
-                .when(this.renewGatewayNodeLeaseUseCase).renew("node-1", LEASE_ID, 7);
+        doThrow(new BusinessException(GatewayResponseCode.GATEWAY_NODE_LEASE_REJECTED, "node-1")).when(
+                this.renewGatewayNodeLeaseUseCase).renew("node-1", LEASE_ID, 7);
 
         // When & Then
-        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease")
-                        .contentType(MediaType.APPLICATION_JSON)
+        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease").contentType(MediaType.APPLICATION_JSON)
                         .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
                         .header(RequestIdFilter.REQUEST_ID_HEADER, "request-lease-rejected")
                         .content(validRequestBody()))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(header().string(RequestIdFilter.REQUEST_ID_HEADER, "request-lease-rejected"))
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value("GATEWAY-0004"))
+                .andExpect(jsonPath("$.success").value(false)).andExpect(jsonPath("$.code").value("GATEWAY-0004"))
                 .andExpect(jsonPath("$.message").value("The lease for gateway node node-1 is no longer valid"))
                 .andExpect(jsonPath("$.data.path").value("/api/v1/gateway-nodes/node-1/lease"))
                 .andExpect(jsonPath("$.data.requestId").value("request-lease-rejected"));
@@ -103,10 +98,8 @@ class GatewayNodeLeaseControllerTests {
                 """;
 
         // When & Then
-        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")
-                        .content(requestBody))
+        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease").contentType(MediaType.APPLICATION_JSON)
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en").content(requestBody))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON-0002"))
                 .andExpect(jsonPath("$.message").value("Request body is invalid"));
@@ -117,10 +110,8 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldRejectMissingRequestBodyBeforeCallingUseCase() throws Exception {
         // When & Then
-        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("COMMON-0002"));
+        this.mockMvc.perform(put("/api/v1/gateway-nodes/node-1/lease").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("COMMON-0002"));
 
         verify(this.renewGatewayNodeLeaseUseCase, never()).renew(anyString(), any(), anyLong());
     }
@@ -128,10 +119,8 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldReturnNoContentAndReleaseLease() throws Exception {
         // When & Then
-        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease")
-                        .queryParam("leaseId", LEASE_ID.toString()))
-                .andExpect(status().isNoContent())
-                .andExpect(content().string(""));
+        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease").queryParam("leaseId", LEASE_ID.toString()))
+                .andExpect(status().isNoContent()).andExpect(content().string(""));
 
         verify(this.releaseGatewayNodeLeaseUseCase).release("node-1", LEASE_ID);
     }
@@ -139,10 +128,8 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldRejectMissingLeaseIdBeforeCallingReleaseUseCase() throws Exception {
         // When & Then
-        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("COMMON-0001"))
+        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease").header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("COMMON-0001"))
                 .andExpect(jsonPath("$.message").value("Request parameters are invalid"));
 
         verify(this.releaseGatewayNodeLeaseUseCase, never()).release(anyString(), any());
@@ -151,10 +138,8 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldRejectInvalidLeaseIdBeforeCallingReleaseUseCase() throws Exception {
         // When & Then
-        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease")
-                        .queryParam("leaseId", "not-a-uuid")
-                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en"))
-                .andExpect(status().isBadRequest())
+        this.mockMvc.perform(delete("/api/v1/gateway-nodes/node-1/lease").queryParam("leaseId", "not-a-uuid")
+                        .header(HttpHeaders.ACCEPT_LANGUAGE, "en")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON-0001"))
                 .andExpect(jsonPath("$.message").value("Request parameters are invalid"));
 
@@ -164,17 +149,16 @@ class GatewayNodeLeaseControllerTests {
     @Test
     void shouldRejectMissingRenewUseCase() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLeaseController(null, this.releaseGatewayNodeLeaseUseCase))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("renewGatewayNodeLeaseUseCase must not be null");
+        assertThatThrownBy(
+                () -> new GatewayNodeLeaseController(null, this.releaseGatewayNodeLeaseUseCase)).isInstanceOf(
+                NullPointerException.class).hasMessage("renewGatewayNodeLeaseUseCase must not be null");
     }
 
     @Test
     void shouldRejectMissingReleaseUseCase() {
         // When & Then
-        assertThatThrownBy(() -> new GatewayNodeLeaseController(this.renewGatewayNodeLeaseUseCase, null))
-                .isInstanceOf(NullPointerException.class)
-                .hasMessage("releaseGatewayNodeLeaseUseCase must not be null");
+        assertThatThrownBy(() -> new GatewayNodeLeaseController(this.renewGatewayNodeLeaseUseCase, null)).isInstanceOf(
+                NullPointerException.class).hasMessage("releaseGatewayNodeLeaseUseCase must not be null");
     }
 
     private static String validRequestBody() {
