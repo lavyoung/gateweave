@@ -3,6 +3,8 @@ package com.lavyoung.gateweave.center.gateway.domain;
 import java.net.URI;
 import java.util.Objects;
 
+import com.lavyoung.gateweave.contract.http.HttpEndpoint;
+
 /**
  * 表示一次网关节点注册提交的稳定身份和访问地址。
  *
@@ -54,25 +56,10 @@ public record GatewayNodeRegistration(String nodeId, String gatewayGroupId, Stri
         if (nodeName.length() > MAX_NODE_NAME_LENGTH) {
             throw new IllegalArgumentException("nodeName length must not exceed " + MAX_NODE_NAME_LENGTH);
         }
-        advertisedAddress = requireAdvertisedAddress(advertisedAddress);
-    }
-
-    private static URI requireAdvertisedAddress(URI value) {
-        URI checkedValue = Objects.requireNonNull(value, "advertisedAddress must not be null");
-        String scheme = checkedValue.getScheme();
-        boolean supportedScheme = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
-        if (!checkedValue.isAbsolute() || !supportedScheme || checkedValue.getHost() == null) {
-            throw new IllegalArgumentException("advertisedAddress must be an absolute HTTP or HTTPS URI");
-        }
-        if (checkedValue.getUserInfo() != null) {
-            throw new IllegalArgumentException("advertisedAddress must not contain user information");
-        }
-        if (checkedValue.getQuery() != null || checkedValue.getFragment() != null) {
-            throw new IllegalArgumentException("advertisedAddress must not contain query or fragment");
-        }
-        if (checkedValue.toASCIIString().length() > MAX_ADDRESS_LENGTH) {
+        advertisedAddress =
+                new HttpEndpoint(Objects.requireNonNull(advertisedAddress, "advertisedAddress must not be null")).uri();
+        if (advertisedAddress.toASCIIString().length() > MAX_ADDRESS_LENGTH) {
             throw new IllegalArgumentException("advertisedAddress length must not exceed " + MAX_ADDRESS_LENGTH);
         }
-        return checkedValue;
     }
 }

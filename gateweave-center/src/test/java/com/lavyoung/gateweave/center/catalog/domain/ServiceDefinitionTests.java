@@ -89,6 +89,40 @@ class ServiceDefinitionTests {
     }
 
     @Test
+    void shouldAllowMaximumFieldLengths() {
+        // When
+        ServiceDefinition service = definition("s".repeat(64), "a".repeat(128), "p".repeat(32), "n".repeat(128),
+                "v".repeat(64));
+
+        // Then
+        assertThat(service.serviceId()).hasSize(64);
+        assertThat(service.applicationName()).hasSize(128);
+        assertThat(service.protocol()).hasSize(32);
+        assertThat(service.namespace()).hasSize(128);
+        assertThat(service.version()).hasSize(64);
+    }
+
+    @Test
+    void shouldRejectValuesExceedingStorageLengths() {
+        // When & Then
+        assertThatThrownBy(() -> definition("s".repeat(65), "application", "dubbo", "", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("serviceId must not exceed 64 characters");
+        assertThatThrownBy(() -> definition(SERVICE_ID, "a".repeat(129), "dubbo", "", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("applicationName must not exceed 128 characters");
+        assertThatThrownBy(() -> definition(SERVICE_ID, "application", "p".repeat(33), "", ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("protocol must not exceed 32 characters");
+        assertThatThrownBy(() -> definition(SERVICE_ID, "application", "dubbo", "n".repeat(129), ""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("namespace must not exceed 128 characters");
+        assertThatThrownBy(() -> definition(SERVICE_ID, "application", "dubbo", "", "v".repeat(65)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("version must not exceed 64 characters");
+    }
+
+    @Test
     void shouldRejectNegativeRevision() {
         // When & Then
         assertThatThrownBy(() -> new ServiceDefinition(SERVICE_ID, "application", "dubbo", "", "1.0.0",
@@ -136,5 +170,11 @@ class ServiceDefinitionTests {
             String operationName) {
         return new ServiceOperation(operationId, serviceId, interfaceName, operationName, ServiceCatalogStatus.ACTIVE,
                 0L, List.of());
+    }
+
+    private static ServiceDefinition definition(String serviceId, String applicationName, String protocol,
+            String namespace, String version) {
+        return new ServiceDefinition(serviceId, applicationName, protocol, namespace, version,
+                ServiceCatalogStatus.ACTIVE, 0L, List.of());
     }
 }

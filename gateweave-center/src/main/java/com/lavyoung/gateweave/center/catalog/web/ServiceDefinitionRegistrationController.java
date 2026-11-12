@@ -3,8 +3,6 @@ package com.lavyoung.gateweave.center.catalog.web;
 import java.util.List;
 import java.util.Objects;
 
-import jakarta.validation.Valid;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,9 +16,9 @@ import com.lavyoung.gateweave.center.catalog.domain.ServiceCatalogStatus;
 import com.lavyoung.gateweave.center.catalog.domain.ServiceDefinition;
 import com.lavyoung.gateweave.center.catalog.domain.ServiceOperation;
 import com.lavyoung.gateweave.center.catalog.domain.ServiceOperationParameter;
-import com.lavyoung.gateweave.center.catalog.web.request.RegisterServiceDefinitionRequest;
-import com.lavyoung.gateweave.center.catalog.web.response.ServiceDefinitionRegistrationResponse;
 import com.lavyoung.gateweave.contract.catalog.CatalogRegistrationOutcome;
+import com.lavyoung.gateweave.contract.catalog.RegisterServiceDefinitionRequest;
+import com.lavyoung.gateweave.contract.catalog.ServiceDefinitionRegistrationResponse;
 import com.lavyoung.gateweave.contract.web.Result;
 
 /**
@@ -63,7 +61,7 @@ public class ServiceDefinitionRegistrationController {
      */
     @PostMapping
     public ResponseEntity<Result<ServiceDefinitionRegistrationResponse>> register(
-            @Valid @RequestBody RegisterServiceDefinitionRequest request) {
+            @RequestBody RegisterServiceDefinitionRequest request) {
         ServiceDefinition definition = toServiceDefinition(request);
         CatalogRegistrationOutcome outcome = this.registerServiceDefinitionUseCase.register(definition);
         ServiceDefinitionRegistrationResponse response =

@@ -44,13 +44,13 @@ class GatewayControlPlanePropertiesTests {
     void shouldRejectInvalidControlPlaneBaseUri() {
         // When & Then
         assertThatThrownBy(() -> properties(URI.create("/relative"))).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("baseUri must be an absolute HTTP or HTTPS URI");
+                .hasMessage("uri must be an absolute HTTP or HTTPS URI");
         assertThatThrownBy(() -> properties(URI.create("ftp://127.0.0.1:8080"))).isInstanceOf(
-                IllegalArgumentException.class).hasMessage("baseUri must be an absolute HTTP or HTTPS URI");
+                IllegalArgumentException.class).hasMessage("uri must be an absolute HTTP or HTTPS URI");
         assertThatThrownBy(() -> properties(URI.create("http://user:password@127.0.0.1:8080"))).isInstanceOf(
-                IllegalArgumentException.class).hasMessage("baseUri must not contain user information");
+                IllegalArgumentException.class).hasMessage("uri must not contain user information");
         assertThatThrownBy(() -> properties(URI.create("http://127.0.0.1:8080?env=test"))).isInstanceOf(
-                IllegalArgumentException.class).hasMessage("baseUri must not contain query or fragment");
+                IllegalArgumentException.class).hasMessage("uri must not contain query or fragment");
     }
 
     @Test

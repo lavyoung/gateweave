@@ -21,7 +21,7 @@ public record ServiceOperationParameter(int position, String name, String typeNa
      * 校验服务操作参数的不变量。
      *
      * @throws NullPointerException     name 或 typeName 为 null 时抛出
-     * @throws IllegalArgumentException position 为负数，或文本属性为空白时抛出
+     * @throws IllegalArgumentException position 为负数，或文本属性为空白、超过长度限制时抛出
      */
     public ServiceOperationParameter {
         Objects.requireNonNull(name, "name must not be null");
@@ -33,8 +33,14 @@ public record ServiceOperationParameter(int position, String name, String typeNa
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
+        if (name.length() > 128) {
+            throw new IllegalArgumentException("name must not exceed 128 characters");
+        }
         if (typeName.isBlank()) {
             throw new IllegalArgumentException("typeName must not be blank");
+        }
+        if (typeName.length() > 256) {
+            throw new IllegalArgumentException("typeName must not exceed 256 characters");
         }
     }
 }

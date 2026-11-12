@@ -1,5 +1,6 @@
 package com.lavyoung.gateweave.engine.adapter.out.controlplane;
 
+import com.lavyoung.gateweave.contract.http.HttpEndpoint;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.net.URI;
@@ -35,7 +36,7 @@ public record GatewayControlPlaneProperties(URI baseUri, String nodeId, String g
      * @throws IllegalArgumentException 控制面根地址不合法、请求超时或刷新周期不为正数时抛出
      */
     public GatewayControlPlaneProperties {
-        baseUri = Objects.requireNonNull(baseUri, "baseUri must not be null");
+        baseUri = new HttpEndpoint(Objects.requireNonNull(baseUri, "baseUri must not be null")).uri();
         Objects.requireNonNull(nodeId, "nodeId must not be null");
         Objects.requireNonNull(gatewayGroupId, "gatewayGroupId must not be null");
         Objects.requireNonNull(nodeName, "nodeName must not be null");
@@ -43,17 +44,6 @@ public record GatewayControlPlaneProperties(URI baseUri, String nodeId, String g
         Objects.requireNonNull(requestTimeout, "requestTimeout must not be null");
         Objects.requireNonNull(refreshInterval, "refreshInterval must not be null");
 
-        String scheme = baseUri.getScheme();
-        boolean supportedScheme = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
-        if (!baseUri.isAbsolute() || !supportedScheme || baseUri.getHost() == null) {
-            throw new IllegalArgumentException("baseUri must be an absolute HTTP or HTTPS URI");
-        }
-        if (baseUri.getUserInfo() != null) {
-            throw new IllegalArgumentException("baseUri must not contain user information");
-        }
-        if (baseUri.getQuery() != null || baseUri.getFragment() != null) {
-            throw new IllegalArgumentException("baseUri must not contain query or fragment");
-        }
         if (requestTimeout.isZero() || requestTimeout.isNegative()) {
             throw new IllegalArgumentException("requestTimeout must be greater than zero");
         }

@@ -44,11 +44,26 @@ public record ServiceDefinition(String serviceId, String applicationName, String
         if (serviceId.isBlank()) {
             throw new IllegalArgumentException("serviceId must not be blank");
         }
+        if (serviceId.length() > 64) {
+            throw new IllegalArgumentException("serviceId must not exceed 64 characters");
+        }
         if (applicationName.isBlank()) {
             throw new IllegalArgumentException("applicationName must not be blank");
         }
+        if (applicationName.length() > 128) {
+            throw new IllegalArgumentException("applicationName must not exceed 128 characters");
+        }
         if (protocol.isBlank()) {
             throw new IllegalArgumentException("protocol must not be blank");
+        }
+        if (protocol.length() > 32) {
+            throw new IllegalArgumentException("protocol must not exceed 32 characters");
+        }
+        if (namespace.length() > 128) {
+            throw new IllegalArgumentException("namespace must not exceed 128 characters");
+        }
+        if (version.length() > 64) {
+            throw new IllegalArgumentException("version must not exceed 64 characters");
         }
         if (revision < 0) {
             throw new IllegalArgumentException("revision must not be negative");

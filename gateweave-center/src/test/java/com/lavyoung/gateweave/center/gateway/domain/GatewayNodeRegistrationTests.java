@@ -60,13 +60,13 @@ class GatewayNodeRegistrationTests {
     void shouldRejectUnsafeAdvertisedAddresses() {
         // When & Then
         assertThatThrownBy(() -> registration(URI.create("/relative"))).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("advertisedAddress must be an absolute HTTP or HTTPS URI");
+                .hasMessage("uri must be an absolute HTTP or HTTPS URI");
         assertThatThrownBy(() -> registration(URI.create("ftp://gateway.example.com"))).isInstanceOf(
-                IllegalArgumentException.class).hasMessage("advertisedAddress must be an absolute HTTP or HTTPS URI");
+                IllegalArgumentException.class).hasMessage("uri must be an absolute HTTP or HTTPS URI");
         assertThatThrownBy(() -> registration(URI.create("http://user:password@gateway.example.com"))).isInstanceOf(
-                IllegalArgumentException.class).hasMessage("advertisedAddress must not contain user information");
+                IllegalArgumentException.class).hasMessage("uri must not contain user information");
         assertThatThrownBy(() -> registration(URI.create("http://gateway.example.com?token=secret"))).isInstanceOf(
-                IllegalArgumentException.class).hasMessage("advertisedAddress must not contain query or fragment");
+                IllegalArgumentException.class).hasMessage("uri must not contain query or fragment");
     }
 
     private static GatewayNodeRegistration registration(URI address) {

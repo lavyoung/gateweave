@@ -90,6 +90,31 @@ class ServiceOperationTests {
     }
 
     @Test
+    void shouldAllowMaximumFieldLengths() {
+        // When
+        ServiceOperation operation = operation("o".repeat(64), "i".repeat(256), "n".repeat(128));
+
+        // Then
+        assertThat(operation.operationId()).hasSize(64);
+        assertThat(operation.interfaceName()).hasSize(256);
+        assertThat(operation.operationName()).hasSize(128);
+    }
+
+    @Test
+    void shouldRejectValuesExceedingStorageLengths() {
+        // When & Then
+        assertThatThrownBy(() -> operation("o".repeat(65), "interface", "operation"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("operationId must not exceed 64 characters");
+        assertThatThrownBy(() -> operation("operation", "i".repeat(257), "operation"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("interfaceName must not exceed 256 characters");
+        assertThatThrownBy(() -> operation("operation", "interface", "n".repeat(129)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("operationName must not exceed 128 characters");
+    }
+
+    @Test
     void shouldRejectNegativeRevision() {
         // When & Then
         assertThatThrownBy(
@@ -127,5 +152,10 @@ class ServiceOperationTests {
         // When & Then
         assertThat(ServiceCatalogStatus.values()).containsExactly(ServiceCatalogStatus.ACTIVE,
                 ServiceCatalogStatus.DISABLED);
+    }
+
+    private static ServiceOperation operation(String operationId, String interfaceName, String operationName) {
+        return new ServiceOperation(operationId, "service", interfaceName, operationName, ServiceCatalogStatus.ACTIVE,
+                0L, List.of());
     }
 }

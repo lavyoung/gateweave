@@ -26,7 +26,7 @@ public record ServiceOperation(String operationId, String serviceId, String inte
      * 校验服务操作不变量并建立参数集合快照。
      *
      * @throws NullPointerException     任一引用属性为 null，或参数集合包含 null 时抛出
-     * @throws IllegalArgumentException 文本为空白、修订号为负数、参数位置不连续或参数名称重复时抛出
+     * @throws IllegalArgumentException 必填文本为空白或超过长度限制、修订号为负数、参数位置不连续或名称重复时抛出
      */
     public ServiceOperation {
         Objects.requireNonNull(operationId, "operationId must not be null");
@@ -39,14 +39,23 @@ public record ServiceOperation(String operationId, String serviceId, String inte
         if (operationId.isBlank()) {
             throw new IllegalArgumentException("operationId must not be blank");
         }
+        if (operationId.length() > 64) {
+            throw new IllegalArgumentException("operationId must not exceed 64 characters");
+        }
         if (serviceId.isBlank()) {
             throw new IllegalArgumentException("serviceId must not be blank");
         }
         if (interfaceName.isBlank()) {
             throw new IllegalArgumentException("interfaceName must not be blank");
         }
+        if (interfaceName.length() > 256) {
+            throw new IllegalArgumentException("interfaceName must not exceed 256 characters");
+        }
         if (operationName.isBlank()) {
             throw new IllegalArgumentException("operationName must not be blank");
+        }
+        if (operationName.length() > 128) {
+            throw new IllegalArgumentException("operationName must not exceed 128 characters");
         }
         if (revision < 0) {
             throw new IllegalArgumentException("revision must not be negative");

@@ -42,4 +42,26 @@ class ServiceOperationParameterTests {
         assertThatThrownBy(() -> new ServiceOperationParameter(0, "name", " ")).isInstanceOf(
                 IllegalArgumentException.class).hasMessage("typeName must not be blank");
     }
+
+    @Test
+    void shouldAllowMaximumFieldLengths() {
+        // When
+        ServiceOperationParameter parameter =
+                new ServiceOperationParameter(0, "n".repeat(128), "t".repeat(256));
+
+        // Then
+        assertThat(parameter.name()).hasSize(128);
+        assertThat(parameter.typeName()).hasSize(256);
+    }
+
+    @Test
+    void shouldRejectValuesExceedingStorageLengths() {
+        // When & Then
+        assertThatThrownBy(() -> new ServiceOperationParameter(0, "n".repeat(129), "java.lang.String"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("name must not exceed 128 characters");
+        assertThatThrownBy(() -> new ServiceOperationParameter(0, "name", "t".repeat(257)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("typeName must not exceed 256 characters");
+    }
 }
