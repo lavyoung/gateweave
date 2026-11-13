@@ -1,1 +1,2 @@
 com.lavyoung.gateweave.starter.configuration.GateWeaveServiceMetadataAutoConfiguration
+com.lavyoung.gateweave.starter.configuration.GateWeaveServiceRegistrationAutoConfiguration

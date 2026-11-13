@@ -4,6 +4,7 @@ import com.lavyoung.gateweave.starter.annotation.GateWeaveOperation;
 import com.lavyoung.gateweave.starter.annotation.GateWeaveService;
 import com.lavyoung.gateweave.starter.discovery.ServiceMetadataBeanPostProcessor;
 import com.lavyoung.gateweave.starter.metadata.ServiceMetadata;
+import com.lavyoung.gateweave.starter.registration.ServiceMetadataRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -24,6 +25,7 @@ class GateWeaveServiceMetadataAutoConfigurationTests {
     void shouldCreateDefaultMetadataComponents() {
         this.contextRunner.run(context -> {
             assertThat(context).hasSingleBean(ServiceMetadataBeanPostProcessor.class);
+            assertThat(context).hasSingleBean(ServiceMetadataRegistry.class);
             assertThat(context).hasBean(GateWeaveServiceMetadataAutoConfiguration.SERVICE_METADATA_CONSUMER_BEAN_NAME);
         });
     }
@@ -38,12 +40,14 @@ class GateWeaveServiceMetadataAutoConfigurationTests {
                     MetadataCollector collector = context.getBean(
                             GateWeaveServiceMetadataAutoConfiguration.SERVICE_METADATA_CONSUMER_BEAN_NAME,
                             MetadataCollector.class);
+                    ServiceMetadataRegistry registry = context.getBean(ServiceMetadataRegistry.class);
                     assertThat(collector.metadata()).singleElement().satisfies(metadata -> {
                         assertThat(metadata.applicationName()).isEqualTo("order-application");
                         assertThat(metadata.serviceId()).isEqualTo("order-service");
                         assertThat(metadata.operations()).singleElement()
                                 .satisfies(operation -> assertThat(operation.operationId()).isEqualTo("find-order"));
                     });
+                    assertThat(registry.snapshot()).containsExactlyElementsOf(collector.metadata());
                 });
     }
 

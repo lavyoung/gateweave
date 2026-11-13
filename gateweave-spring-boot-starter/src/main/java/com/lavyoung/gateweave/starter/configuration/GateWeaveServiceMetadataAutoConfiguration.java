@@ -3,6 +3,7 @@ package com.lavyoung.gateweave.starter.configuration;
 import com.lavyoung.gateweave.starter.discovery.ServiceMetadataBeanPostProcessor;
 import com.lavyoung.gateweave.starter.discovery.ServiceMetadataExtractor;
 import com.lavyoung.gateweave.starter.metadata.ServiceMetadata;
+import com.lavyoung.gateweave.starter.registration.ServiceMetadataRegistry;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -48,9 +49,23 @@ public class GateWeaveServiceMetadataAutoConfiguration {
     @Bean(name = SERVICE_METADATA_CONSUMER_BEAN_NAME)
     @ConditionalOnMissingBean(name = SERVICE_METADATA_CONSUMER_BEAN_NAME)
     public static Consumer<ServiceMetadata> gateWeaveServiceMetadataConsumer() {
-        return metadata -> LOGGER.info("Discovered GateWeave service metadata: applicationName="
-                + metadata.applicationName() + ", serviceId=" + metadata.serviceId()
-                + ", operationCount=" + metadata.operations().size());
+        return metadata -> LOGGER.info(
+                "Discovered GateWeave service metadata: applicationName=" + metadata.applicationName() +
+                        ", serviceId=" + metadata.serviceId() + ", operationCount=" + metadata.operations().size());
+    }
+
+    /**
+     * 创建当前应用的服务元数据注册表。
+     *
+     * <p>该注册表是采集阶段和后续启动注册阶段之间的进程内边界，
+     * 不允许自定义日志消费者替代。</p>
+     *
+     * @return 服务元数据注册表
+     */
+    @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+    public static ServiceMetadataRegistry serviceMetadataRegistry() {
+        return new ServiceMetadataRegistry();
     }
 
     /**
@@ -60,23 +75,26 @@ public class GateWeaveServiceMetadataAutoConfiguration {
      * 期间被提前实例化。元数据提取器是处理器内部基础设施，不作为业务扩展点暴露。</p>
      *
      * @param environment              Spring 应用环境
-     * @param metadataConsumerProvider 服务元数据消费者提供器
+     * @param metadataRegistry         当前应用的服务元数据注册表
+     * @param metadataConsumerProvider 可选的日志或自定义元数据消费者
      * @return 服务元数据 Bean 后置处理器
      */
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean
     public static ServiceMetadataBeanPostProcessor serviceMetadataBeanPostProcessor(
-            Environment environment,
+            Environment environment, ServiceMetadataRegistry metadataRegistry,
             @Qualifier(SERVICE_METADATA_CONSUMER_BEAN_NAME)
             ObjectProvider<Consumer<ServiceMetadata>> metadataConsumerProvider) {
         String applicationName = environment.getRequiredProperty("spring.application.name");
         // 实例化元数据提取器
-        ServiceMetadataExtractor metadataExtractor =
-                new ServiceMetadataExtractor(new DefaultParameterNameDiscoverer());
+        ServiceMetadataExtractor metadataExtractor = new ServiceMetadataExtractor(new DefaultParameterNameDiscoverer());
+
         // 延迟创建服务元数据消费者
-        Consumer<ServiceMetadata> lazyMetadataConsumer =
-                metadata -> metadataConsumerProvider.getObject().accept(metadata);
+        Consumer<ServiceMetadata> lazyMetadataConsumer = metadata -> {
+            metadataRegistry.accept(metadata);
+            metadataConsumerProvider.getObject().accept(metadata);
+        };
         return new ServiceMetadataBeanPostProcessor(metadataExtractor, applicationName, lazyMetadataConsumer);
     }
 }
