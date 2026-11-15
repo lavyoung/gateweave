@@ -18,9 +18,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lavyoung.gateweave.center.GateWeaveCenterApplication;
 import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
 import com.lavyoung.gateweave.center.release.application.ConfigurationReleaseRepository;
+import com.lavyoung.gateweave.contract.configuration.GatewayConfigurationPublishedEvent;
 import com.lavyoung.gateweave.contract.configuration.GatewayConfigurationSnapshot;
 import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
@@ -40,15 +42,19 @@ class JdbcConfigurationReleaseRepositoryTests {
 
     private final ConfigurationReleaseRepository repository;
     private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    JdbcConfigurationReleaseRepositoryTests(ConfigurationReleaseRepository repository, JdbcTemplate jdbcTemplate) {
+    JdbcConfigurationReleaseRepositoryTests(ConfigurationReleaseRepository repository, JdbcTemplate jdbcTemplate,
+            ObjectMapper objectMapper) {
         this.repository = repository;
         this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @BeforeEach
-    void deleteConfigurationReleases() {
+    void deletePublishedData() {
+        this.jdbcTemplate.update("DELETE FROM gw_event_outbox");
         this.jdbcTemplate.update("DELETE FROM gw_config_release");
     }
 
@@ -72,6 +78,34 @@ class JdbcConfigurationReleaseRepositoryTests {
     }
 
     @Test
+    void shouldStorePublishedEventInOutboxWithSnapshotVersion() throws Exception {
+        // Given
+        List<RouteConfiguration> routes = List.of(route());
+
+        // When
+        GatewayConfigurationSnapshot published = this.repository.publish("default", routes, FIRST_PUBLISHED_AT);
+
+        // Then
+        String eventPayload = this.jdbcTemplate.queryForObject(
+                "SELECT event_payload FROM gw_event_outbox", String.class);
+        GatewayConfigurationPublishedEvent event = this.objectMapper.readValue(
+                eventPayload, GatewayConfigurationPublishedEvent.class);
+        assertThat(event.gatewayGroupId()).isEqualTo(published.gatewayGroupId());
+        assertThat(event.version()).isEqualTo(published.version());
+        assertThat(event.publishedAt()).isEqualTo(published.publishedAt());
+        assertThat(this.jdbcTemplate.queryForObject(
+                "SELECT event_id FROM gw_event_outbox", String.class)).isEqualTo(event.eventId().toString());
+        assertThat(this.jdbcTemplate.queryForObject(
+                "SELECT aggregate_type FROM gw_event_outbox", String.class)).isEqualTo("GATEWAY_CONFIGURATION");
+        assertThat(this.jdbcTemplate.queryForObject(
+                "SELECT event_type FROM gw_event_outbox", String.class)).isEqualTo(
+                "GATEWAY_CONFIGURATION_PUBLISHED");
+        assertThat(this.jdbcTemplate.queryForObject(
+                "SELECT delivery_status FROM gw_event_outbox", String.class)).isEqualTo("PENDING");
+        assertThat(outboxEventCount()).isEqualTo(1);
+    }
+
+    @Test
     void shouldIncrementVersionAndReturnLatestPublishedSnapshot() {
         // Given
         GatewayConfigurationSnapshot first = this.repository.publish("default", List.of(), FIRST_PUBLISHED_AT);
@@ -85,6 +119,7 @@ class JdbcConfigurationReleaseRepositoryTests {
         assertThat(second.version()).isEqualTo(2);
         assertThat(latest).isEqualTo(second);
         assertThat(releaseCount()).isEqualTo(2);
+        assertThat(outboxVersions()).containsExactly(1L, 2L);
     }
 
     @Test
@@ -104,6 +139,7 @@ class JdbcConfigurationReleaseRepositoryTests {
                 GatewayGroupNotFoundException.class,
                 exception -> assertThat(exception.gatewayGroupId()).isEqualTo("missing-group"));
         assertThat(releaseCount()).isZero();
+        assertThat(outboxEventCount()).isZero();
     }
 
     @Test
@@ -144,6 +180,7 @@ class JdbcConfigurationReleaseRepositoryTests {
             // Then
             assertThat(List.of(firstSnapshot.version(), secondSnapshot.version())).containsExactlyInAnyOrder(1L, 2L);
             assertThat(releaseCount()).isEqualTo(2);
+            assertThat(outboxVersions()).containsExactly(1L, 2L);
         } finally {
             start.countDown();
             executor.shutdownNow();
@@ -172,6 +209,15 @@ class JdbcConfigurationReleaseRepositoryTests {
 
     private int releaseCount() {
         return this.jdbcTemplate.queryForObject("SELECT COUNT(*) FROM gw_config_release", Integer.class);
+    }
+
+    private int outboxEventCount() {
+        return this.jdbcTemplate.queryForObject("SELECT COUNT(*) FROM gw_event_outbox", Integer.class);
+    }
+
+    private List<Long> outboxVersions() {
+        return this.jdbcTemplate.queryForList(
+                "SELECT aggregate_version FROM gw_event_outbox ORDER BY aggregate_version", Long.class);
     }
 
     private static RouteConfiguration route() {

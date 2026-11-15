@@ -192,3 +192,46 @@ CREATE TABLE gw_config_release
 
 CREATE INDEX idx_gw_config_release_group_status_version
     ON gw_config_release (gateway_group_id, release_status, config_version);
+
+CREATE TABLE gw_event_outbox
+(
+    id                BIGINT       NOT NULL AUTO_INCREMENT,
+    event_id          VARCHAR(36)  NOT NULL,
+    aggregate_type    VARCHAR(64)  NOT NULL,
+    aggregate_id      VARCHAR(128) NOT NULL,
+    aggregate_version BIGINT       NOT NULL,
+    event_type        VARCHAR(128) NOT NULL,
+    event_payload     TEXT         NOT NULL,
+    delivery_status   VARCHAR(32)  NOT NULL,
+    delivery_attempts INT          NOT NULL DEFAULT 0,
+    next_attempt_at   TIMESTAMP(6) NOT NULL,
+    locked_by         VARCHAR(128) NULL,
+    locked_until      TIMESTAMP(6) NULL,
+    occurred_at       TIMESTAMP(6) NOT NULL,
+    delivered_at      TIMESTAMP(6) NULL,
+    last_error        TEXT         NULL,
+    created_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at        TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id),
+    CONSTRAINT uk_gw_event_outbox_event_id
+        UNIQUE (event_id),
+    CONSTRAINT uk_gw_event_outbox_aggregate_version_type
+        UNIQUE (aggregate_type, aggregate_id, aggregate_version, event_type),
+    CONSTRAINT ck_gw_event_outbox_aggregate_version
+        CHECK (aggregate_version > 0),
+    CONSTRAINT ck_gw_event_outbox_delivery_attempts
+        CHECK (delivery_attempts >= 0),
+    CONSTRAINT ck_gw_event_outbox_delivery_status
+        CHECK (delivery_status IN ('PENDING', 'PUBLISHING', 'PUBLISHED', 'DEAD')),
+    CONSTRAINT ck_gw_event_outbox_lock_pair
+        CHECK (
+            (locked_by IS NULL AND locked_until IS NULL)
+            OR (locked_by IS NOT NULL AND locked_until IS NOT NULL)
+        )
+);
+
+CREATE INDEX idx_gw_event_outbox_pending
+    ON gw_event_outbox (delivery_status, next_attempt_at, id);
+
+CREATE INDEX idx_gw_event_outbox_expired_lock
+    ON gw_event_outbox (delivery_status, locked_until, id);

@@ -21,10 +21,16 @@ class ConfigurationReleaseMigrationTests {
                 (gateway_group_id, config_version, checksum, snapshot_content, release_status, published_at)
             VALUES (?, ?, ?, ?, ?, ?)
             """;
+    private static final String INSERT_OUTBOX_EVENT = """
+            INSERT INTO gw_event_outbox
+                (event_id, aggregate_type, aggregate_id, aggregate_version, event_type, event_payload,
+                 delivery_status, delivery_attempts, next_attempt_at, locked_by, locked_until, occurred_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
     private static final Timestamp PUBLISHED_AT = Timestamp.from(Instant.parse("2026-11-02T10:15:30Z"));
 
     @Test
-    void shouldCreateConfigurationReleaseTableAndQueryIndex() {
+    void shouldCreateConfigurationReleaseAndOutboxTablesWithQueryIndexes() {
         // Given
         WebApplicationContextRunner contextRunner = contextRunner("gateweave-center-release-schema");
 
@@ -37,15 +43,22 @@ class ConfigurationReleaseMigrationTests {
                     FROM INFORMATION_SCHEMA.TABLES
                     WHERE TABLE_SCHEMA = 'PUBLIC'
                     """, String.class).stream().map(String::toLowerCase).toList();
-            List<String> indexNames = jdbcTemplate.queryForList("""
+            List<String> releaseIndexNames = jdbcTemplate.queryForList("""
                     SELECT INDEX_NAME
                     FROM INFORMATION_SCHEMA.INDEXES
                     WHERE TABLE_SCHEMA = 'PUBLIC'
                       AND TABLE_NAME = 'GW_CONFIG_RELEASE'
                     """, String.class).stream().map(String::toLowerCase).toList();
+            List<String> outboxIndexNames = jdbcTemplate.queryForList("""
+                    SELECT INDEX_NAME
+                    FROM INFORMATION_SCHEMA.INDEXES
+                    WHERE TABLE_SCHEMA = 'PUBLIC'
+                      AND TABLE_NAME = 'GW_EVENT_OUTBOX'
+                    """, String.class).stream().map(String::toLowerCase).toList();
 
-            assertThat(tableNames).contains("gw_config_release");
-            assertThat(indexNames).contains("idx_gw_config_release_group_status_version");
+            assertThat(tableNames).contains("gw_config_release", "gw_event_outbox");
+            assertThat(releaseIndexNames).contains("idx_gw_config_release_group_status_version");
+            assertThat(outboxIndexNames).contains("idx_gw_event_outbox_pending", "idx_gw_event_outbox_expired_lock");
         });
     }
 
@@ -97,9 +110,48 @@ class ConfigurationReleaseMigrationTests {
         });
     }
 
+    @Test
+    void shouldEnforceOutboxIdentityStatusRetryAndLockConstraints() {
+        // Given
+        WebApplicationContextRunner contextRunner = contextRunner("gateweave-center-outbox-constraints");
+
+        // When & Then
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            JdbcTemplate jdbcTemplate = context.getBean(JdbcTemplate.class);
+            insertOutboxEvent(jdbcTemplate, "1cb85551-0b2f-4f32-aee3-b45742d5fb2e", 1, "PENDING", 0, null, null);
+
+            assertThatThrownBy(() -> insertOutboxEvent(jdbcTemplate,
+                    "1cb85551-0b2f-4f32-aee3-b45742d5fb2e", 2, "PENDING", 0, null, null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> insertOutboxEvent(jdbcTemplate,
+                    "326bc1d8-533e-45a2-9062-725cf33c79ec", 1, "PENDING", 0, null, null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> insertOutboxEvent(jdbcTemplate,
+                    "6ca4b31e-d82e-407d-84c3-54ba95703b6d", 2, "UNKNOWN", 0, null, null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> insertOutboxEvent(jdbcTemplate,
+                    "cccd85fa-ea02-42f0-b55a-daec82d1dd88", 0, "PENDING", 0, null, null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> insertOutboxEvent(jdbcTemplate,
+                    "33048fc8-2964-4907-a016-3b29a6bca1ee", 2, "PENDING", -1, null, null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> insertOutboxEvent(jdbcTemplate,
+                    "d01cd7cc-7f7a-4074-b407-e54c5ac20044", 2, "PUBLISHING", 1, "center-1", null))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        });
+    }
+
     private static void insertRelease(JdbcTemplate jdbcTemplate, long version, String checksum,
             String snapshotContent) {
         jdbcTemplate.update(INSERT_RELEASE, "default", version, checksum, snapshotContent, "PUBLISHED", PUBLISHED_AT);
+    }
+
+    private static void insertOutboxEvent(JdbcTemplate jdbcTemplate, String eventId, long version, String status,
+            int attempts, String lockedBy, Timestamp lockedUntil) {
+        jdbcTemplate.update(INSERT_OUTBOX_EVENT, eventId, "GATEWAY_CONFIGURATION", "default", version,
+                "GATEWAY_CONFIGURATION_PUBLISHED", "{}", status, attempts, PUBLISHED_AT, lockedBy, lockedUntil,
+                PUBLISHED_AT);
     }
 
     private static WebApplicationContextRunner contextRunner(String databaseName) {

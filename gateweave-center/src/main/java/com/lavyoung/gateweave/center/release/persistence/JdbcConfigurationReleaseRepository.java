@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
 import com.lavyoung.gateweave.center.release.application.ConfigurationReleaseRepository;
+import com.lavyoung.gateweave.contract.configuration.GatewayConfigurationPublishedEvent;
 import com.lavyoung.gateweave.contract.configuration.GatewayConfigurationSnapshot;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import org.springframework.dao.DataRetrievalFailureException;
@@ -24,12 +25,13 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * 使用关系数据库保存和读取不可变网关配置快照。
  *
- * <p>发布时先锁定网关分组记录，再读取当前最大版本并分配下一版本。
- * 同一分组的并发发布因此按数据库行锁串行执行，不同分组之间互不阻塞。</p>
+ * <p>发布时先锁定网关分组记录，再读取当前最大版本并分配下一版本，随后在同一事务中保存快照和
+ * 待投递事件。同一分组的并发发布因此按数据库行锁串行执行，不同分组之间互不阻塞。</p>
  *
  * <p>路由列表使用项目统一的 ObjectMapper 序列化，摘要使用 JDK SHA-256 实现。
  * 摘要只针对数据库保存的原始 JSON，用于读取时识别存储内容损坏；数据面不得通过重新序列化
@@ -43,6 +45,9 @@ import java.util.Optional;
 public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseRepository {
 
     private static final String PUBLISHED_STATUS = "PUBLISHED";
+    private static final String PENDING_DELIVERY_STATUS = "PENDING";
+    private static final String CONFIGURATION_AGGREGATE_TYPE = "GATEWAY_CONFIGURATION";
+    private static final String CONFIGURATION_PUBLISHED_EVENT_TYPE = "GATEWAY_CONFIGURATION_PUBLISHED";
     private static final String CHECKSUM_ALGORITHM = "SHA-256";
     private static final String CHECKSUM_PREFIX = "sha256:";
     private static final TypeReference<List<RouteConfiguration>> ROUTE_LIST_TYPE =
@@ -67,6 +72,15 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
                 (gateway_group_id, config_version, checksum, snapshot_content, release_status, published_at)
             VALUES
                 (:gatewayGroupId, :configVersion, :checksum, :snapshotContent, :releaseStatus, :publishedAt)
+            """;
+
+    private static final String INSERT_OUTBOX_EVENT_SQL = """
+            INSERT INTO gw_event_outbox
+                (event_id, aggregate_type, aggregate_id, aggregate_version, event_type, event_payload,
+                 delivery_status, next_attempt_at, occurred_at)
+            VALUES
+                (:eventId, :aggregateType, :aggregateId, :aggregateVersion, :eventType, :eventPayload,
+                 :deliveryStatus, :nextAttemptAt, :occurredAt)
             """;
 
     private static final String FIND_LATEST_PUBLISHED_SQL = """
@@ -111,9 +125,13 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
         MapSqlParameterSource groupParameters = new MapSqlParameterSource("gatewayGroupId", groupId);
         lockGatewayGroup(groupId, groupParameters);
         long version = findNextVersion(groupParameters);
-        String snapshotContent = writeRoutes(checkedRoutes);
+        String snapshotContent = writeJson(checkedRoutes, "configuration release routes");
         String checksum = calculateChecksum(snapshotContent);
         insertRelease(groupId, version, checksum, snapshotContent, checkedPublishedAt);
+
+        GatewayConfigurationPublishedEvent event = new GatewayConfigurationPublishedEvent(
+                UUID.randomUUID(), groupId, version, checkedPublishedAt);
+        insertOutboxEvent(event, writeJson(event, "configuration published event"));
         return new GatewayConfigurationSnapshot(groupId, version, checkedPublishedAt, checksum, checkedRoutes);
     }
 
@@ -164,6 +182,27 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
         this.jdbcTemplate.update(INSERT_RELEASE_SQL, parameters);
     }
 
+    /**
+     * 将配置发布事件保存为待投递 Outbox 记录。
+     *
+     * @param event        已完成版本分配的配置发布事件
+     * @param eventPayload 事件 JSON 载荷
+     */
+    private void insertOutboxEvent(GatewayConfigurationPublishedEvent event, String eventPayload) {
+        Timestamp occurredAt = Timestamp.from(event.publishedAt());
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("eventId", event.eventId().toString())
+                .addValue("aggregateType", CONFIGURATION_AGGREGATE_TYPE)
+                .addValue("aggregateId", event.gatewayGroupId())
+                .addValue("aggregateVersion", event.version())
+                .addValue("eventType", CONFIGURATION_PUBLISHED_EVENT_TYPE)
+                .addValue("eventPayload", eventPayload)
+                .addValue("deliveryStatus", PENDING_DELIVERY_STATUS)
+                .addValue("nextAttemptAt", occurredAt)
+                .addValue("occurredAt", occurredAt);
+        this.jdbcTemplate.update(INSERT_OUTBOX_EVENT_SQL, parameters);
+    }
+
     private GatewayConfigurationSnapshot mapSnapshot(ResultSet resultSet, int rowNumber) throws SQLException {
         String gatewayGroupId = resultSet.getString("gateway_group_id");
         long version = resultSet.getLong("config_version");
@@ -180,11 +219,11 @@ public class JdbcConfigurationReleaseRepository implements ConfigurationReleaseR
         return new GatewayConfigurationSnapshot(gatewayGroupId, version, publishedAt, storedChecksum, routes);
     }
 
-    private String writeRoutes(List<RouteConfiguration> routes) {
+    private String writeJson(Object value, String contentDescription) {
         try {
-            return this.objectMapper.writeValueAsString(routes);
+            return this.objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("Unable to serialize configuration release routes", exception);
+            throw new IllegalStateException("Unable to serialize " + contentDescription, exception);
         }
     }
 

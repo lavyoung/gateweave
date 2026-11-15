@@ -5,6 +5,7 @@ import com.lavyoung.gateweave.center.release.application.PublishGatewayConfigura
 import com.lavyoung.gateweave.center.release.application.QueryPublishedGatewayConfigurationUseCase;
 import com.lavyoung.gateweave.center.release.application.internal.DefaultGatewayConfigurationPublicationService;
 import com.lavyoung.gateweave.center.route.application.GatewayRouteConfigurationQuery;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,6 +22,7 @@ import java.time.Clock;
  * @date 2026/11/02
  */
 @Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties(ConfigurationEventDeliveryProperties.class)
 public class ReleaseApplicationConfiguration {
 
     /**

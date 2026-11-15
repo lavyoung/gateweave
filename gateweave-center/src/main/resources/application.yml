@@ -1,3 +1,19 @@
 spring:
+  data:
+    redis:
+      host: ${GATEWEAVE_REDIS_HOST:127.0.0.1}
+      port: ${GATEWEAVE_REDIS_PORT:6379}
+      password: ${GATEWEAVE_REDIS_PASSWORD:}
+      connect-timeout: ${GATEWEAVE_REDIS_CONNECT_TIMEOUT:2s}
+      timeout: ${GATEWEAVE_REDIS_COMMAND_TIMEOUT:2s}
   messages:
     fallback-to-system-locale: false
+
+gateweave:
+  # 发布事件投递配置
+  configuration-events:
+    delivery:
+      batch-size: ${GATEWEAVE_EVENT_DELIVERY_BATCH_SIZE:100}
+      lock-duration: ${GATEWEAVE_EVENT_DELIVERY_LOCK_DURATION:30s}
+      retry-delay: ${GATEWEAVE_EVENT_DELIVERY_RETRY_DELAY:5s}
+      max-attempts: ${GATEWEAVE_EVENT_DELIVERY_MAX_ATTEMPTS:10}
