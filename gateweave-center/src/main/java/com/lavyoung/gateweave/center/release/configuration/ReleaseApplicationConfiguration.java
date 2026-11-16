@@ -1,13 +1,20 @@
 package com.lavyoung.gateweave.center.release.configuration;
 
+import com.lavyoung.gateweave.center.release.application.ConfigurationPublishedEventOutbox;
+import com.lavyoung.gateweave.center.release.application.ConfigurationPublishedEventPublisher;
 import com.lavyoung.gateweave.center.release.application.ConfigurationReleaseRepository;
 import com.lavyoung.gateweave.center.release.application.PublishGatewayConfigurationUseCase;
 import com.lavyoung.gateweave.center.release.application.QueryPublishedGatewayConfigurationUseCase;
+import com.lavyoung.gateweave.center.release.application.internal.ConfigurationPublishedEventDispatcher;
 import com.lavyoung.gateweave.center.release.application.internal.DefaultGatewayConfigurationPublicationService;
+import com.lavyoung.gateweave.center.release.lifecycle.ConfigurationPublishedEventDispatchScheduler;
 import com.lavyoung.gateweave.center.route.application.GatewayRouteConfigurationQuery;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.TaskScheduler;
 
 import java.time.Clock;
 
@@ -51,5 +58,37 @@ public class ReleaseApplicationConfiguration {
     public QueryPublishedGatewayConfigurationUseCase queryPublishedGatewayConfigurationUseCase(
             ConfigurationReleaseRepository configurationReleaseRepository) {
         return configurationReleaseRepository::findLatestPublished;
+    }
+
+    /**
+     * 创建配置发布事件投递应用服务。
+     *
+     * @param outbox    配置发布事件可靠存储端口
+     * @param publisher 配置发布事件消息传输端口
+     * @param clock     控制面统一时钟
+     * @return 配置发布事件投递应用服务
+     */
+    @Bean
+    public ConfigurationPublishedEventDispatcher configurationPublishedEventDispatcher(
+            ConfigurationPublishedEventOutbox outbox, ConfigurationPublishedEventPublisher publisher, Clock clock) {
+        return new ConfigurationPublishedEventDispatcher(outbox, publisher, clock);
+    }
+
+    /**
+     * 创建配置发布事件投递调度器。
+     *
+     * @param dispatcher    配置发布事件投递应用服务
+     * @param taskScheduler 控制面共享任务调度器
+     * @param properties    配置发布事件投递策略
+     * @return 配置发布事件投递调度器
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "gateweave.configuration-events.delivery", name = "enabled", havingValue = "true")
+    public ConfigurationPublishedEventDispatchScheduler configurationPublishedEventDispatchScheduler(
+            ConfigurationPublishedEventDispatcher dispatcher,
+            @Qualifier("controlPlaneTaskScheduler") TaskScheduler taskScheduler,
+            ConfigurationEventDeliveryProperties properties) {
+        return new ConfigurationPublishedEventDispatchScheduler(dispatcher, taskScheduler,
+                properties.dispatchInterval());
     }
 }

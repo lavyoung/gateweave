@@ -2,11 +2,11 @@ package com.lavyoung.gateweave.engine.adapter.out.controlplane;
 
 import com.lavyoung.gateweave.contract.http.HttpEndpoint;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
-
 
 /**
  * 定义网关数据面连接控制面所需的节点身份和网络地址。
@@ -14,26 +14,28 @@ import java.util.Objects;
  * <p>该配置同时服务于节点注册、心跳、注销和配置拉取，避免不同生命周期组件分别维护
  * Center 地址、节点身份和刷新周期。</p>
  *
- * @param baseUri           控制面 HTTP 根地址
- * @param nodeId            网关节点稳定标识
- * @param gatewayGroupId    节点所属网关分组标识
- * @param nodeName          节点展示名称
- * @param advertisedAddress 节点对外公布的 HTTP 地址
- * @param requestTimeout    单次控制面 HTTP 请求的最长等待时间
- * @param refreshInterval   两次配置刷新之间的固定延迟
+ * @param baseUri                       控制面 HTTP 根地址
+ * @param nodeId                        网关节点稳定标识
+ * @param gatewayGroupId                节点所属网关分组标识
+ * @param nodeName                      节点展示名称
+ * @param advertisedAddress             节点对外公布的 HTTP 地址
+ * @param requestTimeout                单次控制面 HTTP 请求的最长等待时间
+ * @param refreshInterval               两次配置刷新之间的固定延迟
+ * @param configurationEventTopicPrefix 配置发布事件频道前缀
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>
  * @version 1.0.0
  * @date 2026/11/02
  */
 @ConfigurationProperties(prefix = "gateweave.control-plane")
 public record GatewayControlPlaneProperties(URI baseUri, String nodeId, String gatewayGroupId, String nodeName,
-                                            URI advertisedAddress, Duration requestTimeout, Duration refreshInterval) {
+        URI advertisedAddress, Duration requestTimeout, Duration refreshInterval,
+        @DefaultValue("gateweave:configuration:published") String configurationEventTopicPrefix) {
 
     /**
      * 校验 Engine 建立控制面连接所需的本地配置。
      *
      * @throws NullPointerException     任一配置为 null 时抛出
-     * @throws IllegalArgumentException 控制面根地址不合法、请求超时或刷新周期不为正数时抛出
+     * @throws IllegalArgumentException 控制面根地址、频道前缀不合法，请求超时或刷新周期不为正数时抛出
      */
     public GatewayControlPlaneProperties {
         baseUri = new HttpEndpoint(Objects.requireNonNull(baseUri, "baseUri must not be null")).uri();
@@ -49,6 +51,12 @@ public record GatewayControlPlaneProperties(URI baseUri, String nodeId, String g
         }
         if (refreshInterval.isZero() || refreshInterval.isNegative()) {
             throw new IllegalArgumentException("refreshInterval must be greater than zero");
+        }
+        configurationEventTopicPrefix =
+                Objects.requireNonNull(configurationEventTopicPrefix, "configurationEventTopicPrefix must not be null")
+                        .strip();
+        if (configurationEventTopicPrefix.isEmpty()) {
+            throw new IllegalArgumentException("configurationEventTopicPrefix must not be blank");
         }
     }
 }

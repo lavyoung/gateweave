@@ -13,6 +13,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayControlPlanePropertiesTests {
 
+    private static final String TOPIC_PREFIX = "gateweave:configuration:published";
+
     @Test
     void shouldBindControlPlaneProperties() {
         // Given
@@ -22,7 +24,7 @@ class GatewayControlPlanePropertiesTests {
                         "gateweave.control-plane.node-name", "Gateway Node 1",
                         "gateweave.control-plane.advertised-address", "http://127.0.0.1:7397",
                         "gateweave.control-plane.request-timeout", "3s", "gateweave.control-plane.refresh-interval",
-                        "PT30S");
+                        "PT30S", "gateweave.control-plane.configuration-event-topic-prefix", TOPIC_PREFIX);
 
         // When
         GatewayControlPlaneProperties properties =
@@ -38,6 +40,7 @@ class GatewayControlPlanePropertiesTests {
         assertThat(properties.advertisedAddress()).isEqualTo(URI.create("http://127.0.0.1:7397"));
         assertThat(properties.requestTimeout()).isEqualTo(Duration.ofSeconds(3));
         assertThat(properties.refreshInterval()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(properties.configurationEventTopicPrefix()).isEqualTo(TOPIC_PREFIX);
     }
 
     @Test
@@ -57,33 +60,40 @@ class GatewayControlPlanePropertiesTests {
     void shouldRequireEveryConfigurationValue() {
         // When & Then
         assertThatThrownBy(() -> new GatewayControlPlaneProperties(null, "node-1", "default", "Gateway Node 1",
-                URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3), Duration.ofSeconds(30))).isInstanceOf(
-                NullPointerException.class).hasMessage("baseUri must not be null");
+                URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3), Duration.ofSeconds(30), TOPIC_PREFIX))
+                .isInstanceOf(NullPointerException.class).hasMessage("baseUri must not be null");
         assertThatThrownBy(() -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), null, "default",
                 "Gateway Node 1", URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3),
-                Duration.ofSeconds(30))).isInstanceOf(NullPointerException.class).hasMessage("nodeId must not be null");
+                Duration.ofSeconds(30), TOPIC_PREFIX)).isInstanceOf(NullPointerException.class)
+                .hasMessage("nodeId must not be null");
         assertThatThrownBy(() -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", null,
                 "Gateway Node 1", URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3),
-                Duration.ofSeconds(30))).isInstanceOf(NullPointerException.class)
+                Duration.ofSeconds(30), TOPIC_PREFIX)).isInstanceOf(NullPointerException.class)
                 .hasMessage("gatewayGroupId must not be null");
         assertThatThrownBy(
                 () -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", "default", null,
                         URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3),
-                        Duration.ofSeconds(30))).isInstanceOf(NullPointerException.class)
+                        Duration.ofSeconds(30), TOPIC_PREFIX)).isInstanceOf(NullPointerException.class)
                 .hasMessage("nodeName must not be null");
         assertThatThrownBy(
                 () -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", "default",
-                        "Gateway Node 1", null, Duration.ofSeconds(3), Duration.ofSeconds(30))).isInstanceOf(
-                NullPointerException.class).hasMessage("advertisedAddress must not be null");
+                        "Gateway Node 1", null, Duration.ofSeconds(3), Duration.ofSeconds(30), TOPIC_PREFIX))
+                .isInstanceOf(NullPointerException.class).hasMessage("advertisedAddress must not be null");
         assertThatThrownBy(
                 () -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", "default",
                         "Gateway Node 1", URI.create("http://127.0.0.1:7397"), null,
-                        Duration.ofSeconds(30))).isInstanceOf(NullPointerException.class)
+                        Duration.ofSeconds(30), TOPIC_PREFIX)).isInstanceOf(NullPointerException.class)
                 .hasMessage("requestTimeout must not be null");
         assertThatThrownBy(
                 () -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", "default",
                         "Gateway Node 1", URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3),
-                        null)).isInstanceOf(NullPointerException.class).hasMessage("refreshInterval must not be null");
+                        null, TOPIC_PREFIX)).isInstanceOf(NullPointerException.class)
+                .hasMessage("refreshInterval must not be null");
+        assertThatThrownBy(
+                () -> new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", "default",
+                        "Gateway Node 1", URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3),
+                        Duration.ofSeconds(30), null)).isInstanceOf(NullPointerException.class)
+                .hasMessage("configurationEventTopicPrefix must not be null");
     }
 
     @Test
@@ -112,13 +122,30 @@ class GatewayControlPlanePropertiesTests {
         GatewayControlPlaneProperties properties =
                 new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "n".repeat(65), "g".repeat(65),
                         "name".repeat(40), URI.create("ftp://127.0.0.1:7397"), Duration.ofSeconds(3),
-                        Duration.ofSeconds(30));
+                        Duration.ofSeconds(30), TOPIC_PREFIX);
 
         // Then
         assertThat(properties.nodeId()).hasSize(65);
         assertThat(properties.gatewayGroupId()).hasSize(65);
         assertThat(properties.nodeName()).hasSize(160);
         assertThat(properties.advertisedAddress()).hasScheme("ftp");
+    }
+
+    @Test
+    void shouldNormalizeAndRejectBlankConfigurationEventTopicPrefix() {
+        // When
+        GatewayControlPlaneProperties properties = new GatewayControlPlaneProperties(
+                URI.create("http://127.0.0.1:8080"), "node-1", "default", "Gateway Node 1",
+                URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3), Duration.ofSeconds(30),
+                " " + TOPIC_PREFIX + " ");
+
+        // Then
+        assertThat(properties.configurationEventTopicPrefix()).isEqualTo(TOPIC_PREFIX);
+        assertThatThrownBy(() -> new GatewayControlPlaneProperties(
+                URI.create("http://127.0.0.1:8080"), "node-1", "default", "Gateway Node 1",
+                URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(3), Duration.ofSeconds(30), " "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("configurationEventTopicPrefix must not be blank");
     }
 
     private static GatewayControlPlaneProperties properties(URI baseUri) {
@@ -132,6 +159,6 @@ class GatewayControlPlanePropertiesTests {
     private static GatewayControlPlaneProperties properties(URI baseUri, Duration requestTimeout,
             Duration refreshInterval) {
         return new GatewayControlPlaneProperties(baseUri, "node-1", "default", "Gateway Node 1",
-                URI.create("http://127.0.0.1:7397"), requestTimeout, refreshInterval);
+                URI.create("http://127.0.0.1:7397"), requestTimeout, refreshInterval, TOPIC_PREFIX);
     }
 }

@@ -12,7 +12,10 @@ spring:
 gateweave:
   # 发布事件投递配置
   configuration-events:
+    topic-prefix: ${GATEWEAVE_CONFIGURATION_EVENT_TOPIC_PREFIX:gateweave:configuration:published}
     delivery:
+      enabled: ${GATEWEAVE_EVENT_DELIVERY_ENABLED:true}
+      dispatch-interval: ${GATEWEAVE_EVENT_DELIVERY_DISPATCH_INTERVAL:1s}
       batch-size: ${GATEWEAVE_EVENT_DELIVERY_BATCH_SIZE:100}
       lock-duration: ${GATEWEAVE_EVENT_DELIVERY_LOCK_DURATION:30s}
       retry-delay: ${GATEWEAVE_EVENT_DELIVERY_RETRY_DELAY:5s}

@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
 import com.lavyoung.gateweave.center.configuration.ControlPlaneClockConfiguration;
+import com.lavyoung.gateweave.center.configuration.ControlPlaneSchedulingConfiguration;
 import com.lavyoung.gateweave.center.gateway.application.ExpireGatewayNodeLeasesUseCase;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
 import com.lavyoung.gateweave.center.gateway.application.ReleaseGatewayNodeLeaseUseCase;
@@ -47,8 +48,8 @@ class GatewayApplicationConfigurationTests {
         AtomicReference<ThreadPoolTaskScheduler> taskSchedulerReference = new AtomicReference<>();
         ApplicationContextRunner contextRunner =
                 new ApplicationContextRunner().withUserConfiguration(ControlPlaneClockConfiguration.class,
-                                GatewayApplicationConfiguration.class).withBean(GatewayNodeRepository.class,
-                                () -> repository)
+                                ControlPlaneSchedulingConfiguration.class, GatewayApplicationConfiguration.class)
+                        .withBean(GatewayNodeRepository.class, () -> repository)
                         .withPropertyValues("gateweave.gateway-node.lease.heartbeat-interval=15s",
                                 "gateweave.gateway-node.lease.lease-timeout=45s",
                                 "gateweave.gateway-node.lease.expiration-scan-interval=1h");
@@ -71,8 +72,8 @@ class GatewayApplicationConfigurationTests {
             assertThat(leaseProperties.expirationScanInterval()).isEqualTo(Duration.ofHours(1));
             ThreadPoolTaskScheduler taskScheduler = context.getBean(ThreadPoolTaskScheduler.class);
             taskSchedulerReference.set(taskScheduler);
-            assertThat(taskScheduler.getPoolSize()).isEqualTo(1);
-            assertThat(taskScheduler.getThreadNamePrefix()).isEqualTo("gateweave-node-maintenance-");
+            assertThat(taskScheduler.getScheduledThreadPoolExecutor().getCorePoolSize()).isEqualTo(2);
+            assertThat(taskScheduler.getThreadNamePrefix()).isEqualTo("gateweave-control-plane-");
 
             RegisterGatewayNodeUseCase useCase = context.getBean(RegisterGatewayNodeUseCase.class);
             assertThat(useCase).isInstanceOf(DefaultGatewayNodeRegistrationService.class);

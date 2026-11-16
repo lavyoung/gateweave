@@ -183,6 +183,7 @@ class GatewayNodeLifecycleTests {
 
     private static GatewayControlPlaneProperties properties() {
         return new GatewayControlPlaneProperties(URI.create("http://127.0.0.1:8080"), "node-1", "default",
-                "Gateway Node 1", URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(2), Duration.ofHours(1));
+                "Gateway Node 1", URI.create("http://127.0.0.1:7397"), Duration.ofSeconds(2), Duration.ofHours(1),
+                "gateweave:configuration:published");
     }
 }

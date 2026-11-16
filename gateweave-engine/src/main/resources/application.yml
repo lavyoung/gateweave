@@ -1,9 +1,17 @@
 spring:
   application:
     name: gateweave-engine
+  data:
+    redis:
+      host: ${GATEWEAVE_REDIS_HOST:127.0.0.1}
+      port: ${GATEWEAVE_REDIS_PORT:6379}
+      password: ${GATEWEAVE_REDIS_PASSWORD:}
+      connect-timeout: ${GATEWEAVE_REDIS_CONNECT_TIMEOUT:2s}
+      timeout: ${GATEWEAVE_REDIS_COMMAND_TIMEOUT:2s}
 
 gateweave:
   control-plane:
+    configuration-event-topic-prefix: ${GATEWEAVE_CONFIGURATION_EVENT_TOPIC_PREFIX:gateweave:configuration:published}
     base-uri: ${GATEWEAVE_CONTROL_PLANE_BASE_URI:http://127.0.0.1:8080}
     node-id: ${GATEWEAVE_NODE_ID:gateweave-engine-local}
     gateway-group-id: ${GATEWEAVE_GATEWAY_GROUP_ID:default}
