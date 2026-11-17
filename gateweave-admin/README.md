@@ -1,54 +1,68 @@
-# gateweave-admin
+# GateWeave Admin
 
-This template should help get you started developing with Vue 3 in Vite.
+GateWeave Admin 是 GateWeave 控制面的独立运营管理界面，用于展示和管理网关节点、服务目录、路由与配置发布。
 
-## Recommended IDE Setup
+前端工程独立构建和部署，通过 HTTP 与 `gateweave-center` 协作，不加入 Maven Reactor，也不依赖任何 Java 模块。
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 技术栈
 
-## Recommended Browser Setup
+- Vue 3
+- TypeScript
+- Vite
+- Vue Router
+- Element Plus
+- Vitest
+- ESLint
+- Prettier
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## 环境要求
 
-## Type Support for `.vue` Imports in TS
+- Node.js `^22.18.0 || >=24.12.0`
+- npm 11 或兼容版本
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+## 本地开发
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```shell
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+默认访问地址由 Vite 启动日志给出。
 
-```sh
+## 验证命令
+
+```shell
+npm run lint
+npm run type-check
+npm run test:unit -- --run
 npm run build
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+生产构建输出位于 `dist` 目录。
 
-```sh
-npm run test:unit
+## 目录结构
+
+```text
+src
+├── app
+│   ├── router
+│   └── styles
+├── features
+│   ├── dashboard
+│   ├── gateway-node
+│   └── not-found
+├── layouts
+├── App.vue
+└── main.ts
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+- `app`：应用级路由、全局样式和工具生成的组件声明。
+- `features`：按照管理能力组织的页面、模型及开发夹具。
+- `layouts`：跨功能页面复用的管理后台布局。
+- `main.ts`：Vue 应用及全局插件装配入口。
 
-```sh
-npm run lint
-```
+## 当前边界
+
+当前节点列表使用本地开发夹具，用于验证管理后台布局、路由、菜单和表格组件。
+
+真实节点查询、HTTP 客户端和跨域配置将在后续章节引入。前端模型不直接复用 Center 领域对象，跨进程数据必须由管理 API 返回契约定义。

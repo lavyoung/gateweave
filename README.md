@@ -13,6 +13,7 @@ the data plane (`gateweave-engine`) and the control plane (`gateweave-center`).
 | `gateweave-center` | Registration, configuration, releases and management API |
 | `gateweave-spring-boot-starter` | Optional service metadata and registration integration |
 | `gateweave-tests` | Cross-module architecture, integration and end-to-end tests |
+| `gateweave-admin` | Vue-based control-plane operations interface |
 
 The engine and center never depend on each other's implementation. They exchange
 versioned records from `gateweave-contract` through explicit adapters.
@@ -51,6 +52,17 @@ Run the data plane:
 
 ```shell
 mvn -pl gateweave-engine spring-boot:run
+```
+
+Build and verify the management interface:
+
+```shell
+cd gateweave-admin
+npm install
+npm run lint
+npm run type-check
+npm run test:unit -- --run
+npm run build
 ```
 
 Architecture decisions are documented under `docs/adr`.
