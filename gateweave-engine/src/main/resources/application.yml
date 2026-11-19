@@ -12,7 +12,7 @@ spring:
 gateweave:
   control-plane:
     configuration-event-topic-prefix: ${GATEWEAVE_CONFIGURATION_EVENT_TOPIC_PREFIX:gateweave:configuration:published}
-    base-uri: ${GATEWEAVE_CONTROL_PLANE_BASE_URI:http://127.0.0.1:8080}
+    base-uri: ${GATEWEAVE_CONTROL_PLANE_BASE_URI:http://127.0.0.1:8080/api/v1}
     node-id: ${GATEWEAVE_NODE_ID:gateweave-engine-local}
     gateway-group-id: ${GATEWEAVE_GATEWAY_GROUP_ID:default}
     node-name: ${GATEWEAVE_NODE_NAME:GateWeave Local Engine}

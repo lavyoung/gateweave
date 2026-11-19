@@ -1,43 +1,6 @@
 package com.lavyoung.gateweave.engine.configuration;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpServer;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import org.apache.dubbo.config.ReferenceConfigBase;
-import org.apache.dubbo.config.utils.SimpleReferenceCache;
-import org.apache.dubbo.rpc.service.GenericService;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-
 import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
 import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
@@ -61,17 +24,45 @@ import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 import com.lavyoung.gateweave.plugin.invoker.http.HttpProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.DubboProtocolInvoker;
 import com.lavyoung.gateweave.plugin.invoker.rpc.GenericReferenceRegistry;
+import com.sun.net.httpserver.HttpServer;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import org.apache.dubbo.config.ReferenceConfigBase;
+import org.apache.dubbo.config.utils.SimpleReferenceCache;
+import org.apache.dubbo.rpc.service.GenericService;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class GatewayEngineConfigurationTests {
 
@@ -256,7 +247,8 @@ class GatewayEngineConfigurationTests {
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService).withPropertyValues(
                         "gateweave.control-plane.base-uri=http://127.0.0.1:" +
-                                controlPlaneServer.getAddress().getPort(), "gateweave.control-plane.node-id=node-1",
+                                controlPlaneServer.getAddress().getPort() + "/api/v1",
+                        "gateweave.control-plane.node-id=node-1",
                         "gateweave.control-plane.gateway-group-id=default",
                         "gateweave.control-plane.node-name=Gateway Node 1",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + port,
@@ -349,7 +341,7 @@ class GatewayEngineConfigurationTests {
                 assertThat(gatewayHttpClient.followRedirects()).isEqualTo(HttpClient.Redirect.NEVER);
                 assertThat(gatewayHttpClient.version()).isEqualTo(HttpClient.Version.HTTP_1_1);
                 assertThat(controlPlaneProperties.baseUri()).isEqualTo(
-                        URI.create("http://127.0.0.1:" + controlPlaneServer.getAddress().getPort()));
+                        URI.create("http://127.0.0.1:" + controlPlaneServer.getAddress().getPort() + "/api/v1"));
                 assertThat(controlPlaneProperties.nodeId()).isEqualTo("node-1");
                 assertThat(controlPlaneProperties.gatewayGroupId()).isEqualTo("default");
                 assertThat(controlPlaneProperties.nodeName()).isEqualTo("Gateway Node 1");
@@ -411,7 +403,7 @@ class GatewayEngineConfigurationTests {
                                 RestClientAutoConfiguration.class))
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withBean(GatewaySessionAuthenticationService.class, () -> authenticationService)
-                .withPropertyValues("gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
+                .withPropertyValues("gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort + "/api/v1",
                         "gateweave.control-plane.node-id=node-1", "gateweave.control-plane.gateway-group-id=default",
                         "gateweave.control-plane.node-name=Gateway Node 1",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,

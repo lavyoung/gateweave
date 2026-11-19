@@ -14,7 +14,7 @@ import java.util.Objects;
  * <p>该配置同时服务于节点注册、心跳、注销和配置拉取，避免不同生命周期组件分别维护
  * Center 地址、节点身份和刷新周期。</p>
  *
- * @param baseUri                       控制面 HTTP 根地址
+ * @param baseUri                       控制面 HTTP API 根地址
  * @param nodeId                        网关节点稳定标识
  * @param gatewayGroupId                节点所属网关分组标识
  * @param nodeName                      节点展示名称

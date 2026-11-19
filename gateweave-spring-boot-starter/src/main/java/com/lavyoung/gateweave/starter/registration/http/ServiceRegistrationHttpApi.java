@@ -26,7 +26,7 @@ public interface ServiceRegistrationHttpApi {
      * @param request 服务定义注册请求
      * @return 控制面统一响应及 HTTP 状态
      */
-    @PostExchange(value = "/api/v1/catalog/services", contentType = MediaType.APPLICATION_JSON_VALUE,
+    @PostExchange(value = "/catalog/services", contentType = MediaType.APPLICATION_JSON_VALUE,
             accept = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Result<ServiceDefinitionRegistrationResponse>> register(
             @RequestBody RegisterServiceDefinitionRequest request);

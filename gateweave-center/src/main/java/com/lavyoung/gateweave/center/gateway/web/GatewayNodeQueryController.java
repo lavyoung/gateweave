@@ -28,7 +28,7 @@ import java.util.Set;
  * @date 2026/11/19
  */
 @RestController
-@RequestMapping("/api/v1/gateway-nodes")
+@RequestMapping("/gateway-nodes")
 public class GatewayNodeQueryController {
 
     private final QueryGatewayNodePageUseCase queryGatewayNodePageUseCase;

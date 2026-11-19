@@ -1,10 +1,5 @@
 package com.lavyoung.gateweave.starter.registration;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.lavyoung.gateweave.starter.annotation.GateWeaveOperation;
 import com.lavyoung.gateweave.starter.annotation.GateWeaveService;
 import com.sun.net.httpserver.HttpExchange;
@@ -16,6 +11,11 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,7 +37,7 @@ class ServiceRegistrationStartupIntegrationTests {
             try (ConfigurableApplicationContext context = new SpringApplicationBuilder(TestApplication.class)
                     .web(WebApplicationType.NONE)
                     .properties("spring.application.name=order-provider",
-                            "gateweave.registration.base-uri=http://127.0.0.1:" + controlPlanePort,
+                            "gateweave.registration.base-uri=http://127.0.0.1:" + controlPlanePort + "/api/v1",
                             "spring.main.banner-mode=off")
                     .run()) {
                 assertThat(context).isNotNull();

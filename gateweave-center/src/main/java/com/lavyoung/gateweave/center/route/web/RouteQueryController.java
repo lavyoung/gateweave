@@ -27,7 +27,7 @@ import java.util.Objects;
  * @date 2026/10/30
  */
 @RestController
-@RequestMapping("/api/v1/gateway-groups/{gatewayGroupId}/routes")
+@RequestMapping("/gateway-groups/{gatewayGroupId}/routes")
 public class RouteQueryController {
 
     private final QueryRoutePageUseCase queryRoutePageUseCase;

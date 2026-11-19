@@ -1,7 +1,5 @@
 package com.lavyoung.gateweave.starter.registration.http;
 
-import java.util.List;
-
 import com.lavyoung.gateweave.contract.catalog.CatalogRegistrationOutcome;
 import com.lavyoung.gateweave.contract.catalog.RegisterServiceDefinitionRequest;
 import com.lavyoung.gateweave.contract.catalog.RegisterServiceDefinitionRequest.ServiceOperationParameterRequest;
@@ -18,10 +16,10 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 class ServiceRegistrationHttpApiTests {
@@ -29,7 +27,7 @@ class ServiceRegistrationHttpApiTests {
     @Test
     void shouldSendCompleteDefinitionAndReadCreatedResponse() {
         // Given
-        RestClient.Builder restClientBuilder = RestClient.builder().baseUrl("http://127.0.0.1:8080");
+        RestClient.Builder restClientBuilder = RestClient.builder().baseUrl("http://127.0.0.1:8080/api/v1");
         MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
         RestClient restClient = restClientBuilder.build();
         ServiceRegistrationHttpApi httpApi =

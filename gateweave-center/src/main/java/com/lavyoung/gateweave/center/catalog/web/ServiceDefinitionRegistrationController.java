@@ -1,8 +1,15 @@
 package com.lavyoung.gateweave.center.catalog.web;
 
-import java.util.List;
-import java.util.Objects;
-
+import com.lavyoung.gateweave.center.catalog.application.RegisterServiceDefinitionUseCase;
+import com.lavyoung.gateweave.center.catalog.domain.ServiceCatalogStatus;
+import com.lavyoung.gateweave.center.catalog.domain.ServiceDefinition;
+import com.lavyoung.gateweave.center.catalog.domain.ServiceOperation;
+import com.lavyoung.gateweave.center.catalog.domain.ServiceOperationParameter;
+import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
+import com.lavyoung.gateweave.contract.catalog.CatalogRegistrationOutcome;
+import com.lavyoung.gateweave.contract.catalog.RegisterServiceDefinitionRequest;
+import com.lavyoung.gateweave.contract.catalog.ServiceDefinitionRegistrationResponse;
+import com.lavyoung.gateweave.contract.web.Result;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,16 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
-import com.lavyoung.gateweave.center.catalog.application.RegisterServiceDefinitionUseCase;
-import com.lavyoung.gateweave.center.catalog.domain.ServiceCatalogStatus;
-import com.lavyoung.gateweave.center.catalog.domain.ServiceDefinition;
-import com.lavyoung.gateweave.center.catalog.domain.ServiceOperation;
-import com.lavyoung.gateweave.center.catalog.domain.ServiceOperationParameter;
-import com.lavyoung.gateweave.contract.catalog.CatalogRegistrationOutcome;
-import com.lavyoung.gateweave.contract.catalog.RegisterServiceDefinitionRequest;
-import com.lavyoung.gateweave.contract.catalog.ServiceDefinitionRegistrationResponse;
-import com.lavyoung.gateweave.contract.web.Result;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 提供服务目录定义注册的 HTTP 入站接口。
@@ -32,7 +31,7 @@ import com.lavyoung.gateweave.contract.web.Result;
  * @date 2026/11/01
  */
 @RestController
-@RequestMapping("/api/v1/catalog/services")
+@RequestMapping("/catalog/services")
 public class ServiceDefinitionRegistrationController {
 
     private final RegisterServiceDefinitionUseCase registerServiceDefinitionUseCase;

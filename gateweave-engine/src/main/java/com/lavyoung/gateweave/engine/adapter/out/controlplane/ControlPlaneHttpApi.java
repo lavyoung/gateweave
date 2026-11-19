@@ -35,7 +35,7 @@ public interface ControlPlaneHttpApi {
      * @param request 节点注册请求
      * @return 控制面统一响应、节点租约及 HTTP 状态
      */
-    @PostExchange(value = "/api/v1/gateway-nodes", contentType = MediaType.APPLICATION_JSON_VALUE,
+    @PostExchange(value = "/gateway-nodes", contentType = MediaType.APPLICATION_JSON_VALUE,
             accept = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Result<GatewayNodeLease>> registerNode(@RequestBody RegisterGatewayNodeRequest request);
 
@@ -46,7 +46,7 @@ public interface ControlPlaneHttpApi {
      * @param request 节点心跳请求
      * @return 控制面返回的 HTTP 204 响应
      */
-    @PutExchange(value = "/api/v1/gateway-nodes/{nodeId}/lease", contentType = MediaType.APPLICATION_JSON_VALUE)
+    @PutExchange(value = "/gateway-nodes/{nodeId}/lease", contentType = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Void> renewNodeLease(@PathVariable("nodeId") String nodeId,
             @RequestBody GatewayNodeHeartbeatRequest request);
 
@@ -57,7 +57,7 @@ public interface ControlPlaneHttpApi {
      * @param leaseId 当前运行实例持有的租约标识
      * @return 控制面返回的 HTTP 204 响应
      */
-    @DeleteExchange("/api/v1/gateway-nodes/{nodeId}/lease")
+    @DeleteExchange("/gateway-nodes/{nodeId}/lease")
     ResponseEntity<Void> releaseNodeLease(@PathVariable("nodeId") String nodeId, @RequestParam("leaseId") UUID leaseId);
 
     /**
@@ -66,7 +66,7 @@ public interface ControlPlaneHttpApi {
      * @param gatewayGroupId 网关分组标识
      * @return 存在快照时返回 HTTP 200 和统一响应，不存在时返回 HTTP 204
      */
-    @GetExchange(value = "/api/v1/gateway-groups/{gatewayGroupId}/configuration-releases/latest",
+    @GetExchange(value = "/gateway-groups/{gatewayGroupId}/configuration-releases/latest",
             accept = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Result<GatewayConfigurationSnapshot>> findLatestPublishedConfiguration(
             @PathVariable("gatewayGroupId") String gatewayGroupId);

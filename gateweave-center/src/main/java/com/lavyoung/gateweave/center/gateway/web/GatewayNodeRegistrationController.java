@@ -30,7 +30,7 @@ import java.util.Objects;
  * @date 2026/10/31
  */
 @RestController
-@RequestMapping("/api/v1/gateway-nodes")
+@RequestMapping("/gateway-nodes")
 public class GatewayNodeRegistrationController {
 
     private final RegisterGatewayNodeUseCase registerGatewayNodeUseCase;

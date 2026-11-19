@@ -10,6 +10,10 @@ spring:
     fallback-to-system-locale: false
 
 gateweave:
+  web:
+    api-prefix: ${GATEWEAVE_CENTER_API_PREFIX:/api/v1}
+    allowed-origins: ${GATEWEAVE_ADMIN_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+    cors-max-age: ${GATEWEAVE_CORS_MAX_AGE:30m}
   # 发布事件投递配置
   configuration-events:
     topic-prefix: ${GATEWEAVE_CONFIGURATION_EVENT_TOPIC_PREFIX:gateweave:configuration:published}

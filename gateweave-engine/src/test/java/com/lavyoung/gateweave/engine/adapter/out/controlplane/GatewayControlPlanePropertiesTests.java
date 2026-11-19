@@ -1,12 +1,12 @@
 package com.lavyoung.gateweave.engine.adapter.out.controlplane;
 
-import java.net.URI;
-import java.time.Duration;
-import java.util.Map;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
+
+import java.net.URI;
+import java.time.Duration;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,8 +19,9 @@ class GatewayControlPlanePropertiesTests {
     void shouldBindControlPlaneProperties() {
         // Given
         Map<String, Object> source =
-                Map.of("gateweave.control-plane.base-uri", "http://127.0.0.1:8080", "gateweave.control-plane.node-id",
-                        "node-1", "gateweave.control-plane.gateway-group-id", "default",
+                Map.of("gateweave.control-plane.base-uri", "http://127.0.0.1:8080/api/v1",
+                        "gateweave.control-plane.node-id", "node-1", "gateweave.control-plane.gateway-group-id",
+                        "default",
                         "gateweave.control-plane.node-name", "Gateway Node 1",
                         "gateweave.control-plane.advertised-address", "http://127.0.0.1:7397",
                         "gateweave.control-plane.request-timeout", "3s", "gateweave.control-plane.refresh-interval",
@@ -33,7 +34,7 @@ class GatewayControlPlanePropertiesTests {
                         .orElseThrow(() -> new AssertionError("gateweave.control-plane properties must be present"));
 
         // Then
-        assertThat(properties.baseUri()).isEqualTo(URI.create("http://127.0.0.1:8080"));
+        assertThat(properties.baseUri()).isEqualTo(URI.create("http://127.0.0.1:8080/api/v1"));
         assertThat(properties.nodeId()).isEqualTo("node-1");
         assertThat(properties.gatewayGroupId()).isEqualTo("default");
         assertThat(properties.nodeName()).isEqualTo("Gateway Node 1");

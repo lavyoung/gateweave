@@ -1,5 +1,25 @@
 package com.lavyoung.gateweave.e2e;
 
+import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
+import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
+import com.lavyoung.gateweave.engine.configuration.GatewayEngineConfiguration;
+import com.lavyoung.gateweave.engine.configuration.GatewaySecurityConfiguration;
+import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+import io.jsonwebtoken.Jwts;
+import io.netty.channel.EventLoopGroup;
+import org.apache.dubbo.config.utils.SimpleReferenceCache;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -18,28 +38,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-import io.jsonwebtoken.Jwts;
-import io.netty.channel.EventLoopGroup;
-import org.apache.dubbo.config.utils.SimpleReferenceCache;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import com.lavyoung.gateweave.engine.adapter.in.netty.NettyGatewayServer;
-import com.lavyoung.gateweave.engine.adapter.out.controlplane.GatewayNodeLifecycle;
-import com.lavyoung.gateweave.engine.configuration.GatewayEngineConfiguration;
-import com.lavyoung.gateweave.engine.configuration.GatewaySecurityConfiguration;
-import com.lavyoung.gateweave.engine.domain.route.GatewayRouteTable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -308,7 +306,7 @@ class GatewayHttpEndToEndTests {
                 .withPropertyValues("gateweave.server.host=127.0.0.1", "gateweave.server.port=" + gatewayPort,
                         "gateweave.server.max-content-length=1048576", "gateweave.server.boss-threads=1",
                         "gateweave.server.worker-threads=1", "gateweave.server.connection-backlog=128",
-                        "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort,
+                        "gateweave.control-plane.base-uri=http://127.0.0.1:" + controlPlanePort + "/api/v1",
                         "gateweave.control-plane.node-id=e2e-node", "gateweave.control-plane.gateway-group-id=default",
                         "gateweave.control-plane.node-name=E2E Gateway Node",
                         "gateweave.control-plane.advertised-address=http://127.0.0.1:" + gatewayPort,

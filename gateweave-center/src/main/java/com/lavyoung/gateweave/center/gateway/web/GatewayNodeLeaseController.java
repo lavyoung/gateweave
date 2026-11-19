@@ -4,13 +4,7 @@ import com.lavyoung.gateweave.center.gateway.application.ReleaseGatewayNodeLease
 import com.lavyoung.gateweave.center.gateway.application.RenewGatewayNodeLeaseUseCase;
 import com.lavyoung.gateweave.contract.gateway.GatewayNodeHeartbeatRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -26,7 +20,7 @@ import java.util.UUID;
  * @date 2026/11/09
  */
 @RestController
-@RequestMapping("/api/v1/gateway-nodes")
+@RequestMapping("/gateway-nodes")
 public class GatewayNodeLeaseController {
 
     private final RenewGatewayNodeLeaseUseCase renewGatewayNodeLeaseUseCase;

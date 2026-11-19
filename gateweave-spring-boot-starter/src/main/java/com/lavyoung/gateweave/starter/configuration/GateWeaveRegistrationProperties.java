@@ -14,7 +14,7 @@ import java.util.Objects;
  * <p>应用名称复用 {@code spring.application.name}，服务身份来自 {@code GateWeaveService}，
  * 因此这里只维护控制面地址和 HTTP 超时，不重复配置服务元数据。</p>
  *
- * @param baseUri        GateWeave 控制面 HTTP 根地址
+ * @param baseUri        GateWeave 控制面 HTTP API 根地址
  * @param connectTimeout 建立控制面连接的最长等待时间
  * @param requestTimeout 单次服务注册请求的最长等待时间
  * @author <a href="mailto:lavyoung1325@outlook.com">lavyoung</a>

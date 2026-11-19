@@ -37,8 +37,8 @@ class ControlPlaneHttpApiTests {
         server.start();
 
         try {
-            RestClient restClient =
-                    RestClient.builder().baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build();
+            RestClient restClient = RestClient.builder()
+                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/api/v1").build();
             ControlPlaneHttpApi httpApi =
                     HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build()
                             .createClient(ControlPlaneHttpApi.class);
@@ -75,8 +75,8 @@ class ControlPlaneHttpApiTests {
         server.start();
 
         try {
-            RestClient restClient =
-                    RestClient.builder().baseUrl("http://127.0.0.1:" + server.getAddress().getPort()).build();
+            RestClient restClient = RestClient.builder()
+                    .baseUrl("http://127.0.0.1:" + server.getAddress().getPort() + "/api/v1").build();
             ControlPlaneHttpApi httpApi =
                     HttpServiceProxyFactory.builderFor(RestClientAdapter.create(restClient)).build()
                             .createClient(ControlPlaneHttpApi.class);
