@@ -32,6 +32,7 @@ public class ControlPlaneWebConfiguration implements WebMvcConfigurer {
     private static final String[] ALLOWED_HEADERS = {HttpHeaders.ACCEPT,
             HttpHeaders.ACCEPT_LANGUAGE, HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE,
             RequestIdFilter.REQUEST_ID_HEADER};
+
     private final ControlPlaneWebProperties properties;
 
     /**
@@ -58,8 +59,11 @@ public class ControlPlaneWebConfiguration implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping(this.properties.apiPrefix() + "/**")
-                .allowedOrigins(this.properties.allowedOrigins().toArray(String[]::new)).allowedMethods(ALLOWED_METHODS)
-                .allowedHeaders(ALLOWED_HEADERS).exposedHeaders(RequestIdFilter.REQUEST_ID_HEADER)
-                .allowCredentials(false).maxAge(this.properties.corsMaxAge().toSeconds());
+                .allowedOrigins(this.properties.allowedOrigins().toArray(String[]::new))
+                .allowedMethods(ALLOWED_METHODS)
+                .allowedHeaders(ALLOWED_HEADERS)
+                .exposedHeaders(RequestIdFilter.REQUEST_ID_HEADER)
+                .allowCredentials(false)
+                .maxAge(this.properties.corsMaxAge().toSeconds());
     }
 }

@@ -1,10 +1,38 @@
-import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import {flushPromises, mount} from '@vue/test-utils'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import App from '@/App.vue'
 import router from '@/app/router'
+import {queryGatewayNodePage} from '@/features/gateway-node/gateway-node.api'
+
+vi.mock('@/features/gateway-node/gateway-node.api', () => ({
+  queryGatewayNodePage: vi.fn<(...arguments_: unknown[]) => Promise<unknown>>(),
+}))
+
+const queryGatewayNodePageMock = vi.mocked(queryGatewayNodePage)
 
 describe('App', () => {
+  beforeEach(() => {
+    queryGatewayNodePageMock.mockReset()
+    queryGatewayNodePageMock.mockResolvedValue({
+      nodes: [
+        {
+          nodeId: 'gateway-node-01',
+          gatewayGroupId: 'default',
+          nodeName: '默认网关节点',
+          advertisedAddress: 'http://127.0.0.1:7397',
+          status: 'ONLINE',
+          lastHeartbeatAt: '2026-11-19T08:00:00Z',
+          currentConfigVersion: 3,
+        },
+      ],
+      pageNumber: 1,
+      pageSize: 20,
+      totalElements: 1,
+      totalPages: 1,
+    })
+  })
+
   it('should redirect the root path to the dashboard', async () => {
     const wrapper = await mountApplication()
 
@@ -28,14 +56,14 @@ describe('App', () => {
     expect(button.text()).toBe('展开')
   })
 
-  it('should render gateway node fixtures through the gateway node route', async () => {
+  it('should render gateway node API data through the gateway node route', async () => {
     const wrapper = await mountApplication('/gateway-nodes')
 
     expect(router.currentRoute.value.path).toBe('/gateway-nodes')
     expect(wrapper.get('.gateway-node-page h2').text()).toBe('网关节点')
-    expect(wrapper.text()).toContain('gateweave-engine-01')
-    expect(wrapper.text()).toContain('默认网关节点二')
-    expect(wrapper.findAll('.el-tag').map((tag) => tag.text())).toEqual(['在线', '离线'])
+    expect(wrapper.text()).toContain('gateway-node-01')
+    expect(wrapper.text()).toContain('默认网关节点')
+    expect(wrapper.findAll('.el-tag').map((tag) => tag.text())).toEqual(['在线'])
   })
 
   it('should render the not-found page for an unknown path', async () => {
