@@ -1,14 +1,11 @@
 package com.lavyoung.gateweave.center.gateway.persistence;
 
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeHeartbeat;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeStatus;
+import com.lavyoung.gateweave.center.gateway.application.GatewayNodePageQuery;
+import com.lavyoung.gateweave.center.gateway.application.GatewayNodeQueryRepository;
+import com.lavyoung.gateweave.center.gateway.domain.*;
 import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
 import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.dao.DuplicateKeyException;
@@ -37,7 +34,7 @@ import java.util.UUID;
  * @date 2026/10/31
  */
 @Repository
-public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
+public class JdbcGatewayNodeRepository implements GatewayNodeRepository, GatewayNodeQueryRepository {
 
     private static final String UPDATE_NODE_SQL = """
             UPDATE gw_gateway_node
@@ -113,6 +110,29 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
               AND last_heartbeat_at <= :heartbeatDeadline
             """;
 
+    private static final String COUNT_MATCHING_NODES_SQL = """
+            SELECT COUNT(*)
+            FROM gw_gateway_node
+            WHERE 1 = 1
+            %s
+            """;
+
+    private static final String FIND_MATCHING_NODES_SQL = """
+            SELECT node_id,
+                   gateway_group_id,
+                   node_name,
+                   advertised_address,
+                   status,
+                   lease_id,
+                   last_heartbeat_at,
+                   current_config_version
+            FROM gw_gateway_node
+            WHERE 1 = 1
+            %s
+            ORDER BY id, node_id
+            LIMIT :limit OFFSET :offset
+            """;
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     /**
@@ -180,6 +200,29 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                         .addValue("offlineStatus", GatewayNodeStatus.OFFLINE.name())
                         .addValue("heartbeatDeadline", Timestamp.from(heartbeatDeadline));
         return this.jdbcTemplate.update(MARK_EXPIRED_LEASES_OFFLINE_SQL, parameterSource);
+    }
+
+    @Override
+    public long countMatching(GatewayNodePageQuery query) {
+        Objects.requireNonNull(query, "query must not be null");
+
+        String sql = COUNT_MATCHING_NODES_SQL.formatted(filterSql(query));
+        Long count = this.jdbcTemplate.queryForObject(sql, queryParameters(query), Long.class);
+        if (count == null) {
+            throw new DataRetrievalFailureException("Gateway node count query returned no result");
+        }
+        return count;
+    }
+
+    @Override
+    public List<GatewayNode> findMatchingPage(GatewayNodePageQuery query) {
+        Objects.requireNonNull(query, "query must not be null");
+
+        String sql = FIND_MATCHING_NODES_SQL.formatted(filterSql(query));
+        PageRequest pageRequest = query.pageRequest();
+        MapSqlParameterSource parameters = queryParameters(query).addValue("offset", pageRequest.offset())
+                .addValue("limit", pageRequest.pageSize());
+        return this.jdbcTemplate.query(sql, parameters, this::mapNode);
     }
 
     /**
@@ -280,4 +323,50 @@ public class JdbcGatewayNodeRepository implements GatewayNodeRepository {
                     exception);
         }
     }
+
+    /**
+     * 根据应用查询条件生成固定的参数化筛选片段。
+     *
+     * <p>该方法只拼接代码内确定的 SQL 片段，用户输入始终通过命名参数绑定，
+     * 不会直接进入 SQL 文本。</p>
+     *
+     * @param query 网关节点分页查询条件
+     * @return 参数化 SQL 筛选片段
+     */
+    private String filterSql(GatewayNodePageQuery query) {
+        StringBuilder sql = new StringBuilder();
+
+        if (!query.nodeId().isEmpty()) {
+            sql.append("AND node_id = :nodeId\n");
+        }
+        if (!query.gatewayGroupId().isEmpty()) {
+            sql.append("AND gateway_group_id = :gatewayGroupId\n");
+        }
+        if (!query.statuses().isEmpty()) {
+            sql.append("AND status IN (:statuses)\n");
+        }
+        return sql.toString();
+    }
+
+    /**
+     * 创建与筛选 SQL 对应的命名参数。
+     *
+     * @param query 网关节点分页查询条件
+     * @return JDBC 命名参数
+     */
+    private MapSqlParameterSource queryParameters(GatewayNodePageQuery query) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource();
+
+        if (!query.nodeId().isEmpty()) {
+            parameters.addValue("nodeId", query.nodeId());
+        }
+        if (!query.gatewayGroupId().isEmpty()) {
+            parameters.addValue("gatewayGroupId", query.gatewayGroupId());
+        }
+        if (!query.statuses().isEmpty()) {
+            parameters.addValue("statuses", query.statuses().stream().map(GatewayNodeStatus::name).toList());
+        }
+        return parameters;
+    }
+
 }

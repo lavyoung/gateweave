@@ -1,32 +1,25 @@
 package com.lavyoung.gateweave.center.gateway.persistence;
 
-import java.net.URI;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
+import com.lavyoung.gateweave.center.GateWeaveCenterApplication;
+import com.lavyoung.gateweave.center.gateway.application.GatewayNodePageQuery;
+import com.lavyoung.gateweave.center.gateway.domain.*;
+import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
+import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import com.lavyoung.gateweave.center.GateWeaveCenterApplication;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeHeartbeat;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeStatus;
-import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayGroupNotFoundException;
-import com.lavyoung.gateweave.center.gateway.domain.exception.GatewayNodeAddressConflictException;
+import java.net.URI;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -334,6 +327,85 @@ class JdbcGatewayNodeRepositoryTests {
         // When & Then
         assertThatThrownBy(() -> this.repository.markExpiredLeasesOffline(null)).isInstanceOf(
                 NullPointerException.class).hasMessage("heartbeatDeadline must not be null");
+    }
+
+    @Test
+    void shouldCountAndLoadRequestedNodePageInStableOrder() {
+        // Given
+        GatewayNode firstNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        GatewayNode secondNode = node("node-2", "Gateway Node 2", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
+        GatewayNode thirdNode = node("node-3", "Gateway Node 3", "http://127.0.0.1:8083", THIRD_HEARTBEAT);
+        List.of(firstNode, secondNode, thirdNode).forEach(this.repository::registerOrRefresh);
+        GatewayNodePageQuery query = new GatewayNodePageQuery("", "", Set.of(), new PageRequest(2, 2));
+
+        // When
+        long count = this.repository.countMatching(query);
+        List<GatewayNode> nodes = this.repository.findMatchingPage(query);
+
+        // Then
+        assertThat(count).isEqualTo(3);
+        assertThat(nodes).extracting(node -> node.registration().nodeId()).containsExactly("node-3");
+    }
+
+    @Test
+    void shouldApplyNodeGroupAndStatusFilters() {
+        // Given
+        GatewayNode onlineNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        GatewayNode offlineNode = node("node-2", "Gateway Node 2", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
+        List.of(onlineNode, offlineNode).forEach(this.repository::registerOrRefresh);
+        this.jdbcTemplate.update("UPDATE gw_gateway_node SET status = 'OFFLINE' WHERE node_id = 'node-2'");
+        GatewayNodePageQuery query = new GatewayNodePageQuery("node-2", "default",
+                Set.of(GatewayNodeStatus.OFFLINE), new PageRequest(1, 20));
+
+        // When
+        long count = this.repository.countMatching(query);
+        List<GatewayNode> nodes = this.repository.findMatchingPage(query);
+
+        // Then
+        assertThat(count).isEqualTo(1);
+        assertThat(nodes).singleElement().satisfies(node -> {
+            assertThat(node.registration().nodeId()).isEqualTo("node-2");
+            assertThat(node.registration().gatewayGroupId()).isEqualTo("default");
+            assertThat(node.status()).isEqualTo(GatewayNodeStatus.OFFLINE);
+        });
+    }
+
+    @Test
+    void shouldMatchAnyRequestedStatus() {
+        // Given
+        GatewayNode onlineNode = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        GatewayNode offlineNode = node("node-2", "Gateway Node 2", "http://127.0.0.1:8082", SECOND_HEARTBEAT);
+        List.of(onlineNode, offlineNode).forEach(this.repository::registerOrRefresh);
+        this.jdbcTemplate.update("UPDATE gw_gateway_node SET status = 'OFFLINE' WHERE node_id = 'node-2'");
+        GatewayNodePageQuery query = new GatewayNodePageQuery("", "default",
+                Set.of(GatewayNodeStatus.ONLINE, GatewayNodeStatus.OFFLINE), new PageRequest(1, 20));
+
+        // When & Then
+        assertThat(this.repository.countMatching(query)).isEqualTo(2);
+        assertThat(this.repository.findMatchingPage(query)).extracting(node -> node.registration().nodeId())
+                .containsExactly("node-1", "node-2");
+    }
+
+    @Test
+    void shouldBindNodeIdInsteadOfInterpolatingItIntoSql() {
+        // Given
+        GatewayNode node = node("node-1", "Gateway Node 1", "http://127.0.0.1:8081", FIRST_HEARTBEAT);
+        this.repository.registerOrRefresh(node);
+        GatewayNodePageQuery query =
+                new GatewayNodePageQuery("node-1' OR 1 = 1 --", "", Set.of(), new PageRequest(1, 20));
+
+        // When & Then
+        assertThat(this.repository.countMatching(query)).isZero();
+        assertThat(this.repository.findMatchingPage(query)).isEmpty();
+    }
+
+    @Test
+    void shouldRejectMissingNodePageQuery() {
+        // When & Then
+        assertThatThrownBy(() -> this.repository.countMatching(null)).isInstanceOf(NullPointerException.class)
+                .hasMessage("query must not be null");
+        assertThatThrownBy(() -> this.repository.findMatchingPage(null)).isInstanceOf(NullPointerException.class)
+                .hasMessage("query must not be null");
     }
 
     private CompletableFuture<GatewayNodeRegistrationResult> registerAsync(GatewayNode node, ExecutorService executor,

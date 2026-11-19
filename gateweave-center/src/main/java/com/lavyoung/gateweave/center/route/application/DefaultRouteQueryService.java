@@ -1,10 +1,12 @@
 package com.lavyoung.gateweave.center.route.application;
 
-import java.util.List;
-import java.util.Objects;
-
 import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
 import com.lavyoung.gateweave.center.route.domain.RouteDefinitionRepository;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 编排控制面路由分页查询。
@@ -32,14 +34,15 @@ public class DefaultRouteQueryService implements QueryRoutePageUseCase {
 
 
     @Override
-    public RoutePage query(RoutePageQuery query) {
+    public PageResult<RouteDefinition> query(RoutePageQuery query) {
         Objects.requireNonNull(query, "query must not be null");
+        PageRequest pageRequest = query.pageRequest();
         long count = this.routeRepository.countByGatewayGroupId(query.gatewayGroupId());
         if (count == 0) {
-            return new RoutePage(List.of(), query.pageNumber(), query.pageSize(), 0);
+            return new PageResult<>(List.of(), pageRequest, 0);
         }
-        List<RouteDefinition> routes =
-                this.routeRepository.findPageByGatewayGroupId(query.gatewayGroupId(), query.offset(), query.pageSize());
-        return new RoutePage(routes, query.pageNumber(), query.pageSize(), count);
+        List<RouteDefinition> routes = this.routeRepository.findPageByGatewayGroupId(query.gatewayGroupId(),
+                pageRequest.offset(), pageRequest.pageSize());
+        return new PageResult<>(routes, pageRequest, count);
     }
 }

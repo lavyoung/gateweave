@@ -1,12 +1,13 @@
 package com.lavyoung.gateweave.center.route.web.response;
 
+import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
+import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import com.lavyoung.gateweave.center.route.application.RoutePage;
-import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
-import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
 
 /**
  * 表示管理 API 返回的路由分页数据。
@@ -23,7 +24,7 @@ import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
  * @date 2026/10/30
  */
 public record RoutePageResponse(List<RouteResponse> routes, int pageNumber, int pageSize, long totalElements,
-                                long totalPages) {
+        long totalPages) {
 
     /**
      * 建立响应集合的不可变快照。
@@ -41,11 +42,12 @@ public record RoutePageResponse(List<RouteResponse> routes, int pageNumber, int 
      * @return HTTP 路由分页响应
      * @throws NullPointerException page 为 null 时抛出
      */
-    public static RoutePageResponse from(RoutePage page) {
+    public static RoutePageResponse from(PageResult<RouteDefinition> page) {
         Objects.requireNonNull(page, "page must not be null");
 
-        List<RouteResponse> routes = page.routes().stream().map(RouteResponse::from).toList();
-        return new RoutePageResponse(routes, page.pageNumber(), page.pageSize(), page.totalElements(),
+        PageRequest pageRequest = page.pageRequest();
+        List<RouteResponse> routes = page.content().stream().map(RouteResponse::from).toList();
+        return new RoutePageResponse(routes, pageRequest.pageNumber(), pageRequest.pageSize(), page.totalElements(),
                 page.totalPages());
     }
 

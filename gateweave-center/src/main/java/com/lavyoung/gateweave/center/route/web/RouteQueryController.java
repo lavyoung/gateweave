@@ -1,26 +1,20 @@
 package com.lavyoung.gateweave.center.route.web;
 
-import java.util.List;
-import java.util.Objects;
-
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
 import com.lavyoung.gateweave.center.route.application.GatewayRouteConfigurationQuery;
 import com.lavyoung.gateweave.center.route.application.QueryRoutePageUseCase;
-import com.lavyoung.gateweave.center.route.application.RoutePage;
 import com.lavyoung.gateweave.center.route.application.RoutePageQuery;
+import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
 import com.lavyoung.gateweave.center.route.web.response.RoutePageResponse;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
 import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import com.lavyoung.gateweave.contract.web.Result;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 提供控制面路由分页查询管理 API。
@@ -67,10 +61,10 @@ public class RouteQueryController {
      */
     @GetMapping
     public Result<RoutePageResponse> query(@PathVariable("gatewayGroupId") @NotBlank String gatewayGroupId,
-            @RequestParam(name = "pageNumber", defaultValue = "1") @Min(1) int pageNumber,
-            @RequestParam(name = "pageSize", defaultValue = "20") @Min(1) @Max(100) int pageSize) {
-        RoutePageQuery query = new RoutePageQuery(gatewayGroupId, pageNumber, pageSize);
-        RoutePage page = this.queryRoutePageUseCase.query(query);
+            @RequestParam(name = "pageNumber", defaultValue = "1") int pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = "20") int pageSize) {
+        RoutePageQuery query = new RoutePageQuery(gatewayGroupId, new PageRequest(pageNumber, pageSize));
+        PageResult<RouteDefinition> page = this.queryRoutePageUseCase.query(query);
         return this.resultFactory.success(RoutePageResponse.from(page));
     }
 

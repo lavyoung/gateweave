@@ -1,16 +1,16 @@
 package com.lavyoung.gateweave.center.route.web.response;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.jupiter.api.Test;
-
-import com.lavyoung.gateweave.center.route.application.RoutePage;
 import com.lavyoung.gateweave.center.route.domain.RouteAuthenticationRequirement;
 import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
 import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
 import com.lavyoung.gateweave.center.route.domain.RouteStatus;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,7 +24,7 @@ class RoutePageResponseTests {
                 RouteAuthenticationRequirement.REQUIRED, Duration.ofMillis(2500), Map.of("version", "1.0.0"),
                 Map.of("source", "center"), RouteStatus.ENABLED, 3L,
                 List.of(new RouteParameterMapping(0, "name"), new RouteParameterMapping(1, "age")));
-        RoutePage page = new RoutePage(List.of(route), 2, 10, 11);
+        PageResult<RouteDefinition> page = new PageResult<>(List.of(route), new PageRequest(2, 10), 11);
 
         // When
         RoutePageResponse response = RoutePageResponse.from(page);
@@ -57,7 +57,7 @@ class RoutePageResponseTests {
     @Test
     void shouldConvertEmptyApplicationPage() {
         // Given
-        RoutePage page = new RoutePage(List.of(), 1, 20, 0);
+        PageResult<RouteDefinition> page = new PageResult<>(List.of(), new PageRequest(1, 20), 0);
 
         // When
         RoutePageResponse response = RoutePageResponse.from(page);

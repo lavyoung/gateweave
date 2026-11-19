@@ -1,9 +1,21 @@
 package com.lavyoung.gateweave.center.route.web;
 
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-
+import com.lavyoung.gateweave.center.route.application.GatewayRouteConfigurationQuery;
+import com.lavyoung.gateweave.center.route.application.QueryRoutePageUseCase;
+import com.lavyoung.gateweave.center.route.application.RoutePageQuery;
+import com.lavyoung.gateweave.center.route.domain.RouteAuthenticationRequirement;
+import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
+import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
+import com.lavyoung.gateweave.center.route.domain.RouteStatus;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+import com.lavyoung.gateweave.center.web.GlobalExceptionHandler;
+import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
+import com.lavyoung.gateweave.center.web.RequestIdFilter;
+import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
+import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
+import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
+import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -14,34 +26,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.lavyoung.gateweave.center.web.GlobalExceptionHandler;
-import com.lavyoung.gateweave.center.web.LocalizedResultFactory;
-import com.lavyoung.gateweave.center.web.RequestIdFilter;
-import com.lavyoung.gateweave.center.route.application.GatewayRouteConfigurationQuery;
-import com.lavyoung.gateweave.center.route.application.QueryRoutePageUseCase;
-import com.lavyoung.gateweave.center.route.application.RoutePage;
-import com.lavyoung.gateweave.center.route.application.RoutePageQuery;
-import com.lavyoung.gateweave.center.route.domain.RouteAuthenticationRequirement;
-import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
-import com.lavyoung.gateweave.center.route.domain.RouteParameterMapping;
-import com.lavyoung.gateweave.center.route.domain.RouteStatus;
-import com.lavyoung.gateweave.contract.configuration.InvocationParameterConfiguration;
-import com.lavyoung.gateweave.contract.configuration.InvocationTargetConfiguration;
-import com.lavyoung.gateweave.contract.configuration.RouteAuthenticationMode;
-import com.lavyoung.gateweave.contract.configuration.RouteConfiguration;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RouteQueryController.class)
 @MockBean(QueryRoutePageUseCase.class)
@@ -73,7 +67,7 @@ class RouteQueryControllerTests {
         // Given
         RouteDefinition route = route();
         when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class))).thenReturn(
-                new RoutePage(List.of(route), 1, 20, 1));
+                new PageResult<>(List.of(route), new PageRequest(1, 20), 1));
 
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/default/routes")).andExpect(status().isOk())
@@ -87,13 +81,14 @@ class RouteQueryControllerTests {
 
         ArgumentCaptor<RoutePageQuery> queryCaptor = ArgumentCaptor.forClass(RoutePageQuery.class);
         verify(this.queryRoutePageUseCase).query(queryCaptor.capture());
-        assertThat(queryCaptor.getValue()).isEqualTo(new RoutePageQuery("default", 1, 20));
+        assertThat(queryCaptor.getValue()).isEqualTo(new RoutePageQuery("default", new PageRequest(1, 20)));
     }
 
     @Test
     void shouldQueryRoutesWithRequestedPagination() throws Exception {
         // Given
-        when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class))).thenReturn(new RoutePage(List.of(), 2, 5, 6));
+        when(this.queryRoutePageUseCase.query(any(RoutePageQuery.class))).thenReturn(
+                new PageResult<>(List.of(), new PageRequest(2, 5), 6));
 
         // When & Then
         this.mockMvc.perform(get("/api/v1/gateway-groups/test/routes").param("pageNumber", "2").param("pageSize", "5"))
@@ -101,7 +96,7 @@ class RouteQueryControllerTests {
                 .andExpect(jsonPath("$.data.pageNumber").value(2)).andExpect(jsonPath("$.data.pageSize").value(5))
                 .andExpect(jsonPath("$.data.totalElements").value(6)).andExpect(jsonPath("$.data.totalPages").value(2));
 
-        verify(this.queryRoutePageUseCase).query(new RoutePageQuery("test", 2, 5));
+        verify(this.queryRoutePageUseCase).query(new RoutePageQuery("test", new PageRequest(2, 5)));
     }
 
     @Test

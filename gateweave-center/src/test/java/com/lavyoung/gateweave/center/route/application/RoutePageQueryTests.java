@@ -1,5 +1,6 @@
 package com.lavyoung.gateweave.center.route.application;
 
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -8,42 +9,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RoutePageQueryTests {
 
     @Test
-    void shouldCalculateOffsetFromOneBasedPageNumber() {
+    void shouldPreserveGatewayGroupAndPagination() {
         // Given
-        RoutePageQuery firstPage = new RoutePageQuery("default", 1, 20);
-        RoutePageQuery thirdPage = new RoutePageQuery("default", 3, 20);
+        PageRequest pageRequest = new PageRequest(3, 20);
 
-        // When & Then
-        assertThat(firstPage.offset()).isZero();
-        assertThat(thirdPage.offset()).isEqualTo(40L);
-    }
-
-    @Test
-    void shouldAcceptMaximumPageSize() {
         // When
-        RoutePageQuery query = new RoutePageQuery("default", 1, 100);
+        RoutePageQuery query = new RoutePageQuery("default", pageRequest);
 
         // Then
-        assertThat(query.pageSize()).isEqualTo(100);
+        assertThat(query.gatewayGroupId()).isEqualTo("default");
+        assertThat(query.pageRequest()).isSameAs(pageRequest);
     }
 
     @Test
     void shouldRejectMissingGatewayGroup() {
         // When & Then
-        assertThatThrownBy(() -> new RoutePageQuery(null, 1, 20)).isInstanceOf(NullPointerException.class)
-                .hasMessage("gatewayGroupId must not be null");
-        assertThatThrownBy(() -> new RoutePageQuery(" ", 1, 20)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("gatewayGroupId must not be blank");
-    }
+        PageRequest pageRequest = new PageRequest(1, 20);
 
-    @Test
-    void shouldRejectInvalidPagination() {
-        // When & Then
-        assertThatThrownBy(() -> new RoutePageQuery("default", 0, 20)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("pageNumber must be greater than zero");
-        assertThatThrownBy(() -> new RoutePageQuery("default", 1, 0)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("pageSize must be between 1 and 100");
-        assertThatThrownBy(() -> new RoutePageQuery("default", 1, 101)).isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("pageSize must be between 1 and 100");
+        assertThatThrownBy(() -> new RoutePageQuery(null, pageRequest)).isInstanceOf(NullPointerException.class)
+                .hasMessage("gatewayGroupId must not be null");
+        assertThatThrownBy(() -> new RoutePageQuery(" ", pageRequest)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("gatewayGroupId must not be blank");
+        assertThatThrownBy(() -> new RoutePageQuery("default", null)).isInstanceOf(NullPointerException.class)
+                .hasMessage("pageRequest must not be null");
     }
 }

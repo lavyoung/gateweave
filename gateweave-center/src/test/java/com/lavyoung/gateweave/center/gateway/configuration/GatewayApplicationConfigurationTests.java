@@ -1,37 +1,30 @@
 package com.lavyoung.gateweave.center.gateway.configuration;
 
+import com.lavyoung.gateweave.center.configuration.ControlPlaneClockConfiguration;
+import com.lavyoung.gateweave.center.configuration.ControlPlaneSchedulingConfiguration;
+import com.lavyoung.gateweave.center.gateway.application.*;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeLeaseService;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeQueryService;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
+import com.lavyoung.gateweave.center.gateway.domain.*;
+import com.lavyoung.gateweave.center.shared.pagination.PageRequest;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
-
-import com.lavyoung.gateweave.center.configuration.ControlPlaneClockConfiguration;
-import com.lavyoung.gateweave.center.configuration.ControlPlaneSchedulingConfiguration;
-import com.lavyoung.gateweave.center.gateway.application.ExpireGatewayNodeLeasesUseCase;
-import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
-import com.lavyoung.gateweave.center.gateway.application.ReleaseGatewayNodeLeaseUseCase;
-import com.lavyoung.gateweave.center.gateway.application.RenewGatewayNodeLeaseUseCase;
-import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeLeaseService;
-import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNode;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistration;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationOutcome;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRegistrationResult;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeStatus;
-import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class GatewayApplicationConfigurationTests {
 
@@ -39,6 +32,7 @@ class GatewayApplicationConfigurationTests {
     void shouldAssembleGatewayUseCasesWithUtcClock() {
         // Given
         GatewayNodeRepository repository = mock(GatewayNodeRepository.class);
+        GatewayNodeQueryRepository queryRepository = mock(GatewayNodeQueryRepository.class);
         when(repository.registerOrRefresh(any(GatewayNode.class))).thenAnswer(invocation -> {
             GatewayNode node = invocation.getArgument(0);
             return new GatewayNodeRegistrationResult(node, GatewayNodeRegistrationOutcome.REGISTERED);
@@ -50,6 +44,7 @@ class GatewayApplicationConfigurationTests {
                 new ApplicationContextRunner().withUserConfiguration(ControlPlaneClockConfiguration.class,
                                 ControlPlaneSchedulingConfiguration.class, GatewayApplicationConfiguration.class)
                         .withBean(GatewayNodeRepository.class, () -> repository)
+                        .withBean(GatewayNodeQueryRepository.class, () -> queryRepository)
                         .withPropertyValues("gateweave.gateway-node.lease.heartbeat-interval=15s",
                                 "gateweave.gateway-node.lease.lease-timeout=45s",
                                 "gateweave.gateway-node.lease.expiration-scan-interval=1h");
@@ -58,6 +53,7 @@ class GatewayApplicationConfigurationTests {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(Clock.class);
             assertThat(context).hasSingleBean(RegisterGatewayNodeUseCase.class);
+            assertThat(context).hasSingleBean(QueryGatewayNodePageUseCase.class);
             assertThat(context).hasSingleBean(RenewGatewayNodeLeaseUseCase.class);
             assertThat(context).hasSingleBean(ExpireGatewayNodeLeasesUseCase.class);
             assertThat(context).hasSingleBean(ReleaseGatewayNodeLeaseUseCase.class);
@@ -89,6 +85,15 @@ class GatewayApplicationConfigurationTests {
             assertThat(result.node().status()).isEqualTo(GatewayNodeStatus.ONLINE);
             assertThat(result.node().lastHeartbeatAt()).isBetween(beforeRegistration, afterRegistration);
             assertThat(result.node().currentConfigVersion()).isZero();
+
+            QueryGatewayNodePageUseCase queryUseCase = context.getBean(QueryGatewayNodePageUseCase.class);
+            assertThat(queryUseCase).isInstanceOf(DefaultGatewayNodeQueryService.class);
+            GatewayNodePageQuery query =
+                    new GatewayNodePageQuery("", "", Set.of(), new PageRequest(1, 20));
+            PageResult<GatewayNode> page = queryUseCase.query(query);
+            assertThat(page.content()).isEmpty();
+            assertThat(page.totalElements()).isZero();
+            verify(queryRepository).countMatching(query);
 
             RenewGatewayNodeLeaseUseCase leaseUseCase = context.getBean(RenewGatewayNodeLeaseUseCase.class);
             ExpireGatewayNodeLeasesUseCase expirationUseCase = context.getBean(ExpireGatewayNodeLeasesUseCase.class);

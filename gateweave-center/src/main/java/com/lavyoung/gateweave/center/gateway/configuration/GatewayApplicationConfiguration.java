@@ -1,8 +1,11 @@
 package com.lavyoung.gateweave.center.gateway.configuration;
 
 import com.lavyoung.gateweave.center.gateway.application.ExpireGatewayNodeLeasesUseCase;
+import com.lavyoung.gateweave.center.gateway.application.GatewayNodeQueryRepository;
+import com.lavyoung.gateweave.center.gateway.application.QueryGatewayNodePageUseCase;
 import com.lavyoung.gateweave.center.gateway.application.RegisterGatewayNodeUseCase;
 import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeLeaseService;
+import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeQueryService;
 import com.lavyoung.gateweave.center.gateway.application.service.DefaultGatewayNodeRegistrationService;
 import com.lavyoung.gateweave.center.gateway.domain.GatewayNodeRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -70,5 +73,16 @@ public class GatewayApplicationConfiguration {
             GatewayNodeLeaseProperties leaseProperties) {
         return new GatewayNodeLeaseExpirationScheduler(expireGatewayNodeLeasesUseCase, taskScheduler,
                 leaseProperties.expirationScanInterval());
+    }
+
+    /**
+     * 创建网关节点分页查询用例。
+     *
+     * @param queryRepository 网关节点查询持久化端口
+     * @return 网关节点分页查询用例
+     */
+    @Bean
+    public QueryGatewayNodePageUseCase queryGatewayNodePageUseCase(GatewayNodeQueryRepository queryRepository) {
+        return new DefaultGatewayNodeQueryService(queryRepository);
     }
 }

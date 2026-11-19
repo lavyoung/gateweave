@@ -1,5 +1,8 @@
 package com.lavyoung.gateweave.center.route.application;
 
+import com.lavyoung.gateweave.center.route.domain.RouteDefinition;
+import com.lavyoung.gateweave.center.shared.pagination.PageResult;
+
 /**
  * 定义分页查询控制面路由的入站用例。
  *
@@ -20,5 +23,5 @@ public interface QueryRoutePageUseCase {
      * @return 路由分页结果
      * @throws NullPointerException query 为 null 时抛出
      */
-    RoutePage query(RoutePageQuery query);
+    PageResult<RouteDefinition> query(RoutePageQuery query);
 }
