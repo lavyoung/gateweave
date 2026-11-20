@@ -2,7 +2,7 @@ import {flushPromises, mount} from '@vue/test-utils'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 import {queryGatewayNodePage} from '@/features/gateway-node/gateway-node.api'
-import type {GatewayNodePage} from '@/features/gateway-node/gateway-node.model'
+import type {GatewayNodePage, GatewayNodePageQuery} from '@/features/gateway-node/gateway-node.model'
 import GatewayNodeListView from '@/features/gateway-node/GatewayNodeListView.vue'
 import {ApiRequestError} from '@/shared/http/center-api-client'
 
@@ -23,7 +23,7 @@ describe('GatewayNodeListView', () => {
     const wrapper = mount(GatewayNodeListView)
     await flushPromises()
 
-    expect(queryGatewayNodePageMock).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 20 })
+    expect(queryGatewayNodePageMock).toHaveBeenCalledWith(gatewayNodeQuery())
     expect(wrapper.text()).toContain('gateway-node-01')
     expect(wrapper.text()).toContain('默认网关节点')
     expect(wrapper.text()).toContain('在线')
@@ -61,7 +61,7 @@ describe('GatewayNodeListView', () => {
     wrapper.getComponent({ name: 'ElPagination' }).vm.$emit('current-change', 2)
     await flushPromises()
 
-    expect(queryGatewayNodePageMock).toHaveBeenNthCalledWith(2, { pageNumber: 2, pageSize: 20 })
+    expect(queryGatewayNodePageMock).toHaveBeenNthCalledWith(2, gatewayNodeQuery({ pageNumber: 2 }))
   })
 
   it('should return to the first page after changing the page size', async () => {
@@ -74,9 +74,72 @@ describe('GatewayNodeListView', () => {
     wrapper.getComponent({ name: 'ElPagination' }).vm.$emit('size-change', 50)
     await flushPromises()
 
-    expect(queryGatewayNodePageMock).toHaveBeenNthCalledWith(2, { pageNumber: 1, pageSize: 50 })
+    expect(queryGatewayNodePageMock).toHaveBeenNthCalledWith(2, gatewayNodeQuery({ pageSize: 50 }))
+  })
+
+  it('should apply filters from the first page and keep the active snapshot while paging', async () => {
+    queryGatewayNodePageMock.mockResolvedValue(gatewayNodePage())
+    const wrapper = mount(GatewayNodeListView)
+    await flushPromises()
+
+    const inputs = wrapper.findAll('.filter-card .el-input__inner')
+    await inputs[0]!.setValue(' node-01 ')
+    await inputs[1]!.setValue(' default ')
+    wrapper.getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', ['ONLINE'])
+    await wrapper.get('.filter-card .el-form').trigger('submit')
+    await flushPromises()
+
+    expect(queryGatewayNodePageMock).toHaveBeenNthCalledWith(
+      2,
+      gatewayNodeQuery({ nodeId: ' node-01 ', gatewayGroupId: ' default ', statuses: ['ONLINE'] }),
+    )
+
+    await inputs[0]!.setValue('node-02')
+    wrapper.getComponent({ name: 'ElPagination' }).vm.$emit('current-change', 2)
+    await flushPromises()
+
+    expect(queryGatewayNodePageMock).toHaveBeenNthCalledWith(
+      3,
+      gatewayNodeQuery({
+        nodeId: ' node-01 ',
+        gatewayGroupId: ' default ',
+        statuses: ['ONLINE'],
+        pageNumber: 2,
+      }),
+    )
+  })
+
+  it('should clear filters and query the first page after reset', async () => {
+    queryGatewayNodePageMock.mockResolvedValue(gatewayNodePage())
+    const wrapper = mount(GatewayNodeListView)
+    await flushPromises()
+
+    const inputs = wrapper.findAll('.filter-card .el-input__inner')
+    await inputs[0]!.setValue('node-01')
+    wrapper.getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', ['OFFLINE'])
+    await wrapper.get('.filter-card .el-form').trigger('submit')
+    await flushPromises()
+
+    const resetButton = wrapper.findAll('.filter-card button').find((button) => button.text() === '重置')
+    expect(resetButton).toBeDefined()
+    await resetButton!.trigger('click')
+    await flushPromises()
+
+    expect(queryGatewayNodePageMock).toHaveBeenLastCalledWith(gatewayNodeQuery())
+    expect(inputs[0]!.element).toHaveProperty('value', '')
   })
 })
+
+function gatewayNodeQuery(overrides: Partial<GatewayNodePageQuery> = {}): GatewayNodePageQuery {
+  return {
+    nodeId: '',
+    gatewayGroupId: '',
+    statuses: [],
+    pageNumber: 1,
+    pageSize: 20,
+    ...overrides,
+  }
+}
 
 function gatewayNodePage(overrides: Partial<GatewayNodePage> = {}): GatewayNodePage {
   return {

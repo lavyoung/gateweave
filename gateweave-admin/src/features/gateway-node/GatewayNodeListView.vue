@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, ref} from 'vue'
+import {onMounted, reactive, ref} from 'vue'
 
 import {queryGatewayNodePage} from '@/features/gateway-node/gateway-node.api'
 import type {GatewayNode, GatewayNodeStatus} from '@/features/gateway-node/gateway-node.model'
@@ -7,6 +7,14 @@ import {ApiRequestError} from '@/shared/http/center-api-client'
 
 const DEFAULT_PAGE_SIZE = 20
 
+interface GatewayNodeFilters {
+  nodeId: string
+  gatewayGroupId: string
+  statuses: GatewayNodeStatus[]
+}
+
+const filterForm = reactive<GatewayNodeFilters>(createEmptyFilters())
+const activeFilters = ref<GatewayNodeFilters>(createEmptyFilters())
 const nodes = ref<GatewayNode[]>([])
 const loading = ref(false)
 const errorMessage = ref('')
@@ -24,6 +32,8 @@ const statusPresentations = {
     type: 'info',
   },
 } satisfies Record<GatewayNodeStatus, { label: string; type: 'success' | 'info' }>
+
+const statusOptions: readonly GatewayNodeStatus[] = ['ONLINE', 'OFFLINE']
 
 const heartbeatFormatter = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
@@ -44,6 +54,9 @@ async function loadGatewayNodes(): Promise<void> {
 
   try {
     const page = await queryGatewayNodePage({
+      nodeId: activeFilters.value.nodeId,
+      gatewayGroupId: activeFilters.value.gatewayGroupId,
+      statuses: activeFilters.value.statuses,
       pageNumber: pageNumber.value,
       pageSize: pageSize.value,
     })
@@ -59,6 +72,29 @@ async function loadGatewayNodes(): Promise<void> {
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * 应用当前筛选条件，并从第一页重新查询。
+ */
+function searchGatewayNodes(): void {
+  activeFilters.value = {
+    nodeId: filterForm.nodeId,
+    gatewayGroupId: filterForm.gatewayGroupId,
+    statuses: [...filterForm.statuses],
+  }
+  pageNumber.value = 1
+  void loadGatewayNodes()
+}
+
+/**
+ * 清空筛选条件，并重新查询第一页。
+ */
+function resetGatewayNodeFilters(): void {
+  Object.assign(filterForm, createEmptyFilters())
+  activeFilters.value = createEmptyFilters()
+  pageNumber.value = 1
+  void loadGatewayNodes()
 }
 
 /**
@@ -101,6 +137,14 @@ function resolveErrorMessage(error: unknown): string {
 
   return error.message
 }
+
+function createEmptyFilters(): GatewayNodeFilters {
+  return {
+    nodeId: '',
+    gatewayGroupId: '',
+    statuses: [],
+  }
+}
 </script>
 
 <template>
@@ -113,6 +157,41 @@ function resolveErrorMessage(error: unknown): string {
 
       <el-button aria-label="刷新网关节点" :loading="loading" @click="loadGatewayNodes"> 刷新 </el-button>
     </header>
+
+    <el-card class="filter-card" shadow="never">
+      <el-form :inline="true" @submit.prevent="searchGatewayNodes">
+        <el-form-item label="节点标识">
+          <el-input v-model="filterForm.nodeId" placeholder="请输入节点标识" clearable />
+        </el-form-item>
+
+        <el-form-item label="网关分组">
+          <el-input v-model="filterForm.gatewayGroupId" placeholder="请输入网关分组" clearable />
+        </el-form-item>
+
+        <el-form-item label="节点状态">
+          <el-select
+            v-model="filterForm.statuses"
+            class="status-filter"
+            placeholder="全部状态"
+            multiple
+            clearable
+            collapse-tags
+          >
+            <el-option
+              v-for="status in statusOptions"
+              :key="status"
+              :label="statusPresentation(status).label"
+              :value="status"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item>
+          <el-button native-type="submit" type="primary" :loading="loading">查询</el-button>
+          <el-button :disabled="loading" @click="resetGatewayNodeFilters">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
 
     <el-alert v-if="errorMessage" class="load-error" :title="errorMessage" type="error" show-icon :closable="false" />
 
@@ -191,6 +270,22 @@ function resolveErrorMessage(error: unknown): string {
 
 .load-error {
   flex: none;
+}
+
+.filter-card :deep(.el-card__body) {
+  padding-bottom: 2px;
+}
+
+.filter-card :deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+.filter-card :deep(.el-input) {
+  width: 220px;
+}
+
+.status-filter {
+  width: 220px;
 }
 
 .node-card :deep(.el-card__body) {
